@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ninimum.api.address.service.AddressMapper">
+
+    <select id="getAddressList"
+            parameterType="com.ninimum.api.param.AddressListParam"
+            resultType="com.ninimum.api.dto.AddressDto">
+        SELECT
+        address_id AS addressId,
+        user_id AS userId,
+        receiver_name AS receiverName,
+        receiver_phone AS receiverPhone,
+        address AS address,
+        detail_address AS detailAddress,
+        default_yn AS defaultYn
+        FROM user_addresses
+        WHERE user_id = #{userId}
+        ORDER BY default_yn DESC, address_id DESC
+    </select>
+
+    <update id="resetDefaultAddress"
+            parameterType="java.lang.Long">
+        UPDATE user_addresses
+        SET
+        default_yn = 'N',
+        updated_at = NOW()
+        WHERE user_id = #{userId}
+    </update>
+
+    <insert id="addAddress"
+            parameterType="com.ninimum.api.param.AddAddressParam">
+        INSERT INTO user_addresses
+        (
+        user_id,
+        receiver_name,
+        receiver_phone,
+        address,
+        detail_address,
+        default_yn,
+        created_at
+        )
+        VALUES
+        (
+        #{userId},
+        #{receiverName},
+        #{receiverPhone},
+        #{address},
+        #{detailAddress},
+        #{defaultYn},
+        NOW()
+        )
+    </insert>
+
+    <update id="updateAddress"
+            parameterType="com.ninimum.api.param.UpdateAddressParam">
+        UPDATE user_addresses
+        SET
+        receiver_name = #{receiverName},
+        receiver_phone = #{receiverPhone},
+        address = #{address},
+        detail_address = #{detailAddress},
+        default_yn = #{defaultYn},
+        updated_at = NOW()
+        WHERE address_id = #{addressId}
+        AND user_id = #{userId}
+    </update>
+
+    <delete id="deleteAddress"
+            parameterType="com.ninimum.api.param.DeleteAddressParam">
+        DELETE FROM user_addresses
+        WHERE address_id = #{addressId}
+        AND user_id = #{userId}
+    </delete>
+
+</mapper>

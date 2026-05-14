@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ninimum.api.order.service.OrderMapper">
+
+    <select id="getOrderList"
+            parameterType="com.ninimum.api.param.OrderListParam"
+            resultType="com.ninimum.api.dto.OrderDto">
+        SELECT
+        order_id AS orderId,
+        user_id AS userId,
+        total_price AS totalPrice,
+        order_status AS orderStatus,
+        DATE_FORMAT(created_at, '%Y-%m-%d %H:%i:%s') AS orderDate
+        FROM orders
+        WHERE user_id = #{userId}
+        ORDER BY order_id DESC
+    </select>
+
+    <select id="getOrderDetail"
+            parameterType="com.ninimum.api.param.OrderDetailParam"
+            resultType="com.ninimum.api.dto.OrderDetailDto">
+        SELECT
+        od.order_detail_id AS orderDetailId,
+        od.order_id AS orderId,
+        od.product_id AS productId,
+        p.product_name AS productName,
+        p.product_image_url AS productImageUrl,
+        od.price AS price,
+        od.quantity AS quantity,
+        od.price * od.quantity AS totalPrice
+        FROM order_details od
+        INNER JOIN orders o ON od.order_id = o.order_id
+        INNER JOIN products p ON od.product_id = p.product_id
+        WHERE od.order_id = #{orderId}
+        AND o.user_id = #{userId}
+        ORDER BY od.order_detail_id ASC
+    </select>
+
+    <insert id="createOrder"
+            parameterType="com.ninimum.api.param.CreateOrderParam"
+            useGeneratedKeys="true"
+            keyProperty="orderId">
+        INSERT INTO orders
+        (
+        user_id,
+        total_price,
+        order_status,
+        created_at
+        )
+        VALUES
+        (
+        #{userId},
+        #{totalPrice},
+        'ORDERED',
+        NOW()
+        )
+    </insert>
+
+    <insert id="createOrderDetail"
+            parameterType="com.ninimum.api.param.CreateOrderProductParam">
+        INSERT INTO order_details
+        (
+        order_id,
+        product_id,
+        price,
+        quantity,
+        created_at
+        )
+        VALUES
+        (
+        #{orderId},
+        #{productId},
+        #{price},
+        #{quantity},
+        NOW()
+        )
+    </insert>
+
+</mapper>

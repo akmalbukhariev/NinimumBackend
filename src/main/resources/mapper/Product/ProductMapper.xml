@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ninimum.api.product.mapper.ProductMapper">
+
+    <select id="getProductCategoryList" resultType="com.ninimum.api.dto.ProductCategoryDto">
+        SELECT
+        category_id AS categoryId,
+        category_name AS categoryName,
+        category_image_url AS categoryImageUrl
+        FROM product_categories
+        WHERE use_yn = 'Y'
+        ORDER BY sort_order ASC, category_id ASC
+    </select>
+
+    <select id="getProductList" parameterType="com.ninimum.api.param.ProductListParam"
+            resultType="com.ninimum.api.dto.ProductDto">
+        SELECT
+        product_id AS productId,
+        category_id AS categoryId,
+        product_name AS productName,
+        product_image_url AS productImageUrl,
+        price AS price,
+        description AS description
+        FROM products
+        WHERE use_yn = 'Y'
+        AND category_id = #{categoryId}
+        ORDER BY product_id DESC
+    </select>
+
+    <select id="getProductDetail"
+            parameterType="com.ninimum.api.param.ProductDetailParam"
+            resultType="com.ninimum.api.dto.ProductDto">
+        SELECT
+        product_id AS productId,
+        category_id AS categoryId,
+        product_name AS productName,
+        product_image_url AS productImageUrl,
+        price AS price,
+        description AS description
+        FROM products
+        WHERE use_yn = 'Y'
+        AND product_id = #{productId}
+    </select>
+</mapper>

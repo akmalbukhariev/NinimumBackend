@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ninimum.api.children.service.ChildrenMapper">
+
+    <select id="selectChildrenByUserId" resultType="camelMap">
+        <![CDATA[
+            SELECT *
+            FROM children
+            WHERE user_id = #{user_id}
+              AND is_active = TRUE
+            ORDER BY created_at DESC
+        ]]>
+    </select>
+
+    <insert id="insertChild">
+        <![CDATA[
+        INSERT INTO children
+        (
+            user_id,
+            first_name,
+            last_name,
+            birth_date,
+            gender
+        )
+        VALUES
+        (
+            #{user_id},
+            #{first_name},
+            #{last_name},
+            #{birth_date},
+            #{gender}
+        )
+    ]]>
+    </insert>
+
+    <update id="updateChild" parameterType="com.ninimum.api.param.UpdateChildParam">
+        UPDATE children
+        SET
+        first_name = #{firstName},
+        last_name = #{lastName},
+        birth_date = #{birthDate},
+        gender = #{gender},
+        updated_at = NOW()
+        WHERE child_id = #{childId}
+        AND user_id = #{userId}
+    </update>
+
+    <delete id="deleteChild" parameterType="com.ninimum.api.param.DeleteChildParam">
+        DELETE FROM children
+        WHERE child_id = #{childId}
+        AND user_id = #{userId}
+    </delete>
+</mapper>

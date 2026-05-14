@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ninimum.api.subscription.service.SubscriptionMapper">
+
+    <select id="getSubscriptionList"
+            parameterType="com.ninimum.api.param.SubscriptionListParam"
+            resultType="com.ninimum.api.dto.SubscriptionDto">
+        SELECT
+        s.subscription_id AS subscriptionId,
+        s.user_id AS userId,
+        s.tariff_id AS tariffId,
+        t.tariff_name AS tariffName,
+        t.price AS price,
+        DATE_FORMAT(s.start_date, '%Y-%m-%d') AS startDate,
+        DATE_FORMAT(s.end_date, '%Y-%m-%d') AS endDate,
+        s.subscription_status AS subscriptionStatus
+        FROM subscriptions s
+        INNER JOIN tariffs t ON s.tariff_id = t.tariff_id
+        WHERE s.user_id = #{userId}
+        ORDER BY s.subscription_id DESC
+    </select>
+
+    <select id="getActiveSubscription"
+            parameterType="com.ninimum.api.param.ActiveSubscriptionParam"
+            resultType="com.ninimum.api.dto.SubscriptionDto">
+        SELECT
+        s.subscription_id AS subscriptionId,
+        s.user_id AS userId,
+        s.tariff_id AS tariffId,
+        t.tariff_name AS tariffName,
+        t.price AS price,
+        DATE_FORMAT(s.start_date, '%Y-%m-%d') AS startDate,
+        DATE_FORMAT(s.end_date, '%Y-%m-%d') AS endDate,
+        s.subscription_status AS subscriptionStatus
+        FROM subscriptions s
+        INNER JOIN tariffs t ON s.tariff_id = t.tariff_id
+        WHERE s.user_id = #{userId}
+        AND s.subscription_status = 'ACTIVE'
+        AND CURDATE() BETWEEN s.start_date AND s.end_date
+        ORDER BY s.subscription_id DESC
+        LIMIT 1
+    </select>
+
+    <insert id="createSubscription"
+            parameterType="com.ninimum.api.param.CreateSubscriptionParam">
+        INSERT INTO subscriptions
+        (
+        user_id,
+        tariff_id,
+        start_date,
+        end_date,
+        subscription_status,
+        created_at
+        )
+        VALUES
+        (
+        #{userId},
+        #{tariffId},
+        #{startDate},
+        #{endDate},
+        'ACTIVE',
+        NOW()
+        )
+    </insert>
+
+</mapper>

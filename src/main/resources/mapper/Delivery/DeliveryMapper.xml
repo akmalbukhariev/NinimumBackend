@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ninimum.api.delivery.service.DeliveryMapper">
+
+    <select id="getDeliveryList"
+            parameterType="com.ninimum.api.param.DeliveryListParam"
+            resultType="com.ninimum.api.dto.DeliveryDto">
+        SELECT
+        d.delivery_id AS deliveryId,
+        d.order_id AS orderId,
+        o.user_id AS userId,
+        d.receiver_name AS receiverName,
+        d.receiver_phone AS receiverPhone,
+        d.delivery_address AS deliveryAddress,
+        d.delivery_status AS deliveryStatus,
+        DATE_FORMAT(d.created_at, '%Y-%m-%d %H:%i:%s') AS deliveryDate
+        FROM deliveries d
+        INNER JOIN orders o ON d.order_id = o.order_id
+        WHERE o.user_id = #{userId}
+        ORDER BY d.delivery_id DESC
+    </select>
+
+    <select id="getDeliveryDetail"
+            parameterType="com.ninimum.api.param.DeliveryDetailParam"
+            resultType="com.ninimum.api.dto.DeliveryDto">
+        SELECT
+        d.delivery_id AS deliveryId,
+        d.order_id AS orderId,
+        o.user_id AS userId,
+        d.receiver_name AS receiverName,
+        d.receiver_phone AS receiverPhone,
+        d.delivery_address AS deliveryAddress,
+        d.delivery_status AS deliveryStatus,
+        DATE_FORMAT(d.created_at, '%Y-%m-%d %H:%i:%s') AS deliveryDate
+        FROM deliveries d
+        INNER JOIN orders o ON d.order_id = o.order_id
+        WHERE d.delivery_id = #{deliveryId}
+        AND o.user_id = #{userId}
+    </select>
+
+    <update id="updateDeliveryStatus"
+            parameterType="com.ninimum.api.param.UpdateDeliveryStatusParam">
+        UPDATE deliveries
+        SET
+        delivery_status = #{deliveryStatus},
+        updated_at = NOW()
+        WHERE delivery_id = #{deliveryId}
+    </update>
+
+</mapper>

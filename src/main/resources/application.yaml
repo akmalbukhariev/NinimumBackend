@@ -1,0 +1,58 @@
+### DB setting ###
+spring:
+  datasource:
+    hikari:
+      maximum-pool-size: 10
+      minimum-idle: 2
+      connection-timeout: 30000
+      idle-timeout: 600000
+      max-lifetime: 1800000
+    #url: jdbc:mariadb://127.0.0.1:3306/ninimum
+    url: jdbc:mariadb://95.182.118.233:3306/ninimum
+    username: adminuser
+    password: adminuser
+
+  profiles:
+    active: default
+
+  mvc:
+    pathmatch:
+      matching-strategy: ant-path-matcher
+
+  messages:
+    basename: i18n/exception
+    encoding: UTF-8
+
+### mybatis setting ###
+mybatis:
+  mapper-locations: classpath:/mapper/**/*.xml
+  config-location: classpath:/config/mapper-config.xml
+
+logging:
+  config: classpath:log4j2.xml
+
+jwt:
+  secret: PbsqL3MYe1Z3cf3WZ9z37ygqXprKDyK6qoN3QZAkmQNwbQy9AdZvkNZjDiMe2KF1FPuWLPguqm4rsgJu
+
+server:
+  address: 0.0.0.0
+  port: 8083
+
+jasypt:
+  encryptor:
+    bean: jasyptStringEncryptor
+    password: 3l8eb8c4123f7f7c7b7432c23b6709609115507dbf8a61b13cez6b15545c2ze1
+
+aes:
+  key: ENC(dfSIMAu+/xXUaemmfRfs/U7CIDO88OItR0mr0xffNrTpcIei2Q0NK7Ra3iOuPnet)
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      probes:
+        enabled: true
+      show-details: never

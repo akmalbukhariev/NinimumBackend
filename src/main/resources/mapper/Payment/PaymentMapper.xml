@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ninimum.api.payment.service.PaymentMapper">
+
+    <select id="getPaymentList"
+            parameterType="com.ninimum.api.param.PaymentListParam"
+            resultType="com.ninimum.api.dto.PaymentDto">
+        SELECT
+        p.payment_id AS paymentId,
+        p.order_id AS orderId,
+        o.user_id AS userId,
+        p.payment_amount AS paymentAmount,
+        p.payment_method AS paymentMethod,
+        p.payment_status AS paymentStatus,
+        DATE_FORMAT(p.created_at, '%Y-%m-%d %H:%i:%s') AS paymentDate
+        FROM payments p
+        INNER JOIN orders o ON p.order_id = o.order_id
+        WHERE o.user_id = #{userId}
+        ORDER BY p.payment_id DESC
+    </select>
+
+    <select id="getPaymentDetail"
+            parameterType="com.ninimum.api.param.PaymentDetailParam"
+            resultType="com.ninimum.api.dto.PaymentDto">
+        SELECT
+        p.payment_id AS paymentId,
+        p.order_id AS orderId,
+        o.user_id AS userId,
+        p.payment_amount AS paymentAmount,
+        p.payment_method AS paymentMethod,
+        p.payment_status AS paymentStatus,
+        DATE_FORMAT(p.created_at, '%Y-%m-%d %H:%i:%s') AS paymentDate
+        FROM payments p
+        INNER JOIN orders o ON p.order_id = o.order_id
+        WHERE p.payment_id = #{paymentId}
+        AND o.user_id = #{userId}
+    </select>
+
+    <insert id="createPayment"
+            parameterType="com.ninimum.api.param.CreatePaymentParam">
+        INSERT INTO payments
+        (
+        order_id,
+        payment_amount,
+        payment_method,
+        payment_status,
+        created_at
+        )
+        VALUES
+        (
+        #{orderId},
+        #{paymentAmount},
+        #{paymentMethod},
+        'PAID',
+        NOW()
+        )
+    </insert>
+
+</mapper>

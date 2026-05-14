@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ninimum.api.qr.service.QrMapper">
+
+    <select id="getUserQr"
+            parameterType="com.ninimum.api.param.QrParam"
+            resultType="com.ninimum.api.dto.QrDto">
+        SELECT
+        qr_id AS qrId,
+        user_id AS userId,
+        qr_code AS qrCode,
+        qr_status AS qrStatus,
+        DATE_FORMAT(created_at, '%Y-%m-%d %H:%i:%s') AS createdDate
+        FROM user_qr_codes
+        WHERE user_id = #{userId}
+        AND qr_status = 'ACTIVE'
+        ORDER BY qr_id DESC
+        LIMIT 1
+    </select>
+
+    <insert id="createUserQr"
+            parameterType="com.ninimum.api.param.CreateQrParam">
+        INSERT INTO user_qr_codes
+        (
+        user_id,
+        qr_code,
+        qr_status,
+        created_at
+        )
+        VALUES
+        (
+        #{userId},
+        #{qrCode},
+        'ACTIVE',
+        NOW()
+        )
+    </insert>
+
+</mapper>

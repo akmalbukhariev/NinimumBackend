@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ninimum.api.user.service.UserMapper">
+
+    <select id="selectUserByPhone" resultType="camelMap">
+        <![CDATA[
+            SELECT *
+            FROM users
+            WHERE phone_number = #{phone_number}
+              AND is_active = TRUE
+        ]]>
+    </select>
+
+    <insert id="insertUser">
+        <![CDATA[
+            INSERT INTO users
+            (
+                region_id,
+                first_name,
+                last_name,
+                phone_number,
+                password
+            )
+            VALUES
+            (
+                #{region_id},
+                #{first_name},
+                #{last_name},
+                #{phone_number},
+                #{password}
+            )
+        ]]>
+    </insert>
+
+    <update id="updateUserInfo">
+
+        UPDATE users
+
+        <set>
+
+            <if test="first_name != null and first_name != ''">
+                first_name = #{first_name},
+            </if>
+
+            <if test="last_name != null and last_name != ''">
+                last_name = #{last_name},
+            </if>
+
+            <if test="email != null and email != ''">
+                email = #{email},
+            </if>
+
+            <if test="gender != null and gender != ''">
+                gender = #{gender},
+            </if>
+
+            updated_at = NOW()
+
+        </set>
+
+        WHERE id = #{id}
+
+    </update>
+</mapper>

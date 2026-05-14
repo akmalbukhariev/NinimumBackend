@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ninimum.api.favorite.service.FavoriteMapper">
+
+    <select id="getFavoriteList"
+            parameterType="com.ninimum.api.param.FavoriteListParam"
+            resultType="com.ninimum.api.dto.FavoriteDto">
+        SELECT
+        f.favorite_id AS favoriteId,
+        f.user_id AS userId,
+        f.product_id AS productId,
+        p.product_name AS productName,
+        p.product_image_url AS productImageUrl,
+        p.price AS price,
+        p.description AS description
+        FROM favorites f
+        INNER JOIN products p ON f.product_id = p.product_id
+        WHERE f.user_id = #{userId}
+        AND p.use_yn = 'Y'
+        ORDER BY f.favorite_id DESC
+    </select>
+
+    <insert id="addFavorite"
+            parameterType="com.ninimum.api.param.AddFavoriteParam">
+        INSERT INTO favorites
+        (
+        user_id,
+        product_id,
+        created_at
+        )
+        VALUES
+        (
+        #{userId},
+        #{productId},
+        NOW()
+        )
+    </insert>
+
+    <delete id="deleteFavorite"
+            parameterType="com.ninimum.api.param.DeleteFavoriteParam">
+        DELETE FROM favorites
+        WHERE user_id = #{userId}
+        AND product_id = #{productId}
+    </delete>
+
+</mapper>

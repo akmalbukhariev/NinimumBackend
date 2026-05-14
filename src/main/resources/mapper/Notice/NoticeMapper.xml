@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ninimum.api.notice.service.NoticeMapper">
+
+    <select id="getNoticeList"
+            resultType="com.ninimum.api.dto.NoticeDto">
+        SELECT
+        notice_id AS noticeId,
+        title AS title,
+        content AS content,
+        DATE_FORMAT(created_at, '%Y-%m-%d %H:%i:%s') AS createdDate
+        FROM notices
+        WHERE use_yn = 'Y'
+        ORDER BY notice_id DESC
+    </select>
+
+    <select id="getNoticeDetail"
+            parameterType="com.ninimum.api.param.NoticeDetailParam"
+            resultType="com.ninimum.api.dto.NoticeDto">
+        SELECT
+        notice_id AS noticeId,
+        title AS title,
+        content AS content,
+        DATE_FORMAT(created_at, '%Y-%m-%d %H:%i:%s') AS createdDate
+        FROM notices
+        WHERE notice_id = #{noticeId}
+        AND use_yn = 'Y'
+    </select>
+
+</mapper>

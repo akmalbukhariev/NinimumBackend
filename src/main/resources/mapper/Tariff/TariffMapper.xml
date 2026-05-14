@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ninimum.api.tariff.service.TariffMapper">
+
+    <select id="getTariffList"
+            resultType="com.ninimum.api.dto.TariffDto">
+        SELECT
+        tariff_id AS tariffId,
+        tariff_name AS tariffName,
+        price AS price,
+        duration_month AS durationMonth,
+        description AS description
+        FROM tariffs
+        WHERE use_yn = 'Y'
+        ORDER BY price ASC
+    </select>
+
+    <select id="getTariffDetail"
+            parameterType="com.ninimum.api.param.TariffDetailParam"
+            resultType="com.ninimum.api.dto.TariffDto">
+        SELECT
+        tariff_id AS tariffId,
+        tariff_name AS tariffName,
+        price AS price,
+        duration_month AS durationMonth,
+        description AS description
+        FROM tariffs
+        WHERE tariff_id = #{tariffId}
+        AND use_yn = 'Y'
+    </select>
