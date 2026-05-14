@@ -41,4 +41,23 @@
         WHERE use_yn = 'Y'
         AND product_id = #{productId}
     </select>
+
+    <select id="searchProductList"
+            parameterType="com.ninimum.api.param.SearchProductParam"
+            resultType="com.ninimum.api.dto.ProductDto">
+        SELECT
+        product_id AS productId,
+        category_id AS categoryId,
+        product_name AS productName,
+        product_image_url AS productImageUrl,
+        price AS price,
+        description AS description
+        FROM products
+        WHERE use_yn = 'Y'
+        AND (
+        product_name LIKE CONCAT('%', #{keyword}, '%')
+        OR description LIKE CONCAT('%', #{keyword}, '%')
+        )
+        ORDER BY product_id DESC
+    </select>
 </mapper>

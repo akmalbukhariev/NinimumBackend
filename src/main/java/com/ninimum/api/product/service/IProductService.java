@@ -4,6 +4,7 @@ import com.ninimum.api.dto.ProductCategoryDto;
 import com.ninimum.api.dto.ProductDto;
 import com.ninimum.api.param.ProductDetailParam;
 import com.ninimum.api.param.ProductListParam;
+import com.ninimum.api.param.SearchProductParam;
 
 import java.util.List;
 
@@ -13,4 +14,6 @@ public interface IProductService {
     List<ProductDto> getProductList(ProductListParam param) throws Exception;
 
     ProductDto getProductDetail(ProductDetailParam param) throws Exception;
+
+    List<ProductDto> searchProductList(SearchProductParam param) throws Exception;
 }

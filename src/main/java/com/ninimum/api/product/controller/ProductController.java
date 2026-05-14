@@ -8,6 +8,7 @@ import com.ninimum.api.dto.ProductCategoryDto;
 import com.ninimum.api.dto.ProductDto;
 import com.ninimum.api.param.ProductDetailParam;
 import com.ninimum.api.param.ProductListParam;
+import com.ninimum.api.param.SearchProductParam;
 import com.ninimum.api.product.service.IProductService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -99,6 +100,29 @@ public class ProductController extends BaseController {
         } catch (Exception ex) {
             result = this.setResult(Result.SERVER_ERROR);
             log.error("ProductController => getProductDetail: ", ex);
+        }
+
+        return new ResponseEntity<>(result, HttpStatus.OK);
+    }
+
+    @Operation(
+            tags = {"Product"},
+            summary = "4. Search product list",
+            description = "Searches products by keyword.",
+            hidden = false,
+            responses = { @ApiResponse(responseCode = "200", description = "success") },
+            security = { @SecurityRequirement(name = "bearerAuth") }
+    )
+    @PostMapping(value = "/searchProductList", headers = { "Content-type=application/json" })
+    public ResponseEntity<Object> searchProductList(@RequestBody SearchProductParam param) {
+        VersionResponseResult result = null;
+
+        try {
+            List<ProductDto> products = this.productService.searchProductList(param);
+            result = this.setResult(Result.SUCCESS, products);
+        } catch (Exception ex) {
+            result = this.setResult(Result.SERVER_ERROR);
+            log.error("ProductController => searchProductList: ", ex);
         }
 
         return new ResponseEntity<>(result, HttpStatus.OK);

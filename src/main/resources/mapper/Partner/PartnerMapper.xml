@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ninimum.api.partner.service.PartnerMapper">
+
+    <select id="getPartnerList"
+            resultType="com.ninimum.api.dto.PartnerDto">
+        SELECT
+        partner_id AS partnerId,
+        partner_name AS partnerName,
+        partner_logo_url AS partnerLogoUrl,
+        partner_address AS partnerAddress,
+        partner_phone AS partnerPhone,
+        description AS description
+        FROM partners
+        WHERE use_yn = 'Y'
+        ORDER BY partner_id DESC
+    </select>
+
+    <select id="getPartnerDetail"
+            parameterType="com.ninimum.api.param.PartnerDetailParam"
+            resultType="com.ninimum.api.dto.PartnerDto">
+        SELECT
+        partner_id AS partnerId,
+        partner_name AS partnerName,
+        partner_logo_url AS partnerLogoUrl,
+        partner_address AS partnerAddress,
+        partner_phone AS partnerPhone,
+        description AS description
+        FROM partners
+        WHERE partner_id = #{partnerId}
+        AND use_yn = 'Y'
+    </select>
+
+</mapper>

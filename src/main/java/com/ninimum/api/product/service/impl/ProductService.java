@@ -4,6 +4,7 @@ import com.ninimum.api.dto.ProductCategoryDto;
 import com.ninimum.api.dto.ProductDto;
 import com.ninimum.api.param.ProductDetailParam;
 import com.ninimum.api.param.ProductListParam;
+import com.ninimum.api.param.SearchProductParam;
 import com.ninimum.api.product.service.IProductService;
 import com.ninimum.api.product.service.ProductMapper;
 import lombok.RequiredArgsConstructor;
@@ -30,5 +31,10 @@ public class ProductService implements IProductService {
     @Override
     public ProductDto getProductDetail(ProductDetailParam param) throws Exception {
         return this.productMapper.getProductDetail(param);
+    }
+
+    @Override
+    public List<ProductDto> searchProductList(SearchProductParam param) throws Exception {
+        return this.productMapper.searchProductList(param);
     }
 }

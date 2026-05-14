@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ninimum.api.faq.service.FaqMapper">
+
+<select id="getFaqList" resultType="com.ninimum.api.dto.FaqDto">
+    SELECT
+    faq_id AS faqId,
+    question AS question,
+    answer AS answer
+    FROM faqs
+    WHERE use_yn = 'Y'
+    ORDER BY sort_order ASC, faq_id DESC
+</select>
+
+</mapper>
