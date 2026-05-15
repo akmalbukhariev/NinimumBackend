@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ninimum.api.coupon.service.CouponMapper">
+
+    <select id="getCouponList"
+            resultType="com.ninimum.api.dto.CouponDto">
+        SELECT
+        coupon_id AS couponId,
+        coupon_name AS couponName,
+        coupon_type AS couponType,
+        discount_amount AS discountAmount,
+        discount_rate AS discountRate,
+        DATE_FORMAT(start_date, '%Y-%m-%d') AS startDate,
+        DATE_FORMAT(end_date, '%Y-%m-%d') AS endDate
+        FROM coupons
+        WHERE use_yn = 'Y'
+        AND CURDATE() BETWEEN start_date AND end_date
+        ORDER BY coupon_id DESC
+    </select>
+
+    <select id="getUserCouponList"
+            parameterType="com.ninimum.api.param.UserCouponListParam"
+            resultType="com.ninimum.api.dto.UserCouponDto">
+        SELECT
+        uc.user_coupon_id AS userCouponId,
+        uc.user_id AS userId,
+        uc.coupon_id AS couponId,
+        c.coupon_name AS couponName,
+        c.coupon_type AS couponType,
+        c.discount_amount AS discountAmount,
+        c.discount_rate AS discountRate,
+        uc.use_yn AS useYn,
+        DATE_FORMAT(c.start_date, '%Y-%m-%d') AS startDate,
+        DATE_FORMAT(c.end_date, '%Y-%m-%d') AS endDate
+        FROM user_coupons uc
+        INNER JOIN coupons c ON uc.coupon_id = c.coupon_id
+        WHERE uc.user_id = #{userId}
+        ORDER BY uc.user_coupon_id DESC
+    </select>
+
+    <insert id="addUserCoupon"
+            parameterType="com.ninimum.api.param.AddUserCouponParam">
+        INSERT INTO user_coupons
+        (
+        user_id,
+        coupon_id,
+        use_yn,
+        created_at
+        )
+        VALUES
+        (
+        #{userId},
+        #{couponId},
+        'N',
+        NOW()
+        )
+    </insert>
+</mapper>

@@ -4,9 +4,11 @@ import com.ninimum.api.common.BaseController;
 import com.ninimum.api.common.Result;
 import com.ninimum.api.common.VersionResponseResult;
 import com.ninimum.api.constants.Constant;
+import com.ninimum.api.dto.OrderCountDto;
 import com.ninimum.api.dto.OrderDetailDto;
 import com.ninimum.api.dto.OrderDto;
 import com.ninimum.api.order.service.IOrderService;
+import com.ninimum.api.param.CancelOrderParam;
 import com.ninimum.api.param.CreateOrderParam;
 import com.ninimum.api.param.OrderDetailParam;
 import com.ninimum.api.param.OrderListParam;
@@ -106,6 +108,58 @@ public class OrderController extends BaseController {
         } catch (Exception ex) {
             result = this.setResult(Result.SERVER_ERROR);
             log.error("OrderController => createOrder: ", ex);
+        }
+
+        return new ResponseEntity<>(result, HttpStatus.OK);
+    }
+
+    @Operation(
+            tags = {"Order"},
+            summary = "4. Cancel order",
+            description = "Cancels order by order ID and user ID.",
+            hidden = false,
+            responses = { @ApiResponse(responseCode = "200", description = "success") },
+            security = { @SecurityRequirement(name = "bearerAuth") }
+    )
+    @PutMapping(value = "/cancelOrder", headers = { "Content-type=application/json" })
+    public ResponseEntity<Object> cancelOrder(@RequestBody CancelOrderParam param) {
+        VersionResponseResult result = null;
+
+        try {
+            int resultNum = this.orderService.cancelOrder(param);
+
+            if (resultNum != 0) {
+                result = this.setResult(Result.SUCCESS);
+            } else {
+                result = this.setResult(Result.SERVER_ERROR);
+            }
+
+        } catch (Exception ex) {
+            result = this.setResult(Result.SERVER_ERROR);
+            log.error("OrderController => cancelOrder: ", ex);
+        }
+
+        return new ResponseEntity<>(result, HttpStatus.OK);
+    }
+
+    @Operation(
+            tags = {"Order"},
+            summary = "5. Order count",
+            description = "Returns order count by user ID.",
+            hidden = false,
+            responses = { @ApiResponse(responseCode = "200", description = "success") },
+            security = { @SecurityRequirement(name = "bearerAuth") }
+    )
+    @PostMapping(value = "/getOrderCount", headers = { "Content-type=application/json" })
+    public ResponseEntity<Object> getOrderCount(@RequestBody OrderListParam param) {
+        VersionResponseResult result = null;
+
+        try {
+            OrderCountDto orderCount = this.orderService.getOrderCount(param);
+            result = this.setResult(Result.SUCCESS, orderCount);
+        } catch (Exception ex) {
+            result = this.setResult(Result.SERVER_ERROR);
+            log.error("OrderController => getOrderCount: ", ex);
         }
 
         return new ResponseEntity<>(result, HttpStatus.OK);

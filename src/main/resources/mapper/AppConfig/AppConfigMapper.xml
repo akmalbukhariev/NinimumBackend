@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ninimum.api.appconfig.service.AppConfigMapper">
+
+    <select id="getAppConfig"
+            resultType="com.ninimum.api.dto.AppConfigDto">
+        SELECT
+        config_id AS configId,
+        app_version AS appVersion,
+        force_update_yn AS forceUpdateYn,
+        maintenance_yn AS maintenanceYn,
+        maintenance_message AS maintenanceMessage,
+        terms_url AS termsUrl,
+        privacy_url AS privacyUrl
+        FROM app_configs
+        WHERE use_yn = 'Y'
+        ORDER BY config_id DESC
+        LIMIT 1
+    </select>
+
+</mapper>

@@ -47,4 +47,47 @@
         WHERE delivery_id = #{deliveryId}
     </update>
 
+    <select id="getDeliveryTracking"
+            parameterType="com.ninimum.api.param.DeliveryTrackingParam"
+            resultType="com.ninimum.api.dto.DeliveryTrackingDto">
+        SELECT
+        dt.tracking_id AS trackingId,
+        dt.delivery_id AS deliveryId,
+        dt.tracking_status AS trackingStatus,
+        dt.tracking_message AS trackingMessage,
+        DATE_FORMAT(dt.created_at, '%Y-%m-%d %H:%i:%s') AS createdDate
+        FROM delivery_tracking dt
+        INNER JOIN deliveries d ON dt.delivery_id = d.delivery_id
+        INNER JOIN orders o ON d.order_id = o.order_id
+        WHERE dt.delivery_id = #{deliveryId}
+        AND o.user_id = #{userId}
+        ORDER BY dt.tracking_id ASC
+    </select>
+
+    <insert id="addDeliveryTracking"
+            parameterType="com.ninimum.api.param.AddDeliveryTrackingParam">
+        INSERT INTO delivery_tracking
+        (
+        delivery_id,
+        tracking_status,
+        tracking_message,
+        created_at
+        )
+        VALUES
+        (
+        #{deliveryId},
+        #{trackingStatus},
+        #{trackingMessage},
+        NOW()
+        )
+    </insert>
+
+    <select id="getDeliveryCount"
+            parameterType="com.ninimum.api.param.DeliveryListParam"
+            resultType="int">
+        SELECT COUNT(*)
+        FROM deliveries d
+        INNER JOIN orders o ON d.order_id = o.order_id
+        WHERE o.user_id = #{userId}
+    </select>
 </mapper>

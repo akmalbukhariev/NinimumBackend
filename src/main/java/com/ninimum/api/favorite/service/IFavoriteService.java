@@ -1,5 +1,6 @@
 package com.ninimum.api.favorite.service;
 
+import com.ninimum.api.dto.FavoriteCountDto;
 import com.ninimum.api.dto.FavoriteDto;
 import com.ninimum.api.param.AddFavoriteParam;
 import com.ninimum.api.param.DeleteFavoriteParam;
@@ -13,4 +14,5 @@ public interface IFavoriteService {
     int addFavorite(AddFavoriteParam param) throws Exception;
 
     int deleteFavorite(DeleteFavoriteParam param) throws Exception;
+    FavoriteCountDto getFavoriteCount(FavoriteListParam param) throws Exception;
 }

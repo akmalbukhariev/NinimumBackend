@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ninimum.api.notification.service.NotificationMapper">
+
+    <select id="getNotificationList"
+            parameterType="com.ninimum.api.param.NotificationListParam"
+            resultType="com.ninimum.api.dto.NotificationDto">
+        SELECT
+        notification_id AS notificationId,
+        user_id AS userId,
+        title AS title,
+        content AS content,
+        read_yn AS readYn,
+        DATE_FORMAT(created_at, '%Y-%m-%d %H:%i:%s') AS createdDate
+        FROM notifications
+        WHERE user_id = #{userId}
+        ORDER BY notification_id DESC
+    </select>
+
+    <update id="readNotification"
+            parameterType="com.ninimum.api.param.ReadNotificationParam">
+        UPDATE notifications
+        SET
+        read_yn = 'Y',
+        updated_at = NOW()
+        WHERE notification_id = #{notificationId}
+        AND user_id = #{userId}
+    </update>
+
+    <delete id="deleteNotification"
+            parameterType="com.ninimum.api.param.DeleteNotificationParam">
+        DELETE FROM notifications
+        WHERE notification_id = #{notificationId}
+        AND user_id = #{userId}
+    </delete>
+
+</mapper>

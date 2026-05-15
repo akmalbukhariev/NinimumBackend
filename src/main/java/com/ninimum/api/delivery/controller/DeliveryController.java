@@ -5,10 +5,10 @@ import com.ninimum.api.common.Result;
 import com.ninimum.api.common.VersionResponseResult;
 import com.ninimum.api.constants.Constant;
 import com.ninimum.api.delivery.service.IDeliveryService;
+import com.ninimum.api.dto.DeliveryCountDto;
 import com.ninimum.api.dto.DeliveryDto;
-import com.ninimum.api.param.DeliveryDetailParam;
-import com.ninimum.api.param.DeliveryListParam;
-import com.ninimum.api.param.UpdateDeliveryStatusParam;
+import com.ninimum.api.dto.DeliveryTrackingDto;
+import com.ninimum.api.param.*;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
@@ -105,6 +105,81 @@ public class DeliveryController extends BaseController {
         } catch (Exception ex) {
             result = this.setResult(Result.SERVER_ERROR);
             log.error("DeliveryController => updateDeliveryStatus: ", ex);
+        }
+
+        return new ResponseEntity<>(result, HttpStatus.OK);
+    }
+
+    @Operation(
+            tags = {"Delivery"},
+            summary = "4. Delivery tracking",
+            description = "Returns delivery tracking history.",
+            hidden = false,
+            responses = { @ApiResponse(responseCode = "200", description = "success") },
+            security = { @SecurityRequirement(name = "bearerAuth") }
+    )
+    @PostMapping(value = "/getDeliveryTracking", headers = { "Content-type=application/json" })
+    public ResponseEntity<Object> getDeliveryTracking(@RequestBody DeliveryTrackingParam param) {
+        VersionResponseResult result = null;
+
+        try {
+            List<DeliveryTrackingDto> trackingList = this.deliveryService.getDeliveryTracking(param);
+            result = this.setResult(Result.SUCCESS, trackingList);
+        } catch (Exception ex) {
+            result = this.setResult(Result.SERVER_ERROR);
+            log.error("DeliveryController => getDeliveryTracking: ", ex);
+        }
+
+        return new ResponseEntity<>(result, HttpStatus.OK);
+    }
+
+    @Operation(
+            tags = {"Delivery"},
+            summary = "5. Add delivery tracking",
+            description = "Adds delivery tracking history.",
+            hidden = false,
+            responses = { @ApiResponse(responseCode = "200", description = "success") },
+            security = { @SecurityRequirement(name = "bearerAuth") }
+    )
+    @PostMapping(value = "/addDeliveryTracking", headers = { "Content-type=application/json" })
+    public ResponseEntity<Object> addDeliveryTracking(@RequestBody AddDeliveryTrackingParam param) {
+        VersionResponseResult result = null;
+
+        try {
+            int resultNum = this.deliveryService.addDeliveryTracking(param);
+
+            if (resultNum != 0) {
+                result = this.setResult(Result.SUCCESS);
+            } else {
+                result = this.setResult(Result.SERVER_ERROR);
+            }
+
+        } catch (Exception ex) {
+            result = this.setResult(Result.SERVER_ERROR);
+            log.error("DeliveryController => addDeliveryTracking: ", ex);
+        }
+
+        return new ResponseEntity<>(result, HttpStatus.OK);
+    }
+
+    @Operation(
+            tags = {"Delivery"},
+            summary = "6. Delivery count",
+            description = "Returns delivery count by user ID.",
+            hidden = false,
+            responses = { @ApiResponse(responseCode = "200", description = "success") },
+            security = { @SecurityRequirement(name = "bearerAuth") }
+    )
+    @PostMapping(value = "/getDeliveryCount", headers = { "Content-type=application/json" })
+    public ResponseEntity<Object> getDeliveryCount(@RequestBody DeliveryListParam param) {
+        VersionResponseResult result = null;
+
+        try {
+            DeliveryCountDto deliveryCount = this.deliveryService.getDeliveryCount(param);
+            result = this.setResult(Result.SUCCESS, deliveryCount);
+        } catch (Exception ex) {
+            result = this.setResult(Result.SERVER_ERROR);
+            log.error("DeliveryController => getDeliveryCount: ", ex);
         }
 
         return new ResponseEntity<>(result, HttpStatus.OK);

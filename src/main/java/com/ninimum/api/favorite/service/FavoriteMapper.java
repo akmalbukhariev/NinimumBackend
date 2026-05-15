@@ -15,4 +15,5 @@ public interface FavoriteMapper {
     int addFavorite(AddFavoriteParam param) throws Exception;
 
     int deleteFavorite(DeleteFavoriteParam param) throws Exception;
+    int getFavoriteCount(FavoriteListParam param) throws Exception;
 }

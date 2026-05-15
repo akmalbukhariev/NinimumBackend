@@ -4,6 +4,7 @@ import com.ninimum.api.common.BaseController;
 import com.ninimum.api.common.Result;
 import com.ninimum.api.common.VersionResponseResult;
 import com.ninimum.api.constants.Constant;
+import com.ninimum.api.dto.FavoriteCountDto;
 import com.ninimum.api.dto.FavoriteDto;
 import com.ninimum.api.favorite.service.IFavoriteService;
 import com.ninimum.api.param.AddFavoriteParam;
@@ -111,6 +112,29 @@ public class FavoriteController extends BaseController {
         } catch (Exception ex) {
             result = this.setResult(Result.SERVER_ERROR);
             log.error("FavoriteController => deleteFavorite: ", ex);
+        }
+
+        return new ResponseEntity<>(result, HttpStatus.OK);
+    }
+
+    @Operation(
+            tags = {"Favorite"},
+            summary = "4. Favorite count",
+            description = "Returns favorite product count by user ID.",
+            hidden = false,
+            responses = { @ApiResponse(responseCode = "200", description = "success") },
+            security = { @SecurityRequirement(name = "bearerAuth") }
+    )
+    @PostMapping(value = "/getFavoriteCount", headers = { "Content-type=application/json" })
+    public ResponseEntity<Object> getFavoriteCount(@RequestBody FavoriteListParam param) {
+        VersionResponseResult result = null;
+
+        try {
+            FavoriteCountDto favoriteCount = this.favoriteService.getFavoriteCount(param);
+            result = this.setResult(Result.SUCCESS, favoriteCount);
+        } catch (Exception ex) {
+            result = this.setResult(Result.SERVER_ERROR);
+            log.error("FavoriteController => getFavoriteCount: ", ex);
         }
 
         return new ResponseEntity<>(result, HttpStatus.OK);

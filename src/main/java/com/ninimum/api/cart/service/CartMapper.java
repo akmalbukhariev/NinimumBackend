@@ -1,10 +1,7 @@
 package com.ninimum.api.cart.service;
 
 import com.ninimum.api.dto.CartDto;
-import com.ninimum.api.param.AddCartParam;
-import com.ninimum.api.param.CartListParam;
-import com.ninimum.api.param.DeleteCartParam;
-import com.ninimum.api.param.UpdateCartParam;
+import com.ninimum.api.param.*;
 import org.apache.ibatis.annotations.Mapper;
 
 import java.util.List;
@@ -18,4 +15,7 @@ public interface CartMapper {
     int updateCart(UpdateCartParam param) throws Exception;
 
     int deleteCart(DeleteCartParam param) throws Exception;
+
+    int clearCart(ClearCartParam param) throws Exception;
+    int getCartCount(CartListParam param) throws Exception;
 }

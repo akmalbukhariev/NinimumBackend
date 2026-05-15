@@ -1,0 +1,18 @@
+package com.ninimum.api.inquiry.service;
+
+import com.ninimum.api.dto.InquiryDto;
+import com.ninimum.api.param.AddInquiryParam;
+import com.ninimum.api.param.InquiryDetailParam;
+import com.ninimum.api.param.InquiryListParam;
+import org.apache.ibatis.annotations.Mapper;
+
+import java.util.List;
+
+@Mapper
+public interface InquiryMapper {
+    List<InquiryDto> getInquiryList(InquiryListParam param) throws Exception;
+
+    InquiryDto getInquiryDetail(InquiryDetailParam param) throws Exception;
+
+    int addInquiry(AddInquiryParam param) throws Exception;
+}

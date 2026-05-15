@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ninimum.api.recentlyviewedproduct.service.RecentlyViewedProductMapper">
+
+    <select id="getRecentlyViewedProductList"
+            parameterType="com.ninimum.api.param.RecentlyViewedProductListParam"
+            resultType="com.ninimum.api.dto.RecentlyViewedProductDto">
+        SELECT
+        rv.view_id AS viewId,
+        rv.user_id AS userId,
+        rv.product_id AS productId,
+        p.product_name AS productName,
+        p.product_image_url AS productImageUrl,
+        p.price AS price,
+        DATE_FORMAT(rv.created_at, '%Y-%m-%d %H:%i:%s') AS viewedDate
+        FROM recently_viewed_products rv
+        INNER JOIN products p ON rv.product_id = p.product_id
+        WHERE rv.user_id = #{userId}
+        AND p.use_yn = 'Y'
+        ORDER BY rv.view_id DESC
+    </select>
+
+    <delete id="deleteRecentlyViewedProduct"
+            parameterType="com.ninimum.api.param.AddRecentlyViewedProductParam">
+        DELETE FROM recently_viewed_products
+        WHERE user_id = #{userId}
+        AND product_id = #{productId}
+    </delete>
+
+    <insert id="addRecentlyViewedProduct"
+            parameterType="com.ninimum.api.param.AddRecentlyViewedProductParam">
+        INSERT INTO recently_viewed_products
+        (
+        user_id,
+        product_id,
+        created_at
+        )
+        VALUES
+        (
+        #{userId},
+        #{productId},
+        NOW()
+        )
+    </insert>
+
+</mapper>

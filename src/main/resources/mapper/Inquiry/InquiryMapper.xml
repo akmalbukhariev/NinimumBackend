@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ninimum.api.inquiry.service.InquiryMapper">
+
+    <select id="getInquiryList"
+            parameterType="com.ninimum.api.param.InquiryListParam"
+            resultType="com.ninimum.api.dto.InquiryDto">
+        SELECT
+        inquiry_id AS inquiryId,
+        user_id AS userId,
+        title AS title,
+        content AS content,
+        answer AS answer,
+        inquiry_status AS inquiryStatus,
+        DATE_FORMAT(created_at, '%Y-%m-%d %H:%i:%s') AS createdDate
+        FROM inquiries
+        WHERE user_id = #{userId}
+        ORDER BY inquiry_id DESC
+    </select>
+
+    <select id="getInquiryDetail"
+            parameterType="com.ninimum.api.param.InquiryDetailParam"
+            resultType="com.ninimum.api.dto.InquiryDto">
+        SELECT
+        inquiry_id AS inquiryId,
+        user_id AS userId,
+        title AS title,
+        content AS content,
+        answer AS answer,
+        inquiry_status AS inquiryStatus,
+        DATE_FORMAT(created_at, '%Y-%m-%d %H:%i:%s') AS createdDate
+        FROM inquiries
+        WHERE inquiry_id = #{inquiryId}
+        AND user_id = #{userId}
+    </select>
+
+    <insert id="addInquiry"
+            parameterType="com.ninimum.api.param.AddInquiryParam">
+        INSERT INTO inquiries
+        (
+        user_id,
+        title,
+        content,
+        inquiry_status,
+        created_at
+        )
+        VALUES
+        (
+        #{userId},
+        #{title},
+        #{content},
+        'WAITING',
+        NOW()
+        )
+    </insert>
+
+</mapper>

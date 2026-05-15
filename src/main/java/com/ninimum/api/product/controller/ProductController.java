@@ -6,9 +6,7 @@ import com.ninimum.api.common.VersionResponseResult;
 import com.ninimum.api.constants.Constant;
 import com.ninimum.api.dto.ProductCategoryDto;
 import com.ninimum.api.dto.ProductDto;
-import com.ninimum.api.param.ProductDetailParam;
-import com.ninimum.api.param.ProductListParam;
-import com.ninimum.api.param.SearchProductParam;
+import com.ninimum.api.param.*;
 import com.ninimum.api.product.service.IProductService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -123,6 +121,98 @@ public class ProductController extends BaseController {
         } catch (Exception ex) {
             result = this.setResult(Result.SERVER_ERROR);
             log.error("ProductController => searchProductList: ", ex);
+        }
+
+        return new ResponseEntity<>(result, HttpStatus.OK);
+    }
+
+    @Operation(
+            tags = {"Product"},
+            summary = "5. Recommended product list",
+            description = "Returns recommended product list.",
+            hidden = false,
+            responses = { @ApiResponse(responseCode = "200", description = "success") },
+            security = { @SecurityRequirement(name = "bearerAuth") }
+    )
+    @PostMapping(value = "/getRecommendedProductList", headers = { "Content-type=application/json" })
+    public ResponseEntity<Object> getRecommendedProductList(@RequestBody ProductRecommendParam param) {
+        VersionResponseResult result = null;
+
+        try {
+            List<ProductDto> products = this.productService.getRecommendedProductList(param);
+            result = this.setResult(Result.SUCCESS, products);
+        } catch (Exception ex) {
+            result = this.setResult(Result.SERVER_ERROR);
+            log.error("ProductController => getRecommendedProductList: ", ex);
+        }
+
+        return new ResponseEntity<>(result, HttpStatus.OK);
+    }
+
+    @Operation(
+            tags = {"Product"},
+            summary = "6. Popular product list",
+            description = "Returns popular product list.",
+            hidden = false,
+            responses = { @ApiResponse(responseCode = "200", description = "success") },
+            security = { @SecurityRequirement(name = "bearerAuth") }
+    )
+    @GetMapping(value = "/getPopularProductList")
+    public ResponseEntity<Object> getPopularProductList() {
+        VersionResponseResult result = null;
+
+        try {
+            List<ProductDto> products = this.productService.getPopularProductList();
+            result = this.setResult(Result.SUCCESS, products);
+        } catch (Exception ex) {
+            result = this.setResult(Result.SERVER_ERROR);
+            log.error("ProductController => getPopularProductList: ", ex);
+        }
+
+        return new ResponseEntity<>(result, HttpStatus.OK);
+    }
+
+    @Operation(
+            tags = {"Product"},
+            summary = "7. Product category detail",
+            description = "Returns product category detail by category ID.",
+            hidden = false,
+            responses = { @ApiResponse(responseCode = "200", description = "success") },
+            security = { @SecurityRequirement(name = "bearerAuth") }
+    )
+    @PostMapping(value = "/getProductCategoryDetail", headers = { "Content-type=application/json" })
+    public ResponseEntity<Object> getProductCategoryDetail(@RequestBody ProductCategoryDetailParam param) {
+        VersionResponseResult result = null;
+
+        try {
+            ProductCategoryDto category = this.productService.getProductCategoryDetail(param);
+            result = this.setResult(Result.SUCCESS, category);
+        } catch (Exception ex) {
+            result = this.setResult(Result.SERVER_ERROR);
+            log.error("ProductController => getProductCategoryDetail: ", ex);
+        }
+
+        return new ResponseEntity<>(result, HttpStatus.OK);
+    }
+
+    @Operation(
+            tags = {"Product"},
+            summary = "8. Product filter list",
+            description = "Returns product list by category, keyword, and price range.",
+            hidden = false,
+            responses = { @ApiResponse(responseCode = "200", description = "success") },
+            security = { @SecurityRequirement(name = "bearerAuth") }
+    )
+    @PostMapping(value = "/getProductFilterList", headers = { "Content-type=application/json" })
+    public ResponseEntity<Object> getProductFilterList(@RequestBody ProductFilterParam param) {
+        VersionResponseResult result = null;
+
+        try {
+            List<ProductDto> products = this.productService.getProductFilterList(param);
+            result = this.setResult(Result.SUCCESS, products);
+        } catch (Exception ex) {
+            result = this.setResult(Result.SERVER_ERROR);
+            log.error("ProductController => getProductFilterList: ", ex);
         }
 
         return new ResponseEntity<>(result, HttpStatus.OK);

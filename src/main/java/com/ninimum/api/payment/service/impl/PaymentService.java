@@ -1,6 +1,7 @@
 package com.ninimum.api.payment.service.impl;
 
 import com.ninimum.api.dto.PaymentDto;
+import com.ninimum.api.param.CancelPaymentParam;
 import com.ninimum.api.param.CreatePaymentParam;
 import com.ninimum.api.param.PaymentDetailParam;
 import com.ninimum.api.param.PaymentListParam;
@@ -30,5 +31,10 @@ public class PaymentService implements IPaymentService {
     @Override
     public int createPayment(CreatePaymentParam param) throws Exception {
         return this.paymentMapper.createPayment(param);
+    }
+
+    @Override
+    public int cancelPayment(CancelPaymentParam param) throws Exception {
+        return this.paymentMapper.cancelPayment(param);
     }
 }

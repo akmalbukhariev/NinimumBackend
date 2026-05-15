@@ -56,4 +56,15 @@
         )
     </insert>
 
+    <update id="cancelPayment"
+            parameterType="com.ninimum.api.param.CancelPaymentParam">
+        UPDATE payments p
+        INNER JOIN orders o ON p.order_id = o.order_id
+        SET
+        p.payment_status = 'CANCELLED',
+        p.updated_at = NOW()
+        WHERE p.payment_id = #{paymentId}
+        AND o.user_id = #{userId}
+        AND p.payment_status != 'CANCELLED'
+    </update>
 </mapper>

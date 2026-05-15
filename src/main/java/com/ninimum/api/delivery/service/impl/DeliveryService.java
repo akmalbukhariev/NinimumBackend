@@ -2,10 +2,10 @@ package com.ninimum.api.delivery.service.impl;
 
 import com.ninimum.api.delivery.service.DeliveryMapper;
 import com.ninimum.api.delivery.service.IDeliveryService;
+import com.ninimum.api.dto.DeliveryCountDto;
 import com.ninimum.api.dto.DeliveryDto;
-import com.ninimum.api.param.DeliveryDetailParam;
-import com.ninimum.api.param.DeliveryListParam;
-import com.ninimum.api.param.UpdateDeliveryStatusParam;
+import com.ninimum.api.dto.DeliveryTrackingDto;
+import com.ninimum.api.param.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -30,5 +30,25 @@ public class DeliveryService implements IDeliveryService {
     @Override
     public int updateDeliveryStatus(UpdateDeliveryStatusParam param) throws Exception {
         return this.deliveryMapper.updateDeliveryStatus(param);
+    }
+
+    @Override
+    public List<DeliveryTrackingDto> getDeliveryTracking(DeliveryTrackingParam param) throws Exception {
+        return this.deliveryMapper.getDeliveryTracking(param);
+    }
+
+    @Override
+    public int addDeliveryTracking(AddDeliveryTrackingParam param) throws Exception {
+        return this.deliveryMapper.addDeliveryTracking(param);
+    }
+
+    @Override
+    public DeliveryCountDto getDeliveryCount(DeliveryListParam param) throws Exception {
+        int count = this.deliveryMapper.getDeliveryCount(param);
+
+        DeliveryCountDto dto = new DeliveryCountDto();
+        dto.setDeliveryCount(count);
+
+        return dto;
     }
 }

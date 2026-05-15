@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ninimum.api.deliverydriver.service.DeliveryDriverMapper">
+
+    <select id="getDeliveryDriverList"
+            resultType="com.ninimum.api.dto.DeliveryDriverDto">
+        SELECT
+        driver_id AS driverId,
+        driver_name AS driverName,
+        driver_phone AS driverPhone,
+        driver_status AS driverStatus
+        FROM delivery_drivers
+        WHERE use_yn = 'Y'
+        ORDER BY driver_id DESC
+    </select>
+
+    <select id="getDeliveryDriverDetail"
+            parameterType="com.ninimum.api.param.DeliveryDriverDetailParam"
+            resultType="com.ninimum.api.dto.DeliveryDriverDto">
+        SELECT
+        driver_id AS driverId,
+        driver_name AS driverName,
+        driver_phone AS driverPhone,
+        driver_status AS driverStatus
+        FROM delivery_drivers
+        WHERE driver_id = #{driverId}
+        AND use_yn = 'Y'
+    </select>
+
+    <update id="assignDeliveryDriver"
+            parameterType="com.ninimum.api.param.AssignDeliveryDriverParam">
+        UPDATE deliveries
+        SET
+        driver_id = #{driverId},
+        delivery_status = 'ASSIGNED',
+        updated_at = NOW()
+        WHERE delivery_id = #{deliveryId}
+    </update>
+
+</mapper>

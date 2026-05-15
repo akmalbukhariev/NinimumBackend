@@ -61,4 +61,94 @@
         WHERE id = #{id}
 
     </update>
+
+    <select id="getRefreshToken"
+            parameterType="com.ninimum.api.param.RefreshTokenParam"
+            resultType="java.lang.String">
+        SELECT refresh_token
+        FROM users
+        WHERE user_id = #{userId}
+    </select>
+
+    <update id="updateRefreshToken"
+            parameterType="com.ninimum.api.param.RefreshTokenParam">
+        UPDATE users
+        SET
+        refresh_token = #{refreshToken},
+        updated_at = NOW()
+        WHERE user_id = #{userId}
+    </update>
+
+    <update id="logout"
+            parameterType="com.ninimum.api.param.LogoutParam">
+        UPDATE users
+        SET
+        refresh_token = NULL,
+        updated_at = NOW()
+        WHERE user_id = #{userId}
+    </update>
+
+    <update id="deleteAccount"
+            parameterType="com.ninimum.api.param.DeleteAccountParam">
+        UPDATE users
+        SET
+        user_status = 'DELETED',
+        refresh_token = NULL,
+        updated_at = NOW()
+        WHERE user_id = #{userId}
+    </update>
+
+    <select id="getUserPassword"
+            parameterType="com.ninimum.api.param.ChangePasswordParam"
+            resultType="java.lang.String">
+        SELECT password
+        FROM users
+        WHERE user_id = #{userId}
+    </select>
+
+    <update id="changePassword"
+            parameterType="com.ninimum.api.param.ChangePasswordParam">
+        UPDATE users
+        SET
+        password = #{newPassword},
+        updated_at = NOW()
+        WHERE user_id = #{userId}
+    </update>
+
+    <update id="forgotPassword"
+            parameterType="com.ninimum.api.param.ForgotPasswordParam">
+        UPDATE users
+        SET
+        password = #{tempPassword},
+        updated_at = NOW()
+        WHERE phone_number = #{phoneNumber}
+    </update>
+
+    <update id="changePhoneNumber"
+            parameterType="com.ninimum.api.param.ChangePhoneNumberParam">
+        UPDATE users
+        SET
+        phone_number = #{phoneNumber},
+        updated_at = NOW()
+        WHERE user_id = #{userId}
+    </update>
+
+    <select id="checkPhoneNumber"
+            parameterType="com.ninimum.api.param.CheckPhoneNumberParam"
+            resultType="int">
+        SELECT COUNT(*)
+        FROM users
+        WHERE phone_number = #{phoneNumber}
+        AND user_status != 'DELETED'
+    </select>
+
+    <update id="updateDeviceToken"
+            parameterType="com.ninimum.api.param.UpdateDeviceTokenParam">
+        UPDATE users
+        SET
+        device_token = #{deviceToken},
+        os_type = #{osType},
+        updated_at = NOW()
+        WHERE user_id = #{userId}
+    </update>
 </mapper>

@@ -5,6 +5,7 @@ import com.ninimum.api.common.Result;
 import com.ninimum.api.common.VersionResponseResult;
 import com.ninimum.api.constants.Constant;
 import com.ninimum.api.dto.PaymentDto;
+import com.ninimum.api.param.CancelPaymentParam;
 import com.ninimum.api.param.CreatePaymentParam;
 import com.ninimum.api.param.PaymentDetailParam;
 import com.ninimum.api.param.PaymentListParam;
@@ -105,6 +106,35 @@ public class PaymentController extends BaseController {
         } catch (Exception ex) {
             result = this.setResult(Result.SERVER_ERROR);
             log.error("PaymentController => createPayment: ", ex);
+        }
+
+        return new ResponseEntity<>(result, HttpStatus.OK);
+    }
+
+    @Operation(
+            tags = {"Payment"},
+            summary = "4. Cancel payment",
+            description = "Cancels payment by payment ID and user ID.",
+            hidden = false,
+            responses = { @ApiResponse(responseCode = "200", description = "success") },
+            security = { @SecurityRequirement(name = "bearerAuth") }
+    )
+    @PutMapping(value = "/cancelPayment", headers = { "Content-type=application/json" })
+    public ResponseEntity<Object> cancelPayment(@RequestBody CancelPaymentParam param) {
+        VersionResponseResult result = null;
+
+        try {
+            int resultNum = this.paymentService.cancelPayment(param);
+
+            if (resultNum != 0) {
+                result = this.setResult(Result.SUCCESS);
+            } else {
+                result = this.setResult(Result.SERVER_ERROR);
+            }
+
+        } catch (Exception ex) {
+            result = this.setResult(Result.SERVER_ERROR);
+            log.error("PaymentController => cancelPayment: ", ex);
         }
 
         return new ResponseEntity<>(result, HttpStatus.OK);

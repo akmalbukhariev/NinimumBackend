@@ -76,4 +76,22 @@
         )
     </insert>
 
+    <update id="cancelOrder"
+            parameterType="com.ninimum.api.param.CancelOrderParam">
+        UPDATE orders
+        SET
+        order_status = 'CANCELLED',
+        updated_at = NOW()
+        WHERE order_id = #{orderId}
+        AND user_id = #{userId}
+        AND order_status != 'CANCELLED'
+    </update>
+
+    <select id="getOrderCount"
+            parameterType="com.ninimum.api.param.OrderListParam"
+            resultType="int">
+        SELECT COUNT(*)
+        FROM orders
+        WHERE user_id = #{userId}
+    </select>
 </mapper>

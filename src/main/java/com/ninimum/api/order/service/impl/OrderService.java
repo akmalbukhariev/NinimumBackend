@@ -1,11 +1,9 @@
 package com.ninimum.api.order.service;
 
+import com.ninimum.api.dto.OrderCountDto;
 import com.ninimum.api.dto.OrderDetailDto;
 import com.ninimum.api.dto.OrderDto;
-import com.ninimum.api.param.CreateOrderParam;
-import com.ninimum.api.param.CreateOrderProductParam;
-import com.ninimum.api.param.OrderDetailParam;
-import com.ninimum.api.param.OrderListParam;
+import com.ninimum.api.param.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -41,5 +39,20 @@ public class OrderService implements IOrderService {
         }
 
         return resultNum;
+    }
+
+    @Override
+    public int cancelOrder(CancelOrderParam param) throws Exception {
+        return this.orderMapper.cancelOrder(param);
+    }
+
+    @Override
+    public OrderCountDto getOrderCount(OrderListParam param) throws Exception {
+        int count = this.orderMapper.getOrderCount(param);
+
+        OrderCountDto dto = new OrderCountDto();
+        dto.setOrderCount(count);
+
+        return dto;
     }
 }

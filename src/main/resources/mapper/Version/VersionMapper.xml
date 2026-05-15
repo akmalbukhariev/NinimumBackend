@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ninimum.api.version.service.VersionMapper">
+
+    <select id="checkVersion"
+            parameterType="com.ninimum.api.param.VersionCheckParam"
+            resultType="com.ninimum.api.dto.VersionCheckDto">
+        SELECT
+        latest_version AS latestVersion,
+        force_update_yn AS forceUpdateYn,
+        update_message AS updateMessage,
+        app_store_url AS appStoreUrl,
+        play_store_url AS playStoreUrl
+        FROM app_versions
+        WHERE os_type = #{osType}
+        AND use_yn = 'Y'
+        ORDER BY version_id DESC
+        LIMIT 1
+    </select>
+</mapper>

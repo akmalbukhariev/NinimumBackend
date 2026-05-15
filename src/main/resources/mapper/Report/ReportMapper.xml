@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ninimum.api.report.service.ReportMapper">
+
+    <insert id="addReport"
+            parameterType="com.ninimum.api.param.AddReportParam">
+        INSERT INTO reports
+        (
+        user_id,
+        report_type,
+        target_id,
+        reason,
+        report_status,
+        created_at
+        )
+        VALUES
+        (
+        #{userId},
+        #{reportType},
+        #{targetId},
+        #{reason},
+        'WAITING',
+        NOW()
+        )
+    </insert>
+
+    <select id="getReportList"
+            parameterType="com.ninimum.api.param.ReportListParam"
+            resultType="com.ninimum.api.dto.ReportDto">
+        SELECT
+        report_id AS reportId,
+        user_id AS userId,
+        report_type AS reportType,
+        target_id AS targetId,
+        reason AS reason,
+        report_status AS reportStatus,
+        DATE_FORMAT(created_at, '%Y-%m-%d %H:%i:%s') AS createdDate
+        FROM reports
+        WHERE user_id = #{userId}
+        ORDER BY report_id DESC
+    </select>
+
+</mapper>

@@ -5,11 +5,9 @@ import com.ninimum.api.common.BaseController;
 import com.ninimum.api.common.Result;
 import com.ninimum.api.common.VersionResponseResult;
 import com.ninimum.api.constants.Constant;
+import com.ninimum.api.dto.CartCountDto;
 import com.ninimum.api.dto.CartDto;
-import com.ninimum.api.param.AddCartParam;
-import com.ninimum.api.param.CartListParam;
-import com.ninimum.api.param.DeleteCartParam;
-import com.ninimum.api.param.UpdateCartParam;
+import com.ninimum.api.param.*;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
@@ -141,6 +139,58 @@ public class CartController extends BaseController {
         } catch (Exception ex) {
             result = this.setResult(Result.SERVER_ERROR);
             log.error("CartController => deleteCart: ", ex);
+        }
+
+        return new ResponseEntity<>(result, HttpStatus.OK);
+    }
+
+    @Operation(
+            tags = {"Cart"},
+            summary = "5. Clear cart",
+            description = "Deletes all products from user cart.",
+            hidden = false,
+            responses = { @ApiResponse(responseCode = "200", description = "success") },
+            security = { @SecurityRequirement(name = "bearerAuth") }
+    )
+    @DeleteMapping(value = "/clearCart", headers = { "Content-type=application/json" })
+    public ResponseEntity<Object> clearCart(@RequestBody ClearCartParam param) {
+        VersionResponseResult result = null;
+
+        try {
+            int resultNum = this.cartService.clearCart(param);
+
+            if (resultNum != 0) {
+                result = this.setResult(Result.SUCCESS);
+            } else {
+                result = this.setResult(Result.SERVER_ERROR);
+            }
+
+        } catch (Exception ex) {
+            result = this.setResult(Result.SERVER_ERROR);
+            log.error("CartController => clearCart: ", ex);
+        }
+
+        return new ResponseEntity<>(result, HttpStatus.OK);
+    }
+
+    @Operation(
+            tags = {"Cart"},
+            summary = "6. Cart count",
+            description = "Returns cart product count by user ID.",
+            hidden = false,
+            responses = { @ApiResponse(responseCode = "200", description = "success") },
+            security = { @SecurityRequirement(name = "bearerAuth") }
+    )
+    @PostMapping(value = "/getCartCount", headers = { "Content-type=application/json" })
+    public ResponseEntity<Object> getCartCount(@RequestBody CartListParam param) {
+        VersionResponseResult result = null;
+
+        try {
+            CartCountDto cartCount = this.cartService.getCartCount(param);
+            result = this.setResult(Result.SUCCESS, cartCount);
+        } catch (Exception ex) {
+            result = this.setResult(Result.SERVER_ERROR);
+            log.error("CartController => getCartCount: ", ex);
         }
 
         return new ResponseEntity<>(result, HttpStatus.OK);

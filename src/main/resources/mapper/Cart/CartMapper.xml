@@ -56,4 +56,18 @@
         AND user_id = #{userId}
     </delete>
 
+    <delete id="clearCart"
+            parameterType="com.ninimum.api.param.ClearCartParam">
+        DELETE FROM carts
+        WHERE user_id = #{userId}
+    </delete>
+
+    <select id="getCartCount"
+            parameterType="com.ninimum.api.param.CartListParam"
+            resultType="int">
+        SELECT COUNT(*)
+        FROM carts
+        WHERE user_id = #{userId}
+    </select>
+
 </mapper>

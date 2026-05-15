@@ -2,10 +2,7 @@ package com.ninimum.api.order.service;
 
 import com.ninimum.api.dto.OrderDetailDto;
 import com.ninimum.api.dto.OrderDto;
-import com.ninimum.api.param.CreateOrderParam;
-import com.ninimum.api.param.CreateOrderProductParam;
-import com.ninimum.api.param.OrderDetailParam;
-import com.ninimum.api.param.OrderListParam;
+import com.ninimum.api.param.*;
 import org.apache.ibatis.annotations.Mapper;
 
 import java.util.List;
@@ -19,4 +16,6 @@ public interface OrderMapper {
     int createOrder(CreateOrderParam param) throws Exception;
 
     int createOrderDetail(CreateOrderProductParam param) throws Exception;
+    int cancelOrder(CancelOrderParam param) throws Exception;
+    int getOrderCount(OrderListParam param) throws Exception;
 }

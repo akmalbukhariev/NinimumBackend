@@ -43,4 +43,11 @@
         AND product_id = #{productId}
     </delete>
 
+    <select id="getFavoriteCount"
+            parameterType="com.ninimum.api.param.FavoriteListParam"
+            resultType="int">
+        SELECT COUNT(*)
+        FROM favorites
+        WHERE user_id = #{userId}
+    </select>
 </mapper>
