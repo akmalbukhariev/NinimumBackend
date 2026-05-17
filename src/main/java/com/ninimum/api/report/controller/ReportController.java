@@ -24,7 +24,7 @@ import java.util.List;
 @RestController
 @RequiredArgsConstructor
 @Tag(name = "Report", description = "User report APIs.")
-@RequestMapping(value={"/samokat/api/v1/report"})
+@RequestMapping(value={"/ninimum/api/v1/report"})
 public class ReportController extends BaseController {
 
     private final IReportService reportService;

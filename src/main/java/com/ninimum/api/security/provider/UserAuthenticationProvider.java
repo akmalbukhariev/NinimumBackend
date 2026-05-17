@@ -3,7 +3,7 @@ package com.ninimum.api.security.provider;
 import com.ninimum.api.camelcase.CamelCaseMap;
 import com.ninimum.api.common.Result;
 import com.ninimum.api.constants.UserOrCompanyStatus;
-import com.ninimum.api.dto.UserInfoDto;
+import com.ninimum.api.dto.UserDto;
 import com.ninimum.api.security.CommUserDetails;
 import com.ninimum.api.security.UserDetailsServiceImpl;
 import lombok.RequiredArgsConstructor;
@@ -49,7 +49,7 @@ public class UserAuthenticationProvider implements AuthenticationProvider{
 			}
 
 			map = (CamelCaseMap) user.getDataMap();
-			UserInfoDto dto = map.toObject(UserInfoDto.class);
+			UserDto dto = map.toObject(UserDto.class);
 
 			/*CircleInfoDto cDto = userDetailsService.getCircleInfo();
 			if(cDto != null){
@@ -105,7 +105,7 @@ public class UserAuthenticationProvider implements AuthenticationProvider{
 		return userDetailsService.getUserStatus(user_id);
 	}
 
-	public int updateUserStatusAndToken(UserInfoDto dto) throws Exception {
+	public int updateUserStatusAndToken(UserDto dto) throws Exception {
 		return userDetailsService.updateUserStatusAndToken(dto);
 	}
 

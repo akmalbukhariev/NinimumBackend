@@ -22,7 +22,7 @@ import javax.annotation.PostConstruct;
 @RestController
 @RequiredArgsConstructor
 @Tag(name = "Version", description = "App version check APIs.")
-@RequestMapping(value={"/samokat/api/v1/version"})
+@RequestMapping(value={"/ninimum/api/v1/version"})
 public class VersionController extends BaseController {
 
     private final IVersionService versionService;

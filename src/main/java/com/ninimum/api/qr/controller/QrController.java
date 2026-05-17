@@ -23,7 +23,7 @@ import javax.annotation.PostConstruct;
 @RestController
 @RequiredArgsConstructor
 @Tag(name = "QR", description = "User QR code APIs.")
-@RequestMapping(value={"/samokat/api/v1/qr"})
+@RequestMapping(value={"/ninimum/api/v1/qr"})
 public class QrController extends BaseController {
 
     private final IQrService qrService;

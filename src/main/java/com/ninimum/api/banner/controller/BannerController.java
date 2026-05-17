@@ -22,7 +22,7 @@ import java.util.List;
 @RestController
 @RequiredArgsConstructor
 @Tag(name = "Banner", description = "Main banner APIs.")
-@RequestMapping(value={"/samokat/api/v1/banner"})
+@RequestMapping(value={"/ninimum/api/v1/banner"})
 public class BannerController extends BaseController {
 
     private final IBannerService bannerService;

@@ -27,8 +27,8 @@ import javax.annotation.PostConstruct;
 @Slf4j
 @RestController
 @RequiredArgsConstructor
-@Tag(name = "User", description = "Stores information about Samokat users.")
-@RequestMapping(value={"/samokat/api/v1/user"})
+@Tag(name = "User", description = "Stores information about ninimum users.")
+@RequestMapping(value={"/ninimum/api/v1/user"})
 public class UserController extends BaseController {
 
     private final IUserService userService;

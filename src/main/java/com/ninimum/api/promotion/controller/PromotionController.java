@@ -23,7 +23,7 @@ import java.util.List;
 @RestController
 @RequiredArgsConstructor
 @Tag(name = "Promotion", description = "Promotion APIs.")
-@RequestMapping(value={"/samokat/api/v1/promotion"})
+@RequestMapping(value={"/ninimum/api/v1/promotion"})
 public class PromotionController extends BaseController {
 
     private final IPromotionService promotionService;

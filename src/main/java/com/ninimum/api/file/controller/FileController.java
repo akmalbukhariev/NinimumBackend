@@ -22,7 +22,7 @@ import javax.annotation.PostConstruct;
 @RestController
 @RequiredArgsConstructor
 @Tag(name = "File", description = "File upload APIs.")
-@RequestMapping(value={"/samokat/api/v1/file"})
+@RequestMapping(value={"/ninimum/api/v1/file"})
 public class FileController extends BaseController {
 
     private final IFileService fileService;

@@ -25,7 +25,7 @@ import java.util.List;
 @RestController
 @RequiredArgsConstructor
 @Tag(name = "Notification", description = "User notification APIs.")
-@RequestMapping(value={"/samokat/api/v1/notification"})
+@RequestMapping(value={"/ninimum/api/v1/notification"})
 public class NotificationController extends BaseController {
 
     private final INotificationService notificationService;

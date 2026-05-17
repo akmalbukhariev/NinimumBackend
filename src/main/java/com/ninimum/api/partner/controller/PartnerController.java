@@ -23,7 +23,7 @@ import java.util.List;
 @RestController
 @RequiredArgsConstructor
 @Tag(name = "Partner", description = "Partner supermarket APIs.")
-@RequestMapping(value={"/samokat/api/v1/partner"})
+@RequestMapping(value={"/ninimum/api/v1/partner"})
 public class PartnerController extends BaseController {
 
     private final IPartnerService partnerService;

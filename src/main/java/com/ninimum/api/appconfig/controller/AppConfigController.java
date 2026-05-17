@@ -21,7 +21,7 @@ import javax.annotation.PostConstruct;
 @RestController
 @RequiredArgsConstructor
 @Tag(name = "App Config", description = "Application configuration APIs.")
-@RequestMapping(value={"/samokat/api/v1/appConfig"})
+@RequestMapping(value={"/ninimum/api/v1/appConfig"})
 public class AppConfigController extends BaseController {
 
     private final IAppConfigService appConfigService;

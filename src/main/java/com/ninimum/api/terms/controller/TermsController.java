@@ -23,7 +23,7 @@ import java.util.List;
 @RestController
 @RequiredArgsConstructor
 @Tag(name = "Terms", description = "Terms and privacy policy APIs.")
-@RequestMapping(value={"/samokat/api/v1/terms"})
+@RequestMapping(value={"/ninimum/api/v1/terms"})
 public class TermsController extends BaseController {
 
     private final ITermsService termsService;

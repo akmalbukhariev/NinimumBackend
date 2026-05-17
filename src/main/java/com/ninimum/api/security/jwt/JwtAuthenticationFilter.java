@@ -6,7 +6,7 @@ import com.ninimum.api.common.Result;
 import com.ninimum.api.common.VersionResponseResult;
 import com.ninimum.api.constants.Constant;
 import com.ninimum.api.constants.UserOrCompanyStatus;
-import com.ninimum.api.dto.UserInfoDto;
+import com.ninimum.api.dto.UserDto;
 import com.ninimum.api.security.provider.UserAuthenticationProvider;
 import io.jsonwebtoken.Claims;
 import lombok.RequiredArgsConstructor;
@@ -79,9 +79,9 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter{
 
 				// 4) For user role
 				CamelCaseMap found = userAuthenticationProvider.getUserByToken(token);
-				UserInfoDto dto = found == null ? null : found.toObject(UserInfoDto.class);
+				UserDto dto = found == null ? null : found.toObject(UserDto.class);
 
-				if(result == Result.SUCCESS){
+				/*if(result == Result.SUCCESS){
 					if (dto != null && dto.isDeleted()){
 						sendErrorResponse(response, HttpServletResponse.SC_FORBIDDEN, Result.DELETE_USER.getCodeToString(), Result.DELETE_USER.getMessage(), dto);
 					}
@@ -97,7 +97,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter{
 
 						filterChain.doFilter(request, response);
 					}
-				}
+				}*/
 			} catch (Exception ex) {
 				log.error("JwtAuthenticationFilter => doFilterInternal", ex);
 			}
@@ -123,22 +123,18 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter{
 	/**
 	 * Sends a JSON error response.
 	 */
-	private void sendErrorResponse(HttpServletResponse response, int status, String resultCode, String resultMsg, UserInfoDto dto) throws IOException {
+	private void sendErrorResponse(HttpServletResponse response, int status, String resultCode, String resultMsg, UserDto dto) throws IOException {
 		response.setStatus(status);
 		response.setContentType("application/json");
 
 		VersionResponseResult resResult = new VersionResponseResult();
 		resResult.setResultCode(resultCode);
-		if (dto != null && dto.getBlocked_until() != null) {
+		/*if (dto != null && dto.getBlocked_until() != null) {
 			DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 			resResult.setResultMsg(dto.getBlocked_until().format(formatter));
 		} else {
 			resResult.setResultMsg(resultMsg);
-		}
-
-		/*Map<String, String> error = new HashMap<>();
-		error.put("resultCode", resultCode);
-		error.put("resultMsg", resultMsg);*/
+		}*/
 
 		new ObjectMapper().writeValue(response.getOutputStream(), resResult);
 	}

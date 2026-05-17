@@ -23,7 +23,7 @@ import java.util.List;
 @RestController
 @RequiredArgsConstructor
 @Tag(name = "Tariff", description = "Subscription tariff APIs.")
-@RequestMapping(value={"/samokat/api/v1/tariff"})
+@RequestMapping(value={"/ninimum/api/v1/tariff"})
 public class TariffController extends BaseController {
 
     private final ITariffService tariffService;

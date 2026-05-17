@@ -22,7 +22,7 @@ import java.util.List;
 @RestController
 @RequiredArgsConstructor
 @Tag(name = "FAQ", description = "FAQ APIs.")
-@RequestMapping(value={"/samokat/api/v1/faq"})
+@RequestMapping(value={"/ninimum/api/v1/faq"})
 public class FaqController extends BaseController {
 
     private final IFaqService faqService;

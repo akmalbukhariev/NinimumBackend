@@ -23,7 +23,7 @@ import java.util.List;
 @RestController
 @RequiredArgsConstructor
 @Tag(name = "Notice", description = "Notice APIs.")
-@RequestMapping(value={"/samokat/api/v1/notice"})
+@RequestMapping(value={"/ninimum/api/v1/notice"})
 public class NoticeController extends BaseController {
 
     private final INoticeService noticeService;

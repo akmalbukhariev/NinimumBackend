@@ -2,31 +2,33 @@
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.ninimum.api.terms.service.TermsMapper">
 
-<select id="getTermsList"
-        resultType="com.ninimum.api.dto.TermsDto">
-    SELECT
-    terms_id AS termsId,
-    terms_type AS termsType,
-    title AS title,
-    content AS content,
-    required_yn AS requiredYn,
-    DATE_FORMAT(created_at, '%Y-%m-%d %H:%i:%s') AS createdDate
-    FROM terms
-    WHERE use_yn = 'Y'
-    ORDER BY terms_id DESC
-</select>
+    <select id="getTermsList"
+            resultType="com.ninimum.api.dto.TermsDto">
+        SELECT
+        terms_id AS termsId,
+        terms_type AS termsType,
+        title AS title,
+        content AS content,
+        required_yn AS requiredYn,
+        DATE_FORMAT(created_at, '%Y-%m-%d %H:%i:%s') AS createdDate
+        FROM terms
+        WHERE use_yn = 'Y'
+        ORDER BY terms_id DESC
+    </select>
 
-<select id="getTermsDetail"
-        parameterType="com.ninimum.api.param.TermsDetailParam"
-        resultType="com.ninimum.api.dto.TermsDto">
-    SELECT
-    terms_id AS termsId,
-    terms_type AS termsType,
-    title AS title,
-    content AS content,
-    required_yn AS requiredYn,
-    DATE_FORMAT(created_at, '%Y-%m-%d %H:%i:%s') AS createdDate
-    FROM terms
-    WHERE terms_id = #{termsId}
-    AND use_yn = 'Y'
-</select>
+    <select id="getTermsDetail"
+            parameterType="com.ninimum.api.param.TermsDetailParam"
+            resultType="com.ninimum.api.dto.TermsDto">
+        SELECT
+        terms_id AS termsId,
+        terms_type AS termsType,
+        title AS title,
+        content AS content,
+        required_yn AS requiredYn,
+        DATE_FORMAT(created_at, '%Y-%m-%d %H:%i:%s') AS createdDate
+        FROM terms
+        WHERE terms_id = #{termsId}
+        AND use_yn = 'Y'
+    </select>
+
+</mapper>

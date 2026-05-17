@@ -6,6 +6,7 @@ import com.ninimum.api.param.AddressListParam;
 import com.ninimum.api.param.DeleteAddressParam;
 import com.ninimum.api.param.UpdateAddressParam;
 import org.apache.ibatis.annotations.Mapper;
+import org.springframework.data.repository.query.Param;
 
 import java.util.List;
 
@@ -13,7 +14,7 @@ import java.util.List;
 public interface AddressMapper {
     List<AddressDto> getAddressList(AddressListParam param) throws Exception;
 
-    int resetDefaultAddress(Long userId) throws Exception;
+    int resetDefaultAddress(@Param("userId") Long userId) throws Exception;
 
     int addAddress(AddAddressParam param) throws Exception;
 

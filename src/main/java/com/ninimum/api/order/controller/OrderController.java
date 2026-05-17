@@ -28,7 +28,7 @@ import java.util.List;
 @RestController
 @RequiredArgsConstructor
 @Tag(name = "mapper/Order", description = "Order APIs.")
-@RequestMapping(value={"/samokat/api/v1/order"})
+@RequestMapping(value={"/ninimum/api/v1/order"})
 public class OrderController extends BaseController {
 
     private final IOrderService orderService;

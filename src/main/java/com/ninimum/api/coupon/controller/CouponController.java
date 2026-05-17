@@ -25,7 +25,7 @@ import java.util.List;
 @RestController
 @RequiredArgsConstructor
 @Tag(name = "Coupon", description = "Coupon APIs.")
-@RequestMapping(value={"/samokat/api/v1/coupon"})
+@RequestMapping(value={"/ninimum/api/v1/coupon"})
 public class CouponController extends BaseController {
 
     private final ICouponService couponService;

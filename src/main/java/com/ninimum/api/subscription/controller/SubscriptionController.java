@@ -25,7 +25,7 @@ import java.util.List;
 @RestController
 @RequiredArgsConstructor
 @Tag(name = "Subscription", description = "User subscription APIs.")
-@RequestMapping(value={"/samokat/api/v1/subscription"})
+@RequestMapping(value={"/ninimum/api/v1/subscription"})
 public class SubscriptionController extends BaseController {
 
     private final ISubscriptionService subscriptionService;

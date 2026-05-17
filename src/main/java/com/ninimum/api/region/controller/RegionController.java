@@ -22,7 +22,7 @@ import java.util.List;
 @RestController
 @RequiredArgsConstructor
 @Tag(name = "Region", description = "Stores information about service regions.")
-@RequestMapping(value={"/samokat/api/v1/region"})
+@RequestMapping(value={"/ninimum/api/v1/region"})
 public class RegionController extends BaseController {
 
     private final IRegionService regionService;

@@ -25,7 +25,7 @@ import java.util.List;
 @RestController
 @RequiredArgsConstructor
 @Tag(name = "Children", description = "Stores children information of users.")
-@RequestMapping(value={"/samokat/api/v1/children"})
+@RequestMapping(value={"/ninimum/api/v1/children"})
 public class ChildrenController extends BaseController {
 
     private final IChildrenService childrenService;

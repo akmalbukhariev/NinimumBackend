@@ -23,10 +23,10 @@ spring:
     basename: i18n/exception
     encoding: UTF-8
 
-  file:
-    upload:
-      path: /home/samokat/uploads
-      url: http://localhost:8080/uploads
+file:
+  upload:
+    path: ./uploads
+    url: http://localhost:8083/uploads
 
 ### mybatis setting ###
 mybatis:

@@ -25,7 +25,7 @@ import java.util.List;
 @RestController
 @RequiredArgsConstructor
 @Tag(name = "Delivery", description = "Delivery APIs.")
-@RequestMapping(value={"/samokat/api/v1/delivery"})
+@RequestMapping(value={"/ninimum/api/v1/delivery"})
 public class DeliveryController extends BaseController {
 
     private final IDeliveryService deliveryService;

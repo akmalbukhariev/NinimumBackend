@@ -26,7 +26,7 @@ import java.util.List;
 @RestController
 @RequiredArgsConstructor
 @Tag(name = "Payment", description = "Payment APIs.")
-@RequestMapping(value={"/samokat/api/v1/payment"})
+@RequestMapping(value={"/ninimum/api/v1/payment"})
 public class PaymentController extends BaseController {
 
     private final IPaymentService paymentService;

@@ -7,7 +7,7 @@ import com.ninimum.api.common.VersionResponseResult;
 import com.ninimum.api.constants.Constant;
 import com.ninimum.api.constants.UserOrCompanyStatus;
 import com.ninimum.api.dto.TokenDto;
-import com.ninimum.api.dto.UserInfoDto;
+import com.ninimum.api.dto.UserDto;
 import com.ninimum.api.param.UserLoginInfoParam;
 import com.ninimum.api.security.jwt.JwtTokenProvider;
 import com.ninimum.api.security.provider.UserAuthenticationProvider;
@@ -163,10 +163,10 @@ public class UserAuthenticationFilter extends UsernamePasswordAuthenticationFilt
 	 * Update user status in the database.
 	 */
 	private void updateUserStatus(Long userSeq, String accessToken) throws Exception {
-		UserInfoDto dto = new UserInfoDto();
-		dto.setToken_mb(accessToken);
+		UserDto dto = new UserDto();
+		/*dto.setToken_mb(accessToken);
 		dto.setUser_id(userSeq);
-		dto.setStatus(UserOrCompanyStatus.ACTIVE);
+		dto.setStatus(UserOrCompanyStatus.ACTIVE);*/
 		dto.setUpdated_at(LocalDateTime.now());
 
 		userAuthenticationProvider.updateUserStatusAndToken(dto);

@@ -26,7 +26,7 @@ import java.util.List;
 @RestController
 @RequiredArgsConstructor
 @Tag(name = "Favorite", description = "Favorite product APIs.")
-@RequestMapping(value={"/samokat/api/v1/favorite"})
+@RequestMapping(value={"/ninimum/api/v1/favorite"})
 public class FavoriteController extends BaseController {
 
     private final IFavoriteService favoriteService;

@@ -4,7 +4,7 @@ import com.ninimum.api.camelcase.CamelCaseMap;
 import com.ninimum.api.common.Result;
 import com.ninimum.api.constants.Constant;
 import com.ninimum.api.constants.UserOrCompanyStatus;
-import com.ninimum.api.dto.UserInfoDto;
+import com.ninimum.api.dto.UserDto;
 import com.ninimum.api.user.service.UserMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -60,7 +60,7 @@ public class UserDetailsServiceImpl implements UserDetailsService{
 		return new CamelCaseMap();
 	}
 
-	public int updateUserStatusAndToken(UserInfoDto dto) throws Exception {
+	public int updateUserStatusAndToken(UserDto dto) throws Exception {
 		return 1;//userMapper.updateUserStatusAndToken(dto);
 	}
 }

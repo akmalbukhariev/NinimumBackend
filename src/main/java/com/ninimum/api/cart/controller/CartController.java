@@ -24,7 +24,7 @@ import java.util.List;
 @RestController
 @RequiredArgsConstructor
 @Tag(name = "mapper/Cart", description = "Shopping cart APIs.")
-@RequestMapping(value={"/samokat/api/v1/cart"})
+@RequestMapping(value={"/ninimum/api/v1/cart"})
 public class CartController extends BaseController {
 
     private final ICartService cartService;

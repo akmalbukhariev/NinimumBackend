@@ -24,7 +24,7 @@ import java.util.List;
 @RestController
 @RequiredArgsConstructor
 @Tag(name = "Recently Viewed Product", description = "Recently viewed product APIs.")
-@RequestMapping(value={"/samokat/api/v1/recentlyViewedProduct"})
+@RequestMapping(value={"/ninimum/api/v1/recentlyViewedProduct"})
 public class RecentlyViewedProductController extends BaseController {
 
     private final IRecentlyViewedProductService recentlyViewedProductService;

@@ -19,6 +19,7 @@
     </settings>
 
     <typeAliases>
-
+        <!-- Map is not used as alias value. -->
+        <typeAlias alias="camelMap" type="com.ninimum.api.camelcase.CamelCaseMap" />
     </typeAliases>
 </configuration>

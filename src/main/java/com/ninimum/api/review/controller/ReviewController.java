@@ -25,7 +25,7 @@ import java.util.List;
 @RestController
 @RequiredArgsConstructor
 @Tag(name = "Review", description = "Product review APIs.")
-@RequestMapping(value={"/samokat/api/v1/review"})
+@RequestMapping(value={"/ninimum/api/v1/review"})
 public class ReviewController extends BaseController {
 
     private final IReviewService reviewService;

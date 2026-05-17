@@ -26,7 +26,7 @@ import java.util.List;
 @RestController
 @RequiredArgsConstructor
 @Tag(name = "Address", description = "User delivery address APIs.")
-@RequestMapping(value={"/samokat/api/v1/address"})
+@RequestMapping(value={"/ninimum/api/v1/address"})
 public class AddressController extends BaseController {
 
     private final IAddressService addressService;

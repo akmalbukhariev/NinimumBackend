@@ -24,7 +24,7 @@ import java.util.List;
 @RestController
 @RequiredArgsConstructor
 @Tag(name = "Product", description = "Product and category APIs.")
-@RequestMapping(value={"/samokat/api/v1/product"})
+@RequestMapping(value={"/ninimum/api/v1/product"})
 public class ProductController extends BaseController {
 
     private final IProductService productService;

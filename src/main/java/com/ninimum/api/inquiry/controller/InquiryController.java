@@ -25,7 +25,7 @@ import java.util.List;
 @RestController
 @RequiredArgsConstructor
 @Tag(name = "Inquiry", description = "Customer inquiry APIs.")
-@RequestMapping(value={"/samokat/api/v1/inquiry"})
+@RequestMapping(value={"/ninimum/api/v1/inquiry"})
 public class InquiryController extends BaseController {
 
     private final IInquiryService inquiryService;
