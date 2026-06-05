@@ -10,6 +10,7 @@ import com.ninimum.api.favorite.service.IFavoriteService;
 import com.ninimum.api.param.AddFavoriteParam;
 import com.ninimum.api.param.DeleteFavoriteParam;
 import com.ninimum.api.param.FavoriteListParam;
+import com.ninimum.api.response.ProductListResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
@@ -49,7 +50,7 @@ public class FavoriteController extends BaseController {
         VersionResponseResult result = null;
 
         try {
-            List<FavoriteDto> favorites = this.favoriteService.getFavoriteList(param);
+            List<ProductListResponse> favorites = this.favoriteService.getFavoriteList(param);
             result = this.setResult(Result.SUCCESS, favorites);
         } catch (Exception ex) {
             result = this.setResult(Result.SERVER_ERROR);

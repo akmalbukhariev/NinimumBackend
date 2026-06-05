@@ -23,10 +23,17 @@ spring:
     basename: i18n/exception
     encoding: UTF-8
 
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+    url: /v3/api-docs
+    disable-swagger-default-url: true
+
 file:
   upload:
-    path: ./uploads
-    url: http://localhost:8083/uploads
+    path: ${FILE_UPLOAD_PATH:uploads}
+  access:
+    url: ${FILE_ACCESS_URL:http://192.168.219.165:8083/uploads}
 
 ### mybatis setting ###
 mybatis:

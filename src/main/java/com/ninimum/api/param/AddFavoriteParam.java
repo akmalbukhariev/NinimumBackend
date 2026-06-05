@@ -4,6 +4,6 @@ import lombok.Data;
 
 @Data
 public class AddFavoriteParam {
-    private Long userId;
-    private Long productId;
+    private Long user_id;
+    private Long product_id;
 }

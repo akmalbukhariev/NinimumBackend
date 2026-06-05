@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ninimum.api.admin.service.AdminMapper">
+
+    <select id="getAdminByLoginId" resultType="com.ninimum.api.camelcase.CamelCaseMap">
+        SELECT
+            id,
+            login_id,
+            password,
+            name,
+            role,
+            status
+        FROM admin_users
+        WHERE login_id = #{login_id}
+        LIMIT 1
+    </select>
+
+    <insert id="registerAdmin" parameterType="com.ninimum.api.dto.AdminDto">
+        INSERT INTO admin_users
+        (
+            login_id,
+            password,
+            name,
+            role,
+            status
+        )
+        VALUES
+        (
+            #{login_id},
+            #{password},
+            #{name},
+            #{role},
+            #{status}
+        )
+    </insert>
+</mapper>

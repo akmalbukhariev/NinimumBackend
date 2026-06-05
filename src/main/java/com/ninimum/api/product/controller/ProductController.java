@@ -8,6 +8,7 @@ import com.ninimum.api.dto.ProductCategoryDto;
 import com.ninimum.api.dto.ProductDto;
 import com.ninimum.api.param.*;
 import com.ninimum.api.product.service.IProductService;
+import com.ninimum.api.response.ProductListResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
@@ -70,7 +71,7 @@ public class ProductController extends BaseController {
         VersionResponseResult result = null;
 
         try {
-            List<ProductDto> products = this.productService.getProductList(param);
+            List<ProductListResponse> products = this.productService.getProductList(param);
             result = this.setResult(Result.SUCCESS, products);
         } catch (Exception ex) {
             result = this.setResult(Result.SERVER_ERROR);
@@ -116,7 +117,7 @@ public class ProductController extends BaseController {
         VersionResponseResult result = null;
 
         try {
-            List<ProductDto> products = this.productService.searchProductList(param);
+            List<ProductListResponse> products = this.productService.searchProductList(param);
             result = this.setResult(Result.SUCCESS, products);
         } catch (Exception ex) {
             result = this.setResult(Result.SERVER_ERROR);

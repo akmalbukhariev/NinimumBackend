@@ -1,5 +1,6 @@
 package com.ninimum.api.favorite.service;
 
+import com.ninimum.api.camelcase.CamelCaseMap;
 import com.ninimum.api.dto.FavoriteDto;
 import com.ninimum.api.param.AddFavoriteParam;
 import com.ninimum.api.param.DeleteFavoriteParam;
@@ -10,7 +11,7 @@ import java.util.List;
 
 @Mapper
 public interface FavoriteMapper {
-    List<FavoriteDto> getFavoriteList(FavoriteListParam param) throws Exception;
+    List<CamelCaseMap> getFavoriteList(FavoriteListParam param) throws Exception;
 
     int addFavorite(AddFavoriteParam param) throws Exception;
 

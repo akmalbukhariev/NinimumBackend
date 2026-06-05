@@ -1,5 +1,7 @@
 package com.ninimum.api.configure;
 
+import com.ninimum.api.constants.Constant;
+import com.ninimum.api.security.AdminDetailsServiceImpl;
 import com.ninimum.api.security.UserDetailsServiceImpl;
 import com.ninimum.api.security.filter.UserAuthenticationFilter;
 import com.ninimum.api.security.jwt.JwtAuthenticationFilter;
@@ -14,9 +16,12 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configuration.WebSecurityCustomizer;
 import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.crypto.factory.PasswordEncoderFactories;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
-
+import com.ninimum.api.security.provider.AdminAuthenticationProvider;
+import com.ninimum.api.security.filter.AdminAuthenticationFilter;
 @Configuration
 @EnableWebSecurity
 @RequiredArgsConstructor
@@ -25,10 +30,14 @@ public class SecurityConfig {
 
     private final JwtTokenProvider jwtTokenProvider;
     private final UserDetailsServiceImpl userDetailsService;
+    private final AdminDetailsServiceImpl adminDetailsService;
 
     public UserAuthenticationProvider userProvider() {
-        return new UserAuthenticationProvider(userDetailsService);
-        //return new UserAuthenticationProvider(userDetailsService, passwordEncoder());
+        return new UserAuthenticationProvider(userDetailsService, passwordEncoder());
+    }
+
+    public AdminAuthenticationProvider adminProvider() {
+        return new AdminAuthenticationProvider(adminDetailsService, passwordEncoder());
     }
 
     @Bean
@@ -40,22 +49,40 @@ public class SecurityConfig {
                 .and()
                 .authorizeHttpRequests()
                 .antMatchers(HttpMethod.OPTIONS, "/ninimum/api/v1/**").permitAll()
-                .antMatchers("/ninimum/api/v1/**").hasAnyRole("USER");
+                .antMatchers("/uploads/**").permitAll()
+                .antMatchers("/ninimum/api/v1/admin/login").permitAll()
+                .antMatchers("/ninimum/api/v1/user/login").permitAll()
+                //.antMatchers("/ninimum/api/v1/admin/**").hasAnyAuthority(Constant.ROLE_ADMIN)
+                .antMatchers("/ninimum/api/v1/**").hasAnyAuthority(Constant.ROLE_USER, Constant.ROLE_ADMIN);
 
-        /*UserAuthenticationProvider userProvider = userProvider();
+        UserAuthenticationProvider userProvider = userProvider();
+        AdminAuthenticationProvider adminProvider = adminProvider();
 
         UserAuthenticationFilter userAuthFilter = new UserAuthenticationFilter(jwtTokenProvider, userProvider);
         userAuthFilter.setFilterProcessesUrl("/ninimum/api/v1/user/login");
 
-        http.addFilter(userAuthFilter);
-        http.addFilterBefore(new JwtAuthenticationFilter(jwtTokenProvider, userProvider), UsernamePasswordAuthenticationFilter.class);
-        */
+        AdminAuthenticationFilter adminAuthFilter = new AdminAuthenticationFilter(jwtTokenProvider, adminProvider);
+        adminAuthFilter.setFilterProcessesUrl("/ninimum/api/v1/admin/login");
+
+        http.addFilterBefore(
+                new JwtAuthenticationFilter(jwtTokenProvider, userProvider, adminProvider),
+                UsernamePasswordAuthenticationFilter.class
+        );
+
+        http.addFilterAt(userAuthFilter, UsernamePasswordAuthenticationFilter.class);
+        http.addFilterAt(adminAuthFilter, UsernamePasswordAuthenticationFilter.class);
         return http.build();
+    }
+
+    @Bean
+    public PasswordEncoder passwordEncoder() {
+        return PasswordEncoderFactories.createDelegatingPasswordEncoder();
     }
 
     @Bean
     public WebSecurityCustomizer webSecurityCustomizer() {
         return (web) -> web.ignoring().antMatchers("/**/webjars/**",
+                "/uploads/**",
                 "/v2/api-docs",
                 "/swagger-resources",
                 "/swagger-resources/**",
@@ -73,8 +100,10 @@ public class SecurityConfig {
                 "/api/v1/status",
                 "/ninimum/api/v1/status",
 
-                "/ninimum/api/v1/user/checkUser/**", //it should not be committed
-                "/ninimum/api/v1/user/register", //it should not be committed
+                "/ninimum/api/v1/user/checkPhoneNumber", //it should not be committed
+                "/ninimum/api/v1/user/register",     //it should not be committed
+                //"/ninimum/api/v1/admin/register",     //it should not be committed
+                "/ninimum/api/v1/message/verifyPhoneNumber",     //it should not be committed
                 "/error");
     }
 }

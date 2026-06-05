@@ -8,6 +8,5 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class UserLoginInfoParam {
     private String phone_number;
-    @JsonIgnore
     private String password;
 }

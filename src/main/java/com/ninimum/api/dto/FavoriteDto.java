@@ -1,14 +1,15 @@
 package com.ninimum.api.dto;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
 import lombok.Data;
+
+import java.time.LocalDateTime;
 
 @Data
 public class FavoriteDto {
-    private Long favoriteId;
-    private Long userId;
-    private Long productId;
-    private String productName;
-    private String productImageUrl;
-    private Integer price;
-    private String description;
+    private Long id;
+    private Long user_id;
+    private Long product_id;
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
+    private LocalDateTime created_at;
 }

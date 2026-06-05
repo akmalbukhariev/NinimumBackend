@@ -5,7 +5,6 @@ import com.ninimum.api.banner.service.IBannerService;
 import com.ninimum.api.dto.BannerDto;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
-
 import java.util.List;
 
 @Service
@@ -16,6 +15,16 @@ public class BannerService implements IBannerService {
 
     @Override
     public List<BannerDto> getBannerList() throws Exception {
-        return this.bannerMapper.getBannerList();
+        return bannerMapper.getBannerList();
+    }
+
+    @Override
+    public int insertBanner(BannerDto param) throws Exception {
+        return bannerMapper.insertBanner(param);
+    }
+
+    @Override
+    public int deleteBanner(Long id) throws Exception {
+        return bannerMapper.deleteBanner(id);
     }
 }

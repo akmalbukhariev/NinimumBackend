@@ -1,11 +1,18 @@
-package com.ninimum.api.favorite.service;
+package com.ninimum.api.favorite.service.impl;
 
+import com.ninimum.api.camelcase.CamelCaseMap;
+import com.ninimum.api.common.Converter;
 import com.ninimum.api.dto.FavoriteCountDto;
-import com.ninimum.api.dto.FavoriteDto;
+import com.ninimum.api.dto.ProductImageDto;
+import com.ninimum.api.favorite.service.FavoriteMapper;
+import com.ninimum.api.favorite.service.IFavoriteService;
 import com.ninimum.api.param.AddFavoriteParam;
 import com.ninimum.api.param.DeleteFavoriteParam;
 import com.ninimum.api.param.FavoriteListParam;
+import com.ninimum.api.product.service.ProductMapper;
+import com.ninimum.api.response.ProductListResponse;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -15,10 +22,35 @@ import java.util.List;
 public class FavoriteService implements IFavoriteService {
 
     private final FavoriteMapper favoriteMapper;
+    private final ProductMapper productMapper;
+
+    @Value("${file.access.url}")
+    private String fileAccessUrl;
 
     @Override
-    public List<FavoriteDto> getFavoriteList(FavoriteListParam param) throws Exception {
-        return this.favoriteMapper.getFavoriteList(param);
+    public List<ProductListResponse> getFavoriteList(FavoriteListParam param) throws Exception {
+
+        List<CamelCaseMap> camProducts = this.favoriteMapper.getFavoriteList(param);
+        List<ProductListResponse> products =
+                Converter.mapToDtoList(camProducts, ProductListResponse.class);
+
+        for (ProductListResponse product : products) {
+
+            List<CamelCaseMap> mapList = this.productMapper.getProductImages(product.getId());
+            List<ProductImageDto> images =
+                    Converter.mapToDtoList(mapList, ProductImageDto.class);
+
+            for (ProductImageDto image : images) {
+                if (image.getImage_url() != null && !image.getImage_url().isEmpty()) {
+                    image.setImage_url(fileAccessUrl + "/" + image.getImage_url());
+                }
+            }
+
+            product.setLiked(true);
+            product.setImages(images);
+        }
+
+        return products;
     }
 
     @Override

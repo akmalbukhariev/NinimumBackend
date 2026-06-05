@@ -5,14 +5,16 @@ import com.ninimum.api.camelcase.CamelCaseMap;
 import com.ninimum.api.common.Result;
 import com.ninimum.api.common.VersionResponseResult;
 import com.ninimum.api.constants.Constant;
-import com.ninimum.api.constants.UserOrCompanyStatus;
+import com.ninimum.api.constants.UserStatus;
 import com.ninimum.api.dto.UserDto;
+import com.ninimum.api.security.provider.AdminAuthenticationProvider;
 import com.ninimum.api.security.provider.UserAuthenticationProvider;
 import io.jsonwebtoken.Claims;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.util.StringUtils;
 import org.springframework.web.filter.OncePerRequestFilter;
 
@@ -28,6 +30,7 @@ import java.time.format.DateTimeFormatter;
 public class JwtAuthenticationFilter extends OncePerRequestFilter{
 	private final JwtTokenProvider jwtTokenProvider;
 	private final UserAuthenticationProvider userAuthenticationProvider;
+	private final AdminAuthenticationProvider adminAuthenticationProvider;
 
 	@Override
 	protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws IOException, ServletException {
@@ -35,19 +38,22 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter{
 		String path = request.getServletPath();
 		//log.info("############## {} ###############", path);
 
-		if (path.equals("/ecoplatesuser/api/v1/user/login")) {
+		if (path.equals("/ninimum/api/v1/user/login") || path.equals("/ninimum/api/v1/admin/login")) {
 			filterChain.doFilter(request, response);
 			return;
 		}
 
 		// 1. Extract JWT token from Request Header
 		String token = resolveToken(request);
-		userAuthenticationProvider.headerToken = token;
+		//userAuthenticationProvider.headerToken = token;
 		//log.info("======== token: {}", token);
 
 		// 2. Validate token with validateToken
 		if (token != null) {
 			Result result = jwtTokenProvider.validateToken(token);
+			//Claims map = jwtTokenProvider.parseClaims(token);
+			//String phone_number = (String) map.get("sub");
+
 			if (result == Result.TOKEN_INVALID) {
 				sendErrorResponse(response, Result.TOKEN_INVALID);
 				return;
@@ -59,37 +65,28 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter{
 
 			try {
 				Claims claims = jwtTokenProvider.parseClaims(token);
-				String roles = claims.get("auth", String.class);
-				//log.info("JWT roles => {}", roles);
 
-				// 3) Check company or admin role
-				if (roles != null && (roles.contains(Constant.ROLE_COMPANY) || roles.contains(Constant.ROLE_ADMIN))){
-					if(roles.contains(Constant.ROLE_COMPANY)) {
-						//log.info("Detected 'ROLE_COMPANY' token => user from Company Service");
-					}
-					else if(roles.contains(Constant.ROLE_ADMIN)){
-						//log.info("Detected 'ROLE_ADMIN' token => user from Admin Service");
-					}
+				String role = claims.get("auth", String.class);
+				String loginId = claims.get("sub", String.class);
+
+				if (Constant.ROLE_ADMIN.equals(role)) {
 					Authentication authentication = jwtTokenProvider.getAuthentication(token);
-					SecurityContextHolder.getContext().setAuthentication(authentication);
 
+					SecurityContextHolder.getContext().setAuthentication(authentication);
 					filterChain.doFilter(request, response);
 					return;
 				}
 
-				// 4) For user role
-				CamelCaseMap found = userAuthenticationProvider.getUserByToken(token);
+				// 3) For user role
+				CamelCaseMap found = userAuthenticationProvider.getUserByPhoneNumber(loginId);
 				UserDto dto = found == null ? null : found.toObject(UserDto.class);
 
-				/*if(result == Result.SUCCESS){
-					if (dto != null && dto.isDeleted()){
+				if(result == Result.SUCCESS){
+					if (dto != null && dto.getStatus() == UserStatus.DELETED){
 						sendErrorResponse(response, HttpServletResponse.SC_FORBIDDEN, Result.DELETE_USER.getCodeToString(), Result.DELETE_USER.getMessage(), dto);
 					}
-					else if (dto != null && dto.getStatus() == UserOrCompanyStatus.BANNED){
+					else if (dto != null && dto.getStatus() == UserStatus.BANNED){
 						sendErrorResponse(response, HttpServletResponse.SC_FORBIDDEN, Result.BLOCK_USER.getCodeToString(), Result.BLOCK_USER.getMessage(), dto);
-					}
-					else if (dto != null && dto.getStatus() == UserOrCompanyStatus.INACTIVE) {
-						sendErrorResponse(response, HttpServletResponse.SC_FORBIDDEN, Result.LOGIN_INACTIVE.getCodeToString(), Result.LOGIN_INACTIVE.getMessage(), dto);
 					}
 					else{
 						Authentication authentication = jwtTokenProvider.getAuthentication(token);
@@ -97,7 +94,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter{
 
 						filterChain.doFilter(request, response);
 					}
-				}*/
+				}
 			} catch (Exception ex) {
 				log.error("JwtAuthenticationFilter => doFilterInternal", ex);
 			}
@@ -129,12 +126,12 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter{
 
 		VersionResponseResult resResult = new VersionResponseResult();
 		resResult.setResultCode(resultCode);
-		/*if (dto != null && dto.getBlocked_until() != null) {
+		if (dto != null && dto.getBlocked_until() != null) {
 			DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 			resResult.setResultMsg(dto.getBlocked_until().format(formatter));
 		} else {
 			resResult.setResultMsg(resultMsg);
-		}*/
+		}
 
 		new ObjectMapper().writeValue(response.getOutputStream(), resResult);
 	}

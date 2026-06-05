@@ -1,6 +1,7 @@
 package com.ninimum.api.user.service;
 
 import com.ninimum.api.camelcase.CamelCaseMap;
+import com.ninimum.api.dto.UserDto;
 import com.ninimum.api.param.*;
 import org.apache.ibatis.annotations.Mapper;
 
@@ -25,4 +26,5 @@ public interface UserMapper {
     int changePhoneNumber(ChangePhoneNumberParam param) throws Exception;
     int checkPhoneNumber(CheckPhoneNumberParam param) throws Exception;
     int updateDeviceToken(UpdateDeviceTokenParam param) throws Exception;
+    int updateUserStatusAndToken(UserDto dto) throws Exception;
 }

@@ -7,5 +7,9 @@ import java.util.List;
 
 @Mapper
 public interface BannerMapper {
-    List<BannerDto> getBannerList() throws Exception;
+    List<BannerDto> getBannerList();
+
+    int insertBanner(BannerDto param);
+
+    int deleteBanner(Long id);
 }

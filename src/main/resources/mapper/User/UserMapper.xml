@@ -18,6 +18,9 @@
                 region_id,
                 first_name,
                 last_name,
+                location_latitude,
+                location_longitude,
+                address,
                 phone_number,
                 password
             )
@@ -26,6 +29,9 @@
                 #{region_id},
                 #{first_name},
                 #{last_name},
+                #{location_latitude},
+                #{location_longitude},
+                #{address},
                 #{phone_number},
                 #{password}
             )
@@ -79,6 +85,15 @@
         WHERE user_id = #{userId}
     </update>
 
+    <update id="updateUserStatusAndToken">
+        UPDATE users
+        SET
+        token_mb = #{token_mb},
+        status = #{status},
+        updated_at = NOW()
+        WHERE id = #{id}
+    </update>
+
     <update id="logout"
             parameterType="com.ninimum.api.param.LogoutParam">
         UPDATE users
@@ -115,8 +130,7 @@
         WHERE user_id = #{userId}
     </update>
 
-    <update id="forgotPassword"
-            parameterType="com.ninimum.api.param.ForgotPasswordParam">
+    <update id="forgotPassword" parameterType="com.ninimum.api.param.ForgotPasswordParam">
         UPDATE users
         SET
         password = #{tempPassword},
@@ -133,13 +147,11 @@
         WHERE user_id = #{userId}
     </update>
 
-    <select id="checkPhoneNumber"
-            parameterType="com.ninimum.api.param.CheckPhoneNumberParam"
-            resultType="int">
+    <select id="checkPhoneNumber" resultType="int">
         SELECT COUNT(*)
         FROM users
-        WHERE phone_number = #{phoneNumber}
-        AND user_status != 'DELETED'
+        WHERE phone_number = #{phone_number}
+        AND status != 'DELETED'
     </select>
 
     <update id="updateDeviceToken"

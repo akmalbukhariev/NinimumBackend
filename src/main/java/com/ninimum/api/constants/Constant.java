@@ -18,8 +18,8 @@ public class Constant {
     public static final String HEADER_ROLE = "auth-role";
     public static final String HEADER_USER_NAME = "user-name";
     public static final Path UPLOAD_DIRECTORY = Paths.get("images/");
-    public static final String ROLE_ADMIN = "ROLE_ADMIN";
-    public static final String ROLE_USER = "ROLE_USER";
+    public static final String ROLE_ADMIN = "ADMIN";
+    public static final String ROLE_USER = "USER";
     public static final String ROLE_SERVICE = "ROLE_SERVICE";
     public static final String ROLE_COMPANY = "ROLE_COMPANY";
     public static final String COMPANY = "COMPANY";

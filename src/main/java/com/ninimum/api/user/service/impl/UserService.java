@@ -1,6 +1,7 @@
 package com.ninimum.api.user.service.impl;
 
 import com.ninimum.api.camelcase.CamelCaseMap;
+import com.ninimum.api.common.Result;
 import com.ninimum.api.dto.CheckPhoneNumberDto;
 import com.ninimum.api.dto.RefreshTokenDto;
 import com.ninimum.api.dto.UserDto;
@@ -9,6 +10,7 @@ import com.ninimum.api.security.jwt.JwtTokenProvider;
 import com.ninimum.api.user.service.IUserService;
 import com.ninimum.api.user.service.UserMapper;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -16,6 +18,7 @@ import org.springframework.stereotype.Service;
 public class UserService implements IUserService {
 
     private final UserMapper mapper;
+    private final PasswordEncoder pwEncoder;
     private final JwtTokenProvider jwtTokenProvider;
     @Override
     public UserDto getUserByPhone(String phone_number) throws Exception {
@@ -30,6 +33,8 @@ public class UserService implements IUserService {
 
     @Override
     public int register(RegisterUserParam param) throws Exception {
+        String str_pwd = pwEncoder.encode(param.getPassword());
+        param.setPassword(str_pwd);
         return mapper.insertUser(param);
     }
 
@@ -73,10 +78,10 @@ public class UserService implements IUserService {
     public int changePassword(ChangePasswordParam param) throws Exception {
         String savedPassword = this.mapper.getUserPassword(param);
 
-        if (savedPassword == null || !savedPassword.equals(param.getCurrentPassword())) {
-            return 0;
+        if(!pwEncoder.matches(param.getNewPassword(), savedPassword)){
+            return Result.PASSWORD_IS_NOT_MATCHED.getCode();
         }
-
+        param.setNewPassword(pwEncoder.encode(param.getNewPassword()));
         return this.mapper.changePassword(param);
     }
 

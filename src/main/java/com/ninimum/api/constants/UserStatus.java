@@ -3,14 +3,14 @@ package com.ninimum.api.constants;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonValue;
 
-public enum UserOrCompanyStatus {
+public enum UserStatus {
     ACTIVE("ACTIVE"),
-    INACTIVE("INACTIVE"),
-    BANNED("BANNED");
+    BANNED("BANNED"),
+    DELETED("DELETED");
 
     private final String value;
 
-    UserOrCompanyStatus(String value) {
+    UserStatus(String value) {
         this.value = value;
     }
 
@@ -20,12 +20,12 @@ public enum UserOrCompanyStatus {
     }
 
     @JsonCreator
-    public static UserOrCompanyStatus fromValue(String value) {
-        for (UserOrCompanyStatus type : UserOrCompanyStatus.values()) {
+    public static UserStatus fromValue(String value) {
+        for (UserStatus type : UserStatus.values()) {
             if (type.value.equalsIgnoreCase(value)) {
                 return type;
             }
         }
-        throw new IllegalArgumentException("Unknown UserOrCompanyStatus value: " + value);
+        throw new IllegalArgumentException("Unknown User value: " + value);
     }
 }

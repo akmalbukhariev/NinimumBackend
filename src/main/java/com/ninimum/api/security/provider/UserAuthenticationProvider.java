@@ -2,26 +2,28 @@ package com.ninimum.api.security.provider;
 
 import com.ninimum.api.camelcase.CamelCaseMap;
 import com.ninimum.api.common.Result;
-import com.ninimum.api.constants.UserOrCompanyStatus;
+import com.ninimum.api.constants.UserStatus;
 import com.ninimum.api.dto.UserDto;
 import com.ninimum.api.security.CommUserDetails;
 import com.ninimum.api.security.UserDetailsServiceImpl;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.authentication.AuthenticationProvider;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
 @Slf4j
 @Component
 @RequiredArgsConstructor
 public class UserAuthenticationProvider implements AuthenticationProvider{
-	
+
 	private final UserDetailsServiceImpl userDetailsService;
-	//private final PasswordEncoder psssEncoder;
+	private final PasswordEncoder psssEncoder;
 
 	public String headerToken = "";
 	public String userId = "";
@@ -29,10 +31,10 @@ public class UserAuthenticationProvider implements AuthenticationProvider{
 	public Authentication authenticate(Authentication authentication) throws AuthenticationException, UsernameNotFoundException {
 
 		userId = authentication.getName();
-		//String passwd 	= (String)authentication.getCredentials();
-		
-		//log.info("userId => {}", userId);
-		//log.info("passwd => {}", passwd);
+		String passwd 	= (String)authentication.getCredentials();
+
+		log.info("userId => {}", userId);
+		log.info("passwd => {}", passwd);
 
 		CommUserDetails user = null;
 		try {
@@ -41,7 +43,7 @@ public class UserAuthenticationProvider implements AuthenticationProvider{
 			throw new UsernameNotFoundException(Result.USER_NOT_EXIST.getMessage());
 		}
 
-		CamelCaseMap map = null;
+		/*CamelCaseMap map = null;
 
 		try {
 			if (user == null || user.getDataMap() == null) {
@@ -51,15 +53,6 @@ public class UserAuthenticationProvider implements AuthenticationProvider{
 			map = (CamelCaseMap) user.getDataMap();
 			UserDto dto = map.toObject(UserDto.class);
 
-			/*CircleInfoDto cDto = userDetailsService.getCircleInfo();
-			if(cDto != null){
-				//dto.setMax_radius_km(cDto.getMax_radius_km());
-				map.put("max_radius_km", cDto.getMax_radius_km());
-			}
-
-			if (dto != null && dto.getStatus() == UserOrCompanyStatus.BANNED) {
-				throw new UsernameNotFoundException(Result.LOGIN_BANNED.getMessage());
-			}*/
 		}
 		catch (UsernameNotFoundException ex) {
 			// Re-throw specific exceptions
@@ -72,16 +65,15 @@ public class UserAuthenticationProvider implements AuthenticationProvider{
 			log.error("UserAuthenticationProvider => Unexpected error while processing user data", ex);
 			throw new UsernameNotFoundException(Result.INTERNAL_ERROR.getMessage());
 		}
+		*/
 
-		/*if(!psssEncoder.matches(passwd, user.getPassword())) {
+		if(!psssEncoder.matches(passwd, user.getPassword())) {
 			throw new BadCredentialsException(Result.PASSWORD_IS_NOT_MATCHED.getMessage());
 		}
 		UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(userId, passwd, user.getAuthorities());
-		*/
 
-		UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(userId, null, user.getAuthorities());
-		user.getDataMap().remove("password_hash");
-		authToken.setDetails(map);//user.getDataMap());
+		//user.getDataMap().remove("password_hash");
+		authToken.setDetails(user.getDataMap());
 		return authToken;
 	}
 
@@ -101,7 +93,7 @@ public class UserAuthenticationProvider implements AuthenticationProvider{
 		return (Long) user.getDataMap().get("user_id");
 	}
 
-	public UserOrCompanyStatus getUserStatus(Long user_id) throws Exception {
+	public UserStatus getUserStatus(Long user_id) throws Exception {
 		return userDetailsService.getUserStatus(user_id);
 	}
 
@@ -109,7 +101,7 @@ public class UserAuthenticationProvider implements AuthenticationProvider{
 		return userDetailsService.updateUserStatusAndToken(dto);
 	}
 
-	public CamelCaseMap getUserByToken(String token_mb) throws Exception {
-		return userDetailsService.getUserByToken(token_mb);
+	public CamelCaseMap getUserByPhoneNumber(String phone_number) throws Exception {
+		return userDetailsService.getUserByPhoneNumber(phone_number);
 	}
 }

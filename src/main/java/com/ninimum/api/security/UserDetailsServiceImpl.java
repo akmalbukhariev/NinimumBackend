@@ -3,7 +3,7 @@ package com.ninimum.api.security;
 import com.ninimum.api.camelcase.CamelCaseMap;
 import com.ninimum.api.common.Result;
 import com.ninimum.api.constants.Constant;
-import com.ninimum.api.constants.UserOrCompanyStatus;
+import com.ninimum.api.constants.UserStatus;
 import com.ninimum.api.dto.UserDto;
 import com.ninimum.api.user.service.UserMapper;
 import lombok.RequiredArgsConstructor;
@@ -28,7 +28,7 @@ public class UserDetailsServiceImpl implements UserDetailsService{
 		//log.debug("loadUserByUserPhone===> {} ", userId);
 		CamelCaseMap map = null;
 		try {
-			//map = userMapper.selectUserByPhone(userId);
+			map = userMapper.selectUserByPhone(userId);
 		} catch (Exception e) {
 			throw new UsernameNotFoundException(Result.USER_NOT_EXIST.getMessage());
 		}
@@ -43,24 +43,22 @@ public class UserDetailsServiceImpl implements UserDetailsService{
     private UserDetails createUserDetails(CamelCaseMap map) {
 		UserDetails user = User.builder()
 							.username((String)map.get("phone_number"))
-							//.password((String)map.get("password_hash"))
-							.password("")
+							.password((String)map.get("password"))
 							.authorities(new SimpleGrantedAuthority(Constant.ROLE_USER))
 							.build();
        
 		return new CommUserDetails(user, map);
     }
 
-	public UserOrCompanyStatus getUserStatus(Long user_id) throws Exception {
-		return UserOrCompanyStatus.ACTIVE;//userMapper.getUserStatus(user_id);
+	public UserStatus getUserStatus(Long user_id) throws Exception {
+		return UserStatus.ACTIVE;//userMapper.getUserStatus(user_id);
 	}
 
-	public CamelCaseMap getUserByToken(String token_mb) throws Exception {
-		//return userMapper.selectUserByToken(token_mb);
-		return new CamelCaseMap();
+	public CamelCaseMap getUserByPhoneNumber(String phone_number) throws Exception {
+		return userMapper.selectUserByPhone(phone_number);
 	}
 
 	public int updateUserStatusAndToken(UserDto dto) throws Exception {
-		return 1;//userMapper.updateUserStatusAndToken(dto);
+		return userMapper.updateUserStatusAndToken(dto);
 	}
 }

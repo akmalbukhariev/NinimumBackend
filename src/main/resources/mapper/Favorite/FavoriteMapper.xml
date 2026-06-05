@@ -4,43 +4,52 @@
 
     <select id="getFavoriteList"
             parameterType="com.ninimum.api.param.FavoriteListParam"
-            resultType="com.ninimum.api.dto.FavoriteDto">
+            resultType="camelMap">
         SELECT
-        f.favorite_id AS favoriteId,
-        f.user_id AS userId,
-        f.product_id AS productId,
-        p.product_name AS productName,
-        p.product_image_url AS productImageUrl,
-        p.price AS price,
-        p.description AS description
+            p.id,
+            p.category_id,
+            p.name,
+            p.short_description,
+            p.description,
+            p.sku,
+            p.barcode,
+            p.brand,
+            p.price,
+            p.subscription_price,
+            p.stock_quantity,
+            p.weight_gram,
+            p.is_active,
+            p.is_featured,
+            p.created_at,
+            p.updated_at
         FROM favorites f
-        INNER JOIN products p ON f.product_id = p.product_id
-        WHERE f.user_id = #{userId}
-        AND p.use_yn = 'Y'
-        ORDER BY f.favorite_id DESC
+        INNER JOIN products p
+        ON p.id = f.product_id
+        WHERE f.user_id = #{user_id}
+        AND p.is_active = 1
+        ORDER BY f.created_at DESC
+        LIMIT #{pageSize} OFFSET #{offset}
     </select>
 
-    <insert id="addFavorite"
-            parameterType="com.ninimum.api.param.AddFavoriteParam">
+    <insert id="addFavorite" parameterType="com.ninimum.api.param.AddFavoriteParam">
         INSERT INTO favorites
         (
-        user_id,
-        product_id,
-        created_at
+            user_id,
+            product_id,
+            created_at
         )
         VALUES
         (
-        #{userId},
-        #{productId},
-        NOW()
+            #{user_id},
+            #{product_id},
+            NOW()
         )
     </insert>
 
-    <delete id="deleteFavorite"
-            parameterType="com.ninimum.api.param.DeleteFavoriteParam">
+    <delete id="deleteFavorite" parameterType="com.ninimum.api.param.DeleteFavoriteParam">
         DELETE FROM favorites
-        WHERE user_id = #{userId}
-        AND product_id = #{productId}
+        WHERE user_id = #{user_id}
+        AND product_id = #{product_id}
     </delete>
 
     <select id="getFavoriteCount"

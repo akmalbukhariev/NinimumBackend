@@ -84,6 +84,23 @@ public class UserController extends BaseController {
 
     @Operation(
             tags = {"User"},
+            summary = "12. Login",
+            description = "The user will be login.",
+            hidden = false,
+            responses = {
+                    @ApiResponse(responseCode = "200", description = "success")
+            }
+    )
+    @PostMapping(value = "/login", headers = { "Content-type=application/json" })
+    public ResponseEntity<Object> login(@RequestBody UserLoginInfoParam param) {
+
+        VersionResponseResult result = null;
+
+        return new ResponseEntity<>(result, HttpStatus.OK);
+    }
+
+    @Operation(
+            tags = {"User"},
             summary = "2. User info",
             description = "The user information will be retrieved using their token. Set the token in the header.",
             responses = { @ApiResponse(responseCode = "200", description = "success") },

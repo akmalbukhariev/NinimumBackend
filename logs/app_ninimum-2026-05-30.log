@@ -1,0 +1,964 @@
+2026-05-30 13:47:35 [restartedMain] INFO  com.ninimum.api.NinimumApplication - Starting NinimumApplication using Java 17.0.14 on Akmalui-MacBookPro.local with PID 74324 (/Users/akmalbukhariev/Projects/NinimumBackend/NinimumBackend/target/classes started by akmalbukhariev in /Users/akmalbukhariev/Projects/NinimumBackend/NinimumBackend)
+2026-05-30 13:47:35 [restartedMain] INFO  com.ninimum.api.NinimumApplication - The following 1 profile is active: "default"
+2026-05-30 13:47:35 [restartedMain] INFO  org.springframework.boot.devtools.env.DevToolsPropertyDefaultsPostProcessor - Devtools property defaults active! Set 'spring.devtools.add-properties' to 'false' to disable
+2026-05-30 13:47:35 [restartedMain] INFO  org.springframework.boot.devtools.env.DevToolsPropertyDefaultsPostProcessor - For additional web related logging consider setting the 'logging.level.web' property to 'DEBUG'
+2026-05-30 13:47:37 [restartedMain] INFO  org.springframework.data.repository.config.RepositoryConfigurationDelegate - Bootstrapping Spring Data JDBC repositories in DEFAULT mode.
+2026-05-30 13:47:37 [restartedMain] INFO  org.springframework.data.repository.config.RepositoryConfigurationDelegate - Finished Spring Data repository scanning in 31 ms. Found 0 JDBC repository interfaces.
+2026-05-30 13:47:37 [restartedMain] INFO  com.ulisesbocchio.jasyptspringboot.configuration.EnableEncryptablePropertiesBeanFactoryPostProcessor - Post-processing PropertySource instances
+2026-05-30 13:47:37 [restartedMain] INFO  com.ulisesbocchio.jasyptspringboot.EncryptablePropertySourceConverter - Skipping PropertySource configurationProperties [class org.springframework.boot.context.properties.source.ConfigurationPropertySourcesPropertySource
+2026-05-30 13:47:37 [restartedMain] INFO  com.ulisesbocchio.jasyptspringboot.EncryptablePropertySourceConverter - Skipping PropertySource servletConfigInitParams [class org.springframework.core.env.PropertySource$StubPropertySource
+2026-05-30 13:47:37 [restartedMain] INFO  com.ulisesbocchio.jasyptspringboot.EncryptablePropertySourceConverter - Skipping PropertySource servletContextInitParams [class org.springframework.core.env.PropertySource$StubPropertySource
+2026-05-30 13:47:37 [restartedMain] INFO  com.ulisesbocchio.jasyptspringboot.EncryptablePropertySourceConverter - Converting PropertySource systemProperties [org.springframework.core.env.PropertiesPropertySource] to EncryptableMapPropertySourceWrapper
+2026-05-30 13:47:37 [restartedMain] INFO  com.ulisesbocchio.jasyptspringboot.EncryptablePropertySourceConverter - Converting PropertySource systemEnvironment [org.springframework.boot.env.SystemEnvironmentPropertySourceEnvironmentPostProcessor$OriginAwareSystemEnvironmentPropertySource] to EncryptableSystemEnvironmentPropertySourceWrapper
+2026-05-30 13:47:37 [restartedMain] INFO  com.ulisesbocchio.jasyptspringboot.EncryptablePropertySourceConverter - Converting PropertySource random [org.springframework.boot.env.RandomValuePropertySource] to EncryptablePropertySourceWrapper
+2026-05-30 13:47:37 [restartedMain] INFO  com.ulisesbocchio.jasyptspringboot.EncryptablePropertySourceConverter - Converting PropertySource Config resource 'class path resource [application.yaml]' via location 'optional:classpath:/' [org.springframework.boot.env.OriginTrackedMapPropertySource] to EncryptableMapPropertySourceWrapper
+2026-05-30 13:47:37 [restartedMain] INFO  com.ulisesbocchio.jasyptspringboot.EncryptablePropertySourceConverter - Converting PropertySource devtools [org.springframework.core.env.MapPropertySource] to EncryptableMapPropertySourceWrapper
+2026-05-30 13:47:38 [restartedMain] INFO  com.ulisesbocchio.jasyptspringboot.filter.DefaultLazyPropertyFilter - Property Filter custom Bean not found with name 'encryptablePropertyFilter'. Initializing Default Property Filter
+2026-05-30 13:47:38 [restartedMain] INFO  com.ulisesbocchio.jasyptspringboot.resolver.DefaultLazyPropertyResolver - Property Resolver custom Bean not found with name 'encryptablePropertyResolver'. Initializing Default Property Resolver
+2026-05-30 13:47:38 [restartedMain] INFO  com.ulisesbocchio.jasyptspringboot.detector.DefaultLazyPropertyDetector - Property Detector custom Bean not found with name 'encryptablePropertyDetector'. Initializing Default Property Detector
+2026-05-30 13:47:38 [restartedMain] INFO  org.springframework.boot.web.embedded.tomcat.TomcatWebServer - Tomcat initialized with port(s): 8083 (http)
+2026-05-30 13:47:38 [restartedMain] INFO  org.springframework.boot.web.servlet.context.ServletWebServerApplicationContext - Root WebApplicationContext: initialization completed in 2683 ms
+2026-05-30 13:47:40 [restartedMain] INFO  org.springframework.boot.actuate.endpoint.web.EndpointLinksResolver - Exposing 2 endpoint(s) beneath base path '/actuator'
+2026-05-30 13:47:41 [restartedMain] INFO  org.springframework.security.web.DefaultSecurityFilterChain - Will secure any request with [org.springframework.security.web.session.DisableEncodeUrlFilter@6dc0df2e, org.springframework.security.web.context.request.async.WebAsyncManagerIntegrationFilter@7db4d7a, org.springframework.security.web.context.SecurityContextPersistenceFilter@35c74613, org.springframework.security.web.header.HeaderWriterFilter@599843c7, org.springframework.web.filter.CorsFilter@11efd424, org.springframework.security.web.authentication.logout.LogoutFilter@1bb9b3bc, com.ninimum.api.security.jwt.JwtAuthenticationFilter@6b933f19, com.ninimum.api.security.filter.UserAuthenticationFilter@c1b4ea, org.springframework.security.web.savedrequest.RequestCacheAwareFilter@46769689, org.springframework.security.web.servletapi.SecurityContextHolderAwareRequestFilter@c9d6438, org.springframework.security.web.authentication.AnonymousAuthenticationFilter@5dac8915, org.springframework.security.web.session.SessionManagementFilter@4f71b520, org.springframework.security.web.access.ExceptionTranslationFilter@6a8dcc76, org.springframework.security.web.access.intercept.AuthorizationFilter@6581fe02]
+2026-05-30 13:47:41 [restartedMain] WARN  org.springframework.security.config.annotation.web.builders.WebSecurity - You are asking Spring Security to ignore Ant [pattern='/**/webjars/**']. This is not recommended -- please use permitAll via HttpSecurity#authorizeHttpRequests instead.
+2026-05-30 13:47:41 [restartedMain] INFO  org.springframework.security.web.DefaultSecurityFilterChain - Will not secure Ant [pattern='/**/webjars/**']
+2026-05-30 13:47:41 [restartedMain] WARN  org.springframework.security.config.annotation.web.builders.WebSecurity - You are asking Spring Security to ignore Ant [pattern='/v2/api-docs']. This is not recommended -- please use permitAll via HttpSecurity#authorizeHttpRequests instead.
+2026-05-30 13:47:41 [restartedMain] INFO  org.springframework.security.web.DefaultSecurityFilterChain - Will not secure Ant [pattern='/v2/api-docs']
+2026-05-30 13:47:41 [restartedMain] WARN  org.springframework.security.config.annotation.web.builders.WebSecurity - You are asking Spring Security to ignore Ant [pattern='/swagger-resources']. This is not recommended -- please use permitAll via HttpSecurity#authorizeHttpRequests instead.
+2026-05-30 13:47:41 [restartedMain] INFO  org.springframework.security.web.DefaultSecurityFilterChain - Will not secure Ant [pattern='/swagger-resources']
+2026-05-30 13:47:41 [restartedMain] WARN  org.springframework.security.config.annotation.web.builders.WebSecurity - You are asking Spring Security to ignore Ant [pattern='/swagger-resources/**']. This is not recommended -- please use permitAll via HttpSecurity#authorizeHttpRequests instead.
+2026-05-30 13:47:41 [restartedMain] INFO  org.springframework.security.web.DefaultSecurityFilterChain - Will not secure Ant [pattern='/swagger-resources/**']
+2026-05-30 13:47:41 [restartedMain] WARN  org.springframework.security.config.annotation.web.builders.WebSecurity - You are asking Spring Security to ignore Ant [pattern='/configuration/ui']. This is not recommended -- please use permitAll via HttpSecurity#authorizeHttpRequests instead.
+2026-05-30 13:47:41 [restartedMain] INFO  org.springframework.security.web.DefaultSecurityFilterChain - Will not secure Ant [pattern='/configuration/ui']
+2026-05-30 13:47:41 [restartedMain] WARN  org.springframework.security.config.annotation.web.builders.WebSecurity - You are asking Spring Security to ignore Ant [pattern='/configuration/security']. This is not recommended -- please use permitAll via HttpSecurity#authorizeHttpRequests instead.
+2026-05-30 13:47:41 [restartedMain] INFO  org.springframework.security.web.DefaultSecurityFilterChain - Will not secure Ant [pattern='/configuration/security']
+2026-05-30 13:47:41 [restartedMain] WARN  org.springframework.security.config.annotation.web.builders.WebSecurity - You are asking Spring Security to ignore Ant [pattern='/swagger-ui/**']. This is not recommended -- please use permitAll via HttpSecurity#authorizeHttpRequests instead.
+2026-05-30 13:47:41 [restartedMain] INFO  org.springframework.security.web.DefaultSecurityFilterChain - Will not secure Ant [pattern='/swagger-ui/**']
+2026-05-30 13:47:41 [restartedMain] WARN  org.springframework.security.config.annotation.web.builders.WebSecurity - You are asking Spring Security to ignore Ant [pattern='/webjars/**']. This is not recommended -- please use permitAll via HttpSecurity#authorizeHttpRequests instead.
+2026-05-30 13:47:41 [restartedMain] INFO  org.springframework.security.web.DefaultSecurityFilterChain - Will not secure Ant [pattern='/webjars/**']
+2026-05-30 13:47:41 [restartedMain] WARN  org.springframework.security.config.annotation.web.builders.WebSecurity - You are asking Spring Security to ignore Ant [pattern='/v3/api-docs/**']. This is not recommended -- please use permitAll via HttpSecurity#authorizeHttpRequests instead.
+2026-05-30 13:47:41 [restartedMain] INFO  org.springframework.security.web.DefaultSecurityFilterChain - Will not secure Ant [pattern='/v3/api-docs/**']
+2026-05-30 13:47:41 [restartedMain] WARN  org.springframework.security.config.annotation.web.builders.WebSecurity - You are asking Spring Security to ignore Ant [pattern='/actuator/health/**']. This is not recommended -- please use permitAll via HttpSecurity#authorizeHttpRequests instead.
+2026-05-30 13:47:41 [restartedMain] INFO  org.springframework.security.web.DefaultSecurityFilterChain - Will not secure Ant [pattern='/actuator/health/**']
+2026-05-30 13:47:41 [restartedMain] WARN  org.springframework.security.config.annotation.web.builders.WebSecurity - You are asking Spring Security to ignore Ant [pattern='/actuator/info']. This is not recommended -- please use permitAll via HttpSecurity#authorizeHttpRequests instead.
+2026-05-30 13:47:41 [restartedMain] INFO  org.springframework.security.web.DefaultSecurityFilterChain - Will not secure Ant [pattern='/actuator/info']
+2026-05-30 13:47:41 [restartedMain] WARN  org.springframework.security.config.annotation.web.builders.WebSecurity - You are asking Spring Security to ignore Ant [pattern='/ninimum/actuator/**']. This is not recommended -- please use permitAll via HttpSecurity#authorizeHttpRequests instead.
+2026-05-30 13:47:41 [restartedMain] INFO  org.springframework.security.web.DefaultSecurityFilterChain - Will not secure Ant [pattern='/ninimum/actuator/**']
+2026-05-30 13:47:41 [restartedMain] WARN  org.springframework.security.config.annotation.web.builders.WebSecurity - You are asking Spring Security to ignore Ant [pattern='/api/v1/status']. This is not recommended -- please use permitAll via HttpSecurity#authorizeHttpRequests instead.
+2026-05-30 13:47:41 [restartedMain] INFO  org.springframework.security.web.DefaultSecurityFilterChain - Will not secure Ant [pattern='/api/v1/status']
+2026-05-30 13:47:41 [restartedMain] WARN  org.springframework.security.config.annotation.web.builders.WebSecurity - You are asking Spring Security to ignore Ant [pattern='/ninimum/api/v1/status']. This is not recommended -- please use permitAll via HttpSecurity#authorizeHttpRequests instead.
+2026-05-30 13:47:41 [restartedMain] INFO  org.springframework.security.web.DefaultSecurityFilterChain - Will not secure Ant [pattern='/ninimum/api/v1/status']
+2026-05-30 13:47:41 [restartedMain] WARN  org.springframework.security.config.annotation.web.builders.WebSecurity - You are asking Spring Security to ignore Ant [pattern='/ninimum/api/v1/user/checkPhoneNumber']. This is not recommended -- please use permitAll via HttpSecurity#authorizeHttpRequests instead.
+2026-05-30 13:47:41 [restartedMain] INFO  org.springframework.security.web.DefaultSecurityFilterChain - Will not secure Ant [pattern='/ninimum/api/v1/user/checkPhoneNumber']
+2026-05-30 13:47:41 [restartedMain] WARN  org.springframework.security.config.annotation.web.builders.WebSecurity - You are asking Spring Security to ignore Ant [pattern='/ninimum/api/v1/user/register']. This is not recommended -- please use permitAll via HttpSecurity#authorizeHttpRequests instead.
+2026-05-30 13:47:41 [restartedMain] INFO  org.springframework.security.web.DefaultSecurityFilterChain - Will not secure Ant [pattern='/ninimum/api/v1/user/register']
+2026-05-30 13:47:41 [restartedMain] WARN  org.springframework.security.config.annotation.web.builders.WebSecurity - You are asking Spring Security to ignore Ant [pattern='/ninimum/api/v1/message/verifyPhoneNumber']. This is not recommended -- please use permitAll via HttpSecurity#authorizeHttpRequests instead.
+2026-05-30 13:47:41 [restartedMain] INFO  org.springframework.security.web.DefaultSecurityFilterChain - Will not secure Ant [pattern='/ninimum/api/v1/message/verifyPhoneNumber']
+2026-05-30 13:47:41 [restartedMain] WARN  org.springframework.security.config.annotation.web.builders.WebSecurity - You are asking Spring Security to ignore Ant [pattern='/error']. This is not recommended -- please use permitAll via HttpSecurity#authorizeHttpRequests instead.
+2026-05-30 13:47:41 [restartedMain] INFO  org.springframework.security.web.DefaultSecurityFilterChain - Will not secure Ant [pattern='/error']
+2026-05-30 13:47:41 [restartedMain] INFO  com.zaxxer.hikari.HikariDataSource - HikariPool-1 - Starting...
+2026-05-30 13:47:42 [restartedMain] INFO  com.zaxxer.hikari.HikariDataSource - HikariPool-1 - Start completed.
+2026-05-30 13:47:43 [restartedMain] INFO  org.springframework.boot.devtools.autoconfigure.OptionalLiveReloadServer - LiveReload server is running on port 35729
+2026-05-30 13:47:43 [restartedMain] INFO  org.springframework.boot.web.embedded.tomcat.TomcatWebServer - Tomcat started on port(s): 8083 (http) with context path ''
+2026-05-30 13:47:43 [restartedMain] INFO  com.ulisesbocchio.jasyptspringboot.caching.RefreshScopeRefreshedEventListener - Refreshing cached encryptable property sources on ServletWebServerInitializedEvent
+2026-05-30 13:47:43 [restartedMain] INFO  com.ulisesbocchio.jasyptspringboot.caching.CachingDelegateEncryptablePropertySource - Property Source systemProperties refreshed
+2026-05-30 13:47:43 [restartedMain] INFO  com.ulisesbocchio.jasyptspringboot.caching.CachingDelegateEncryptablePropertySource - Property Source systemEnvironment refreshed
+2026-05-30 13:47:43 [restartedMain] INFO  com.ulisesbocchio.jasyptspringboot.caching.CachingDelegateEncryptablePropertySource - Property Source random refreshed
+2026-05-30 13:47:43 [restartedMain] INFO  com.ulisesbocchio.jasyptspringboot.caching.CachingDelegateEncryptablePropertySource - Property Source Config resource 'class path resource [application.yaml]' via location 'optional:classpath:/' refreshed
+2026-05-30 13:47:43 [restartedMain] INFO  com.ulisesbocchio.jasyptspringboot.caching.CachingDelegateEncryptablePropertySource - Property Source devtools refreshed
+2026-05-30 13:47:43 [restartedMain] INFO  com.ulisesbocchio.jasyptspringboot.EncryptablePropertySourceConverter - Converting PropertySource server.ports [org.springframework.core.env.MapPropertySource] to EncryptableMapPropertySourceWrapper
+2026-05-30 13:47:43 [restartedMain] INFO  com.ulisesbocchio.jasyptspringboot.EncryptablePropertySourceConverter - Skipping PropertySource configurationProperties [class org.springframework.boot.context.properties.source.ConfigurationPropertySourcesPropertySource
+2026-05-30 13:47:43 [restartedMain] INFO  com.ulisesbocchio.jasyptspringboot.EncryptablePropertySourceConverter - Skipping PropertySource servletConfigInitParams [class org.springframework.core.env.PropertySource$StubPropertySource
+2026-05-30 13:47:43 [restartedMain] INFO  com.ulisesbocchio.jasyptspringboot.EncryptablePropertySourceConverter - Converting PropertySource servletContextInitParams [org.springframework.web.context.support.ServletContextPropertySource] to EncryptableEnumerablePropertySourceWrapper
+2026-05-30 13:47:43 [restartedMain] INFO  com.ulisesbocchio.jasyptspringboot.EncryptablePropertySourceConverter - Converting PropertySource Management Server [org.springframework.boot.actuate.autoconfigure.web.server.ManagementContextAutoConfiguration$SameManagementContextConfiguration$1] to EncryptablePropertySourceWrapper
+2026-05-30 13:47:43 [restartedMain] INFO  com.ninimum.api.NinimumApplication - Started NinimumApplication in 7.996 seconds (JVM running for 10.946)
+2026-05-30 13:50:45 [http-nio-0.0.0.0-8083-exec-1] INFO  org.springframework.web.servlet.DispatcherServlet - Initializing Servlet 'dispatcherServlet'
+2026-05-30 13:50:45 [http-nio-0.0.0.0-8083-exec-1] INFO  org.springframework.web.servlet.DispatcherServlet - Completed initialization in 15 ms
+2026-05-30 13:50:45 [http-nio-0.0.0.0-8083-exec-1] INFO  com.ninimum.api.security.provider.UserAuthenticationProvider - userId => 998998887766
+2026-05-30 13:50:45 [http-nio-0.0.0.0-8083-exec-1] INFO  com.ninimum.api.security.provider.UserAuthenticationProvider - passwd => 12
+2026-05-30 13:50:45 [http-nio-0.0.0.0-8083-exec-1] ERROR com.ninimum.api.security.provider.UserAuthenticationProvider - UserAuthenticationProvider => Unexpected error while processing user data
+java.lang.RuntimeException: Failed to map CamelCaseMap to com.ninimum.api.dto.UserDto
+	at com.ninimum.api.camelcase.CamelCaseMap.toObject(CamelCaseMap.java:32) ~[classes/:?]
+	at com.ninimum.api.security.provider.UserAuthenticationProvider.authenticate(UserAuthenticationProvider.java:54) ~[classes/:?]
+	at com.ninimum.api.security.filter.UserAuthenticationFilter.attemptAuthentication(UserAuthenticationFilter.java:45) ~[classes/:?]
+	at org.springframework.security.web.authentication.AbstractAuthenticationProcessingFilter.doFilter(AbstractAuthenticationProcessingFilter.java:227) ~[spring-security-web-5.7.2.jar:5.7.2]
+	at org.springframework.security.web.authentication.AbstractAuthenticationProcessingFilter.doFilter(AbstractAuthenticationProcessingFilter.java:217) ~[spring-security-web-5.7.2.jar:5.7.2]
+	at org.springframework.security.web.FilterChainProxy$VirtualFilterChain.doFilter(FilterChainProxy.java:336) ~[spring-security-web-5.7.2.jar:5.7.2]
+	at com.ninimum.api.security.jwt.JwtAuthenticationFilter.doFilterInternal(JwtAuthenticationFilter.java:40) ~[classes/:?]
+	at org.springframework.web.filter.OncePerRequestFilter.doFilter(OncePerRequestFilter.java:117) ~[spring-web-5.3.21.jar:5.3.21]
+	at org.springframework.security.web.FilterChainProxy$VirtualFilterChain.doFilter(FilterChainProxy.java:336) ~[spring-security-web-5.7.2.jar:5.7.2]
+	at org.springframework.security.web.authentication.logout.LogoutFilter.doFilter(LogoutFilter.java:103) ~[spring-security-web-5.7.2.jar:5.7.2]
+	at org.springframework.security.web.authentication.logout.LogoutFilter.doFilter(LogoutFilter.java:89) ~[spring-security-web-5.7.2.jar:5.7.2]
+	at org.springframework.security.web.FilterChainProxy$VirtualFilterChain.doFilter(FilterChainProxy.java:336) ~[spring-security-web-5.7.2.jar:5.7.2]
+	at org.springframework.web.filter.CorsFilter.doFilterInternal(CorsFilter.java:91) ~[spring-web-5.3.21.jar:5.3.21]
+	at org.springframework.web.filter.OncePerRequestFilter.doFilter(OncePerRequestFilter.java:117) ~[spring-web-5.3.21.jar:5.3.21]
+	at org.springframework.security.web.FilterChainProxy$VirtualFilterChain.doFilter(FilterChainProxy.java:336) ~[spring-security-web-5.7.2.jar:5.7.2]
+	at org.springframework.security.web.header.HeaderWriterFilter.doHeadersAfter(HeaderWriterFilter.java:90) ~[spring-security-web-5.7.2.jar:5.7.2]
+	at org.springframework.security.web.header.HeaderWriterFilter.doFilterInternal(HeaderWriterFilter.java:75) ~[spring-security-web-5.7.2.jar:5.7.2]
+	at org.springframework.web.filter.OncePerRequestFilter.doFilter(OncePerRequestFilter.java:117) ~[spring-web-5.3.21.jar:5.3.21]
+	at org.springframework.security.web.FilterChainProxy$VirtualFilterChain.doFilter(FilterChainProxy.java:336) ~[spring-security-web-5.7.2.jar:5.7.2]
+	at org.springframework.security.web.context.SecurityContextPersistenceFilter.doFilter(SecurityContextPersistenceFilter.java:112) ~[spring-security-web-5.7.2.jar:5.7.2]
+	at org.springframework.security.web.context.SecurityContextPersistenceFilter.doFilter(SecurityContextPersistenceFilter.java:82) ~[spring-security-web-5.7.2.jar:5.7.2]
+	at org.springframework.security.web.FilterChainProxy$VirtualFilterChain.doFilter(FilterChainProxy.java:336) ~[spring-security-web-5.7.2.jar:5.7.2]
+	at org.springframework.security.web.context.request.async.WebAsyncManagerIntegrationFilter.doFilterInternal(WebAsyncManagerIntegrationFilter.java:55) ~[spring-security-web-5.7.2.jar:5.7.2]
+	at org.springframework.web.filter.OncePerRequestFilter.doFilter(OncePerRequestFilter.java:117) ~[spring-web-5.3.21.jar:5.3.21]
+	at org.springframework.security.web.FilterChainProxy$VirtualFilterChain.doFilter(FilterChainProxy.java:336) ~[spring-security-web-5.7.2.jar:5.7.2]
+	at org.springframework.security.web.session.DisableEncodeUrlFilter.doFilterInternal(DisableEncodeUrlFilter.java:42) ~[spring-security-web-5.7.2.jar:5.7.2]
+	at org.springframework.web.filter.OncePerRequestFilter.doFilter(OncePerRequestFilter.java:117) ~[spring-web-5.3.21.jar:5.3.21]
+	at org.springframework.security.web.FilterChainProxy$VirtualFilterChain.doFilter(FilterChainProxy.java:336) ~[spring-security-web-5.7.2.jar:5.7.2]
+	at org.springframework.security.web.FilterChainProxy.doFilterInternal(FilterChainProxy.java:211) ~[spring-security-web-5.7.2.jar:5.7.2]
+	at org.springframework.security.web.FilterChainProxy.doFilter(FilterChainProxy.java:183) ~[spring-security-web-5.7.2.jar:5.7.2]
+	at org.springframework.web.filter.DelegatingFilterProxy.invokeDelegate(DelegatingFilterProxy.java:354) ~[spring-web-5.3.21.jar:5.3.21]
+	at org.springframework.web.filter.DelegatingFilterProxy.doFilter(DelegatingFilterProxy.java:267) ~[spring-web-5.3.21.jar:5.3.21]
+	at org.apache.catalina.core.ApplicationFilterChain.internalDoFilter(ApplicationFilterChain.java:189) ~[tomcat-embed-core-9.0.64.jar:9.0.64]
+	at org.apache.catalina.core.ApplicationFilterChain.doFilter(ApplicationFilterChain.java:162) ~[tomcat-embed-core-9.0.64.jar:9.0.64]
+	at org.springframework.web.filter.RequestContextFilter.doFilterInternal(RequestContextFilter.java:100) ~[spring-web-5.3.21.jar:5.3.21]
+	at org.springframework.web.filter.OncePerRequestFilter.doFilter(OncePerRequestFilter.java:117) ~[spring-web-5.3.21.jar:5.3.21]
+	at org.apache.catalina.core.ApplicationFilterChain.internalDoFilter(ApplicationFilterChain.java:189) ~[tomcat-embed-core-9.0.64.jar:9.0.64]
+	at org.apache.catalina.core.ApplicationFilterChain.doFilter(ApplicationFilterChain.java:162) ~[tomcat-embed-core-9.0.64.jar:9.0.64]
+	at org.springframework.web.filter.FormContentFilter.doFilterInternal(FormContentFilter.java:93) ~[spring-web-5.3.21.jar:5.3.21]
+	at org.springframework.web.filter.OncePerRequestFilter.doFilter(OncePerRequestFilter.java:117) ~[spring-web-5.3.21.jar:5.3.21]
+	at org.apache.catalina.core.ApplicationFilterChain.internalDoFilter(ApplicationFilterChain.java:189) ~[tomcat-embed-core-9.0.64.jar:9.0.64]
+	at org.apache.catalina.core.ApplicationFilterChain.doFilter(ApplicationFilterChain.java:162) ~[tomcat-embed-core-9.0.64.jar:9.0.64]
+	at org.springframework.boot.actuate.metrics.web.servlet.WebMvcMetricsFilter.doFilterInternal(WebMvcMetricsFilter.java:96) ~[spring-boot-actuator-2.7.1.jar:2.7.1]
+	at org.springframework.web.filter.OncePerRequestFilter.doFilter(OncePerRequestFilter.java:117) ~[spring-web-5.3.21.jar:5.3.21]
+	at org.apache.catalina.core.ApplicationFilterChain.internalDoFilter(ApplicationFilterChain.java:189) ~[tomcat-embed-core-9.0.64.jar:9.0.64]
+	at org.apache.catalina.core.ApplicationFilterChain.doFilter(ApplicationFilterChain.java:162) ~[tomcat-embed-core-9.0.64.jar:9.0.64]
+	at org.springframework.web.filter.CharacterEncodingFilter.doFilterInternal(CharacterEncodingFilter.java:201) ~[spring-web-5.3.21.jar:5.3.21]
+	at org.springframework.web.filter.OncePerRequestFilter.doFilter(OncePerRequestFilter.java:117) ~[spring-web-5.3.21.jar:5.3.21]
+	at org.apache.catalina.core.ApplicationFilterChain.internalDoFilter(ApplicationFilterChain.java:189) ~[tomcat-embed-core-9.0.64.jar:9.0.64]
+	at org.apache.catalina.core.ApplicationFilterChain.doFilter(ApplicationFilterChain.java:162) ~[tomcat-embed-core-9.0.64.jar:9.0.64]
+	at org.apache.catalina.core.StandardWrapperValve.invoke(StandardWrapperValve.java:197) ~[tomcat-embed-core-9.0.64.jar:9.0.64]
+	at org.apache.catalina.core.StandardContextValve.invoke(StandardContextValve.java:97) ~[tomcat-embed-core-9.0.64.jar:9.0.64]
+	at org.apache.catalina.authenticator.AuthenticatorBase.invoke(AuthenticatorBase.java:541) ~[tomcat-embed-core-9.0.64.jar:9.0.64]
+	at org.apache.catalina.core.StandardHostValve.invoke(StandardHostValve.java:135) ~[tomcat-embed-core-9.0.64.jar:9.0.64]
+	at org.apache.catalina.valves.ErrorReportValve.invoke(ErrorReportValve.java:92) ~[tomcat-embed-core-9.0.64.jar:9.0.64]
+	at org.apache.catalina.core.StandardEngineValve.invoke(StandardEngineValve.java:78) ~[tomcat-embed-core-9.0.64.jar:9.0.64]
+	at org.apache.catalina.connector.CoyoteAdapter.service(CoyoteAdapter.java:360) ~[tomcat-embed-core-9.0.64.jar:9.0.64]
+	at org.apache.coyote.http11.Http11Processor.service(Http11Processor.java:399) ~[tomcat-embed-core-9.0.64.jar:9.0.64]
+	at org.apache.coyote.AbstractProcessorLight.process(AbstractProcessorLight.java:65) ~[tomcat-embed-core-9.0.64.jar:9.0.64]
+	at org.apache.coyote.AbstractProtocol$ConnectionHandler.process(AbstractProtocol.java:890) ~[tomcat-embed-core-9.0.64.jar:9.0.64]
+	at org.apache.tomcat.util.net.NioEndpoint$SocketProcessor.doRun(NioEndpoint.java:1787) ~[tomcat-embed-core-9.0.64.jar:9.0.64]
+	at org.apache.tomcat.util.net.SocketProcessorBase.run(SocketProcessorBase.java:49) ~[tomcat-embed-core-9.0.64.jar:9.0.64]
+	at org.apache.tomcat.util.threads.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1191) ~[tomcat-embed-core-9.0.64.jar:9.0.64]
+	at org.apache.tomcat.util.threads.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:659) ~[tomcat-embed-core-9.0.64.jar:9.0.64]
+	at org.apache.tomcat.util.threads.TaskThread$WrappingRunnable.run(TaskThread.java:61) ~[tomcat-embed-core-9.0.64.jar:9.0.64]
+	at java.lang.Thread.run(Thread.java:840) ~[?:?]
+Caused by: com.fasterxml.jackson.databind.exc.UnrecognizedPropertyException: Unrecognized field "address" (class com.ninimum.api.dto.UserDto), not marked as ignorable (17 known properties: "gender", "region_id", "created_at", "blocked_until", "birth_date", "status", "last_name", "profile_image_url", "updated_at", "first_name", "id", "email", "is_phone_verified", "phone_number", "password", "token_mb", "is_active"])
+ at [Source: (String)"{"is_phone_verified":false,"address":"Uzbekistan, Kashkadarya Region, Shakhrisabz District, Maktobod mahalla fuqarolar yigʻini","is_active":true,"location_latitude":39.03145316514833,"region_id":1,"last_name":"Karimov","created_at":"2026-05-28 13:40:28","password":"{bcrypt}$2a$10$EL/sxzMIo.szDzdfa8o9IOzUDCTJ7zeQTNZSHuCqe1Mx46PE0it/6","updated_at":"2026-05-28 13:40:28","phone_number":"998998887766","id":7,"first_name":"Akmal","location_longitude":66.89331751316786,"status":"ACTIVE"}"; line: 1, column: 39] (through reference chain: com.ninimum.api.dto.UserDto["address"])
+	at com.fasterxml.jackson.databind.exc.UnrecognizedPropertyException.from(UnrecognizedPropertyException.java:61) ~[jackson-databind-2.15.2.jar:2.15.2]
+	at com.fasterxml.jackson.databind.DeserializationContext.handleUnknownProperty(DeserializationContext.java:1138) ~[jackson-databind-2.15.2.jar:2.15.2]
+	at com.fasterxml.jackson.databind.deser.std.StdDeserializer.handleUnknownProperty(StdDeserializer.java:2224) ~[jackson-databind-2.15.2.jar:2.15.2]
+	at com.fasterxml.jackson.databind.deser.BeanDeserializerBase.handleUnknownProperty(BeanDeserializerBase.java:1709) ~[jackson-databind-2.15.2.jar:2.15.2]
+	at com.fasterxml.jackson.databind.deser.BeanDeserializerBase.handleUnknownVanilla(BeanDeserializerBase.java:1687) ~[jackson-databind-2.15.2.jar:2.15.2]
+	at com.fasterxml.jackson.databind.deser.BeanDeserializer.vanillaDeserialize(BeanDeserializer.java:320) ~[jackson-databind-2.15.2.jar:2.15.2]
+	at com.fasterxml.jackson.databind.deser.BeanDeserializer.deserialize(BeanDeserializer.java:177) ~[jackson-databind-2.15.2.jar:2.15.2]
+	at com.fasterxml.jackson.databind.deser.DefaultDeserializationContext.readRootValue(DefaultDeserializationContext.java:323) ~[jackson-databind-2.15.2.jar:2.15.2]
+	at com.fasterxml.jackson.databind.ObjectMapper._readMapAndClose(ObjectMapper.java:4825) ~[jackson-databind-2.15.2.jar:2.15.2]
+	at com.fasterxml.jackson.databind.ObjectMapper.readValue(ObjectMapper.java:3772) ~[jackson-databind-2.15.2.jar:2.15.2]
+	at com.fasterxml.jackson.databind.ObjectMapper.readValue(ObjectMapper.java:3740) ~[jackson-databind-2.15.2.jar:2.15.2]
+	at com.ninimum.api.camelcase.CamelCaseMap.toObject(CamelCaseMap.java:30) ~[classes/:?]
+	... 65 more
+2026-05-30 13:50:45 [http-nio-0.0.0.0-8083-exec-1] INFO  com.ninimum.api.security.filter.UserAuthenticationFilter - Unsuccessful authentication attempt
+2026-05-30 14:42:26 [HikariPool-1 housekeeper] WARN  com.zaxxer.hikari.pool.HikariPool - HikariPool-1 - Thread starvation or clock leap detected (housekeeper delta=26m42s883ms).
+2026-05-30 14:59:44 [HikariPool-1 housekeeper] WARN  com.zaxxer.hikari.pool.HikariPool - HikariPool-1 - Thread starvation or clock leap detected (housekeeper delta=17m17s913ms).
+2026-05-30 15:13:16 [HikariPool-1 housekeeper] WARN  com.zaxxer.hikari.pool.HikariPool - HikariPool-1 - Thread starvation or clock leap detected (housekeeper delta=12m32s328ms).
+2026-05-30 15:51:31 [http-nio-0.0.0.0-8083-exec-3] INFO  com.ninimum.api.security.provider.UserAuthenticationProvider - userId => 998998887763
+2026-05-30 15:51:31 [http-nio-0.0.0.0-8083-exec-3] INFO  com.ninimum.api.security.provider.UserAuthenticationProvider - passwd => 123
+2026-05-30 15:51:31 [http-nio-0.0.0.0-8083-exec-3] INFO  com.ninimum.api.security.filter.UserAuthenticationFilter - Unsuccessful authentication attempt
+2026-05-30 16:04:15 [http-nio-0.0.0.0-8083-exec-5] INFO  com.ninimum.api.security.provider.UserAuthenticationProvider - userId => 998998887763
+2026-05-30 16:04:15 [http-nio-0.0.0.0-8083-exec-5] INFO  com.ninimum.api.security.provider.UserAuthenticationProvider - passwd => 123
+2026-05-30 16:04:16 [http-nio-0.0.0.0-8083-exec-5] INFO  com.ninimum.api.security.filter.UserAuthenticationFilter - Unsuccessful authentication attempt
+2026-05-30 16:04:33 [http-nio-0.0.0.0-8083-exec-6] INFO  com.ninimum.api.security.provider.UserAuthenticationProvider - userId => 998998887766
+2026-05-30 16:04:33 [http-nio-0.0.0.0-8083-exec-6] INFO  com.ninimum.api.security.provider.UserAuthenticationProvider - passwd => 12
+2026-05-30 16:04:34 [http-nio-0.0.0.0-8083-exec-6] ERROR com.ninimum.api.security.provider.UserAuthenticationProvider - UserAuthenticationProvider => Unexpected error while processing user data
+java.lang.RuntimeException: Failed to map CamelCaseMap to com.ninimum.api.dto.UserDto
+	at com.ninimum.api.camelcase.CamelCaseMap.toObject(CamelCaseMap.java:32) ~[classes/:?]
+	at com.ninimum.api.security.provider.UserAuthenticationProvider.authenticate(UserAuthenticationProvider.java:54) ~[classes/:?]
+	at com.ninimum.api.security.filter.UserAuthenticationFilter.attemptAuthentication(UserAuthenticationFilter.java:45) ~[classes/:?]
+	at org.springframework.security.web.authentication.AbstractAuthenticationProcessingFilter.doFilter(AbstractAuthenticationProcessingFilter.java:227) ~[spring-security-web-5.7.2.jar:5.7.2]
+	at org.springframework.security.web.authentication.AbstractAuthenticationProcessingFilter.doFilter(AbstractAuthenticationProcessingFilter.java:217) ~[spring-security-web-5.7.2.jar:5.7.2]
+	at org.springframework.security.web.FilterChainProxy$VirtualFilterChain.doFilter(FilterChainProxy.java:336) ~[spring-security-web-5.7.2.jar:5.7.2]
+	at com.ninimum.api.security.jwt.JwtAuthenticationFilter.doFilterInternal(JwtAuthenticationFilter.java:40) ~[classes/:?]
+	at org.springframework.web.filter.OncePerRequestFilter.doFilter(OncePerRequestFilter.java:117) ~[spring-web-5.3.21.jar:5.3.21]
+	at org.springframework.security.web.FilterChainProxy$VirtualFilterChain.doFilter(FilterChainProxy.java:336) ~[spring-security-web-5.7.2.jar:5.7.2]
+	at org.springframework.security.web.authentication.logout.LogoutFilter.doFilter(LogoutFilter.java:103) ~[spring-security-web-5.7.2.jar:5.7.2]
+	at org.springframework.security.web.authentication.logout.LogoutFilter.doFilter(LogoutFilter.java:89) ~[spring-security-web-5.7.2.jar:5.7.2]
+	at org.springframework.security.web.FilterChainProxy$VirtualFilterChain.doFilter(FilterChainProxy.java:336) ~[spring-security-web-5.7.2.jar:5.7.2]
+	at org.springframework.web.filter.CorsFilter.doFilterInternal(CorsFilter.java:91) ~[spring-web-5.3.21.jar:5.3.21]
+	at org.springframework.web.filter.OncePerRequestFilter.doFilter(OncePerRequestFilter.java:117) ~[spring-web-5.3.21.jar:5.3.21]
+	at org.springframework.security.web.FilterChainProxy$VirtualFilterChain.doFilter(FilterChainProxy.java:336) ~[spring-security-web-5.7.2.jar:5.7.2]
+	at org.springframework.security.web.header.HeaderWriterFilter.doHeadersAfter(HeaderWriterFilter.java:90) ~[spring-security-web-5.7.2.jar:5.7.2]
+	at org.springframework.security.web.header.HeaderWriterFilter.doFilterInternal(HeaderWriterFilter.java:75) ~[spring-security-web-5.7.2.jar:5.7.2]
+	at org.springframework.web.filter.OncePerRequestFilter.doFilter(OncePerRequestFilter.java:117) ~[spring-web-5.3.21.jar:5.3.21]
+	at org.springframework.security.web.FilterChainProxy$VirtualFilterChain.doFilter(FilterChainProxy.java:336) ~[spring-security-web-5.7.2.jar:5.7.2]
+	at org.springframework.security.web.context.SecurityContextPersistenceFilter.doFilter(SecurityContextPersistenceFilter.java:112) ~[spring-security-web-5.7.2.jar:5.7.2]
+	at org.springframework.security.web.context.SecurityContextPersistenceFilter.doFilter(SecurityContextPersistenceFilter.java:82) ~[spring-security-web-5.7.2.jar:5.7.2]
+	at org.springframework.security.web.FilterChainProxy$VirtualFilterChain.doFilter(FilterChainProxy.java:336) ~[spring-security-web-5.7.2.jar:5.7.2]
+	at org.springframework.security.web.context.request.async.WebAsyncManagerIntegrationFilter.doFilterInternal(WebAsyncManagerIntegrationFilter.java:55) ~[spring-security-web-5.7.2.jar:5.7.2]
+	at org.springframework.web.filter.OncePerRequestFilter.doFilter(OncePerRequestFilter.java:117) ~[spring-web-5.3.21.jar:5.3.21]
+	at org.springframework.security.web.FilterChainProxy$VirtualFilterChain.doFilter(FilterChainProxy.java:336) ~[spring-security-web-5.7.2.jar:5.7.2]
+	at org.springframework.security.web.session.DisableEncodeUrlFilter.doFilterInternal(DisableEncodeUrlFilter.java:42) ~[spring-security-web-5.7.2.jar:5.7.2]
+	at org.springframework.web.filter.OncePerRequestFilter.doFilter(OncePerRequestFilter.java:117) ~[spring-web-5.3.21.jar:5.3.21]
+	at org.springframework.security.web.FilterChainProxy$VirtualFilterChain.doFilter(FilterChainProxy.java:336) ~[spring-security-web-5.7.2.jar:5.7.2]
+	at org.springframework.security.web.FilterChainProxy.doFilterInternal(FilterChainProxy.java:211) ~[spring-security-web-5.7.2.jar:5.7.2]
+	at org.springframework.security.web.FilterChainProxy.doFilter(FilterChainProxy.java:183) ~[spring-security-web-5.7.2.jar:5.7.2]
+	at org.springframework.web.filter.DelegatingFilterProxy.invokeDelegate(DelegatingFilterProxy.java:354) ~[spring-web-5.3.21.jar:5.3.21]
+	at org.springframework.web.filter.DelegatingFilterProxy.doFilter(DelegatingFilterProxy.java:267) ~[spring-web-5.3.21.jar:5.3.21]
+	at org.apache.catalina.core.ApplicationFilterChain.internalDoFilter(ApplicationFilterChain.java:189) ~[tomcat-embed-core-9.0.64.jar:9.0.64]
+	at org.apache.catalina.core.ApplicationFilterChain.doFilter(ApplicationFilterChain.java:162) ~[tomcat-embed-core-9.0.64.jar:9.0.64]
+	at org.springframework.web.filter.RequestContextFilter.doFilterInternal(RequestContextFilter.java:100) ~[spring-web-5.3.21.jar:5.3.21]
+	at org.springframework.web.filter.OncePerRequestFilter.doFilter(OncePerRequestFilter.java:117) ~[spring-web-5.3.21.jar:5.3.21]
+	at org.apache.catalina.core.ApplicationFilterChain.internalDoFilter(ApplicationFilterChain.java:189) ~[tomcat-embed-core-9.0.64.jar:9.0.64]
+	at org.apache.catalina.core.ApplicationFilterChain.doFilter(ApplicationFilterChain.java:162) ~[tomcat-embed-core-9.0.64.jar:9.0.64]
+	at org.springframework.web.filter.FormContentFilter.doFilterInternal(FormContentFilter.java:93) ~[spring-web-5.3.21.jar:5.3.21]
+	at org.springframework.web.filter.OncePerRequestFilter.doFilter(OncePerRequestFilter.java:117) ~[spring-web-5.3.21.jar:5.3.21]
+	at org.apache.catalina.core.ApplicationFilterChain.internalDoFilter(ApplicationFilterChain.java:189) ~[tomcat-embed-core-9.0.64.jar:9.0.64]
+	at org.apache.catalina.core.ApplicationFilterChain.doFilter(ApplicationFilterChain.java:162) ~[tomcat-embed-core-9.0.64.jar:9.0.64]
+	at org.springframework.boot.actuate.metrics.web.servlet.WebMvcMetricsFilter.doFilterInternal(WebMvcMetricsFilter.java:96) ~[spring-boot-actuator-2.7.1.jar:2.7.1]
+	at org.springframework.web.filter.OncePerRequestFilter.doFilter(OncePerRequestFilter.java:117) ~[spring-web-5.3.21.jar:5.3.21]
+	at org.apache.catalina.core.ApplicationFilterChain.internalDoFilter(ApplicationFilterChain.java:189) ~[tomcat-embed-core-9.0.64.jar:9.0.64]
+	at org.apache.catalina.core.ApplicationFilterChain.doFilter(ApplicationFilterChain.java:162) ~[tomcat-embed-core-9.0.64.jar:9.0.64]
+	at org.springframework.web.filter.CharacterEncodingFilter.doFilterInternal(CharacterEncodingFilter.java:201) ~[spring-web-5.3.21.jar:5.3.21]
+	at org.springframework.web.filter.OncePerRequestFilter.doFilter(OncePerRequestFilter.java:117) ~[spring-web-5.3.21.jar:5.3.21]
+	at org.apache.catalina.core.ApplicationFilterChain.internalDoFilter(ApplicationFilterChain.java:189) ~[tomcat-embed-core-9.0.64.jar:9.0.64]
+	at org.apache.catalina.core.ApplicationFilterChain.doFilter(ApplicationFilterChain.java:162) ~[tomcat-embed-core-9.0.64.jar:9.0.64]
+	at org.apache.catalina.core.StandardWrapperValve.invoke(StandardWrapperValve.java:197) ~[tomcat-embed-core-9.0.64.jar:9.0.64]
+	at org.apache.catalina.core.StandardContextValve.invoke(StandardContextValve.java:97) ~[tomcat-embed-core-9.0.64.jar:9.0.64]
+	at org.apache.catalina.authenticator.AuthenticatorBase.invoke(AuthenticatorBase.java:541) ~[tomcat-embed-core-9.0.64.jar:9.0.64]
+	at org.apache.catalina.core.StandardHostValve.invoke(StandardHostValve.java:135) ~[tomcat-embed-core-9.0.64.jar:9.0.64]
+	at org.apache.catalina.valves.ErrorReportValve.invoke(ErrorReportValve.java:92) ~[tomcat-embed-core-9.0.64.jar:9.0.64]
+	at org.apache.catalina.core.StandardEngineValve.invoke(StandardEngineValve.java:78) ~[tomcat-embed-core-9.0.64.jar:9.0.64]
+	at org.apache.catalina.connector.CoyoteAdapter.service(CoyoteAdapter.java:360) ~[tomcat-embed-core-9.0.64.jar:9.0.64]
+	at org.apache.coyote.http11.Http11Processor.service(Http11Processor.java:399) ~[tomcat-embed-core-9.0.64.jar:9.0.64]
+	at org.apache.coyote.AbstractProcessorLight.process(AbstractProcessorLight.java:65) ~[tomcat-embed-core-9.0.64.jar:9.0.64]
+	at org.apache.coyote.AbstractProtocol$ConnectionHandler.process(AbstractProtocol.java:890) ~[tomcat-embed-core-9.0.64.jar:9.0.64]
+	at org.apache.tomcat.util.net.NioEndpoint$SocketProcessor.doRun(NioEndpoint.java:1787) ~[tomcat-embed-core-9.0.64.jar:9.0.64]
+	at org.apache.tomcat.util.net.SocketProcessorBase.run(SocketProcessorBase.java:49) ~[tomcat-embed-core-9.0.64.jar:9.0.64]
+	at org.apache.tomcat.util.threads.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1191) ~[tomcat-embed-core-9.0.64.jar:9.0.64]
+	at org.apache.tomcat.util.threads.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:659) ~[tomcat-embed-core-9.0.64.jar:9.0.64]
+	at org.apache.tomcat.util.threads.TaskThread$WrappingRunnable.run(TaskThread.java:61) ~[tomcat-embed-core-9.0.64.jar:9.0.64]
+	at java.lang.Thread.run(Thread.java:840) ~[?:?]
+Caused by: com.fasterxml.jackson.databind.exc.UnrecognizedPropertyException: Unrecognized field "address" (class com.ninimum.api.dto.UserDto), not marked as ignorable (17 known properties: "gender", "region_id", "created_at", "blocked_until", "birth_date", "status", "last_name", "profile_image_url", "updated_at", "first_name", "id", "email", "is_phone_verified", "phone_number", "password", "token_mb", "is_active"])
+ at [Source: (String)"{"is_phone_verified":false,"address":"Uzbekistan, Kashkadarya Region, Shakhrisabz District, Maktobod mahalla fuqarolar yigʻini","is_active":true,"location_latitude":39.03145316514833,"region_id":1,"last_name":"Karimov","created_at":"2026-05-28 13:40:28","password":"{bcrypt}$2a$10$EL/sxzMIo.szDzdfa8o9IOzUDCTJ7zeQTNZSHuCqe1Mx46PE0it/6","updated_at":"2026-05-28 13:40:28","phone_number":"998998887766","id":7,"first_name":"Akmal","location_longitude":66.89331751316786,"status":"ACTIVE"}"; line: 1, column: 39] (through reference chain: com.ninimum.api.dto.UserDto["address"])
+	at com.fasterxml.jackson.databind.exc.UnrecognizedPropertyException.from(UnrecognizedPropertyException.java:61) ~[jackson-databind-2.15.2.jar:2.15.2]
+	at com.fasterxml.jackson.databind.DeserializationContext.handleUnknownProperty(DeserializationContext.java:1138) ~[jackson-databind-2.15.2.jar:2.15.2]
+	at com.fasterxml.jackson.databind.deser.std.StdDeserializer.handleUnknownProperty(StdDeserializer.java:2224) ~[jackson-databind-2.15.2.jar:2.15.2]
+	at com.fasterxml.jackson.databind.deser.BeanDeserializerBase.handleUnknownProperty(BeanDeserializerBase.java:1709) ~[jackson-databind-2.15.2.jar:2.15.2]
+	at com.fasterxml.jackson.databind.deser.BeanDeserializerBase.handleUnknownVanilla(BeanDeserializerBase.java:1687) ~[jackson-databind-2.15.2.jar:2.15.2]
+	at com.fasterxml.jackson.databind.deser.BeanDeserializer.vanillaDeserialize(BeanDeserializer.java:320) ~[jackson-databind-2.15.2.jar:2.15.2]
+	at com.fasterxml.jackson.databind.deser.BeanDeserializer.deserialize(BeanDeserializer.java:177) ~[jackson-databind-2.15.2.jar:2.15.2]
+	at com.fasterxml.jackson.databind.deser.DefaultDeserializationContext.readRootValue(DefaultDeserializationContext.java:323) ~[jackson-databind-2.15.2.jar:2.15.2]
+	at com.fasterxml.jackson.databind.ObjectMapper._readMapAndClose(ObjectMapper.java:4825) ~[jackson-databind-2.15.2.jar:2.15.2]
+	at com.fasterxml.jackson.databind.ObjectMapper.readValue(ObjectMapper.java:3772) ~[jackson-databind-2.15.2.jar:2.15.2]
+	at com.fasterxml.jackson.databind.ObjectMapper.readValue(ObjectMapper.java:3740) ~[jackson-databind-2.15.2.jar:2.15.2]
+	at com.ninimum.api.camelcase.CamelCaseMap.toObject(CamelCaseMap.java:30) ~[classes/:?]
+	... 65 more
+2026-05-30 16:04:34 [http-nio-0.0.0.0-8083-exec-6] INFO  com.ninimum.api.security.filter.UserAuthenticationFilter - Unsuccessful authentication attempt
+2026-05-30 16:04:50 [http-nio-0.0.0.0-8083-exec-7] INFO  com.ninimum.api.security.provider.UserAuthenticationProvider - userId => 998998887766
+2026-05-30 16:04:50 [http-nio-0.0.0.0-8083-exec-7] INFO  com.ninimum.api.security.provider.UserAuthenticationProvider - passwd => 12
+2026-05-30 16:04:50 [http-nio-0.0.0.0-8083-exec-7] ERROR com.ninimum.api.security.provider.UserAuthenticationProvider - UserAuthenticationProvider => Unexpected error while processing user data
+java.lang.RuntimeException: Failed to map CamelCaseMap to com.ninimum.api.dto.UserDto
+	at com.ninimum.api.camelcase.CamelCaseMap.toObject(CamelCaseMap.java:32) ~[classes/:?]
+	at com.ninimum.api.security.provider.UserAuthenticationProvider.authenticate(UserAuthenticationProvider.java:54) ~[classes/:?]
+	at com.ninimum.api.security.filter.UserAuthenticationFilter.attemptAuthentication(UserAuthenticationFilter.java:45) ~[classes/:?]
+	at org.springframework.security.web.authentication.AbstractAuthenticationProcessingFilter.doFilter(AbstractAuthenticationProcessingFilter.java:227) ~[spring-security-web-5.7.2.jar:5.7.2]
+	at org.springframework.security.web.authentication.AbstractAuthenticationProcessingFilter.doFilter(AbstractAuthenticationProcessingFilter.java:217) ~[spring-security-web-5.7.2.jar:5.7.2]
+	at org.springframework.security.web.FilterChainProxy$VirtualFilterChain.doFilter(FilterChainProxy.java:336) ~[spring-security-web-5.7.2.jar:5.7.2]
+	at com.ninimum.api.security.jwt.JwtAuthenticationFilter.doFilterInternal(JwtAuthenticationFilter.java:40) ~[classes/:?]
+	at org.springframework.web.filter.OncePerRequestFilter.doFilter(OncePerRequestFilter.java:117) ~[spring-web-5.3.21.jar:5.3.21]
+	at org.springframework.security.web.FilterChainProxy$VirtualFilterChain.doFilter(FilterChainProxy.java:336) ~[spring-security-web-5.7.2.jar:5.7.2]
+	at org.springframework.security.web.authentication.logout.LogoutFilter.doFilter(LogoutFilter.java:103) ~[spring-security-web-5.7.2.jar:5.7.2]
+	at org.springframework.security.web.authentication.logout.LogoutFilter.doFilter(LogoutFilter.java:89) ~[spring-security-web-5.7.2.jar:5.7.2]
+	at org.springframework.security.web.FilterChainProxy$VirtualFilterChain.doFilter(FilterChainProxy.java:336) ~[spring-security-web-5.7.2.jar:5.7.2]
+	at org.springframework.web.filter.CorsFilter.doFilterInternal(CorsFilter.java:91) ~[spring-web-5.3.21.jar:5.3.21]
+	at org.springframework.web.filter.OncePerRequestFilter.doFilter(OncePerRequestFilter.java:117) ~[spring-web-5.3.21.jar:5.3.21]
+	at org.springframework.security.web.FilterChainProxy$VirtualFilterChain.doFilter(FilterChainProxy.java:336) ~[spring-security-web-5.7.2.jar:5.7.2]
+	at org.springframework.security.web.header.HeaderWriterFilter.doHeadersAfter(HeaderWriterFilter.java:90) ~[spring-security-web-5.7.2.jar:5.7.2]
+	at org.springframework.security.web.header.HeaderWriterFilter.doFilterInternal(HeaderWriterFilter.java:75) ~[spring-security-web-5.7.2.jar:5.7.2]
+	at org.springframework.web.filter.OncePerRequestFilter.doFilter(OncePerRequestFilter.java:117) ~[spring-web-5.3.21.jar:5.3.21]
+	at org.springframework.security.web.FilterChainProxy$VirtualFilterChain.doFilter(FilterChainProxy.java:336) ~[spring-security-web-5.7.2.jar:5.7.2]
+	at org.springframework.security.web.context.SecurityContextPersistenceFilter.doFilter(SecurityContextPersistenceFilter.java:112) ~[spring-security-web-5.7.2.jar:5.7.2]
+	at org.springframework.security.web.context.SecurityContextPersistenceFilter.doFilter(SecurityContextPersistenceFilter.java:82) ~[spring-security-web-5.7.2.jar:5.7.2]
+	at org.springframework.security.web.FilterChainProxy$VirtualFilterChain.doFilter(FilterChainProxy.java:336) ~[spring-security-web-5.7.2.jar:5.7.2]
+	at org.springframework.security.web.context.request.async.WebAsyncManagerIntegrationFilter.doFilterInternal(WebAsyncManagerIntegrationFilter.java:55) ~[spring-security-web-5.7.2.jar:5.7.2]
+	at org.springframework.web.filter.OncePerRequestFilter.doFilter(OncePerRequestFilter.java:117) ~[spring-web-5.3.21.jar:5.3.21]
+	at org.springframework.security.web.FilterChainProxy$VirtualFilterChain.doFilter(FilterChainProxy.java:336) ~[spring-security-web-5.7.2.jar:5.7.2]
+	at org.springframework.security.web.session.DisableEncodeUrlFilter.doFilterInternal(DisableEncodeUrlFilter.java:42) ~[spring-security-web-5.7.2.jar:5.7.2]
+	at org.springframework.web.filter.OncePerRequestFilter.doFilter(OncePerRequestFilter.java:117) ~[spring-web-5.3.21.jar:5.3.21]
+	at org.springframework.security.web.FilterChainProxy$VirtualFilterChain.doFilter(FilterChainProxy.java:336) ~[spring-security-web-5.7.2.jar:5.7.2]
+	at org.springframework.security.web.FilterChainProxy.doFilterInternal(FilterChainProxy.java:211) ~[spring-security-web-5.7.2.jar:5.7.2]
+	at org.springframework.security.web.FilterChainProxy.doFilter(FilterChainProxy.java:183) ~[spring-security-web-5.7.2.jar:5.7.2]
+	at org.springframework.web.filter.DelegatingFilterProxy.invokeDelegate(DelegatingFilterProxy.java:354) ~[spring-web-5.3.21.jar:5.3.21]
+	at org.springframework.web.filter.DelegatingFilterProxy.doFilter(DelegatingFilterProxy.java:267) ~[spring-web-5.3.21.jar:5.3.21]
+	at org.apache.catalina.core.ApplicationFilterChain.internalDoFilter(ApplicationFilterChain.java:189) ~[tomcat-embed-core-9.0.64.jar:9.0.64]
+	at org.apache.catalina.core.ApplicationFilterChain.doFilter(ApplicationFilterChain.java:162) ~[tomcat-embed-core-9.0.64.jar:9.0.64]
+	at org.springframework.web.filter.RequestContextFilter.doFilterInternal(RequestContextFilter.java:100) ~[spring-web-5.3.21.jar:5.3.21]
+	at org.springframework.web.filter.OncePerRequestFilter.doFilter(OncePerRequestFilter.java:117) ~[spring-web-5.3.21.jar:5.3.21]
+	at org.apache.catalina.core.ApplicationFilterChain.internalDoFilter(ApplicationFilterChain.java:189) ~[tomcat-embed-core-9.0.64.jar:9.0.64]
+	at org.apache.catalina.core.ApplicationFilterChain.doFilter(ApplicationFilterChain.java:162) ~[tomcat-embed-core-9.0.64.jar:9.0.64]
+	at org.springframework.web.filter.FormContentFilter.doFilterInternal(FormContentFilter.java:93) ~[spring-web-5.3.21.jar:5.3.21]
+	at org.springframework.web.filter.OncePerRequestFilter.doFilter(OncePerRequestFilter.java:117) ~[spring-web-5.3.21.jar:5.3.21]
+	at org.apache.catalina.core.ApplicationFilterChain.internalDoFilter(ApplicationFilterChain.java:189) ~[tomcat-embed-core-9.0.64.jar:9.0.64]
+	at org.apache.catalina.core.ApplicationFilterChain.doFilter(ApplicationFilterChain.java:162) ~[tomcat-embed-core-9.0.64.jar:9.0.64]
+	at org.springframework.boot.actuate.metrics.web.servlet.WebMvcMetricsFilter.doFilterInternal(WebMvcMetricsFilter.java:96) ~[spring-boot-actuator-2.7.1.jar:2.7.1]
+	at org.springframework.web.filter.OncePerRequestFilter.doFilter(OncePerRequestFilter.java:117) ~[spring-web-5.3.21.jar:5.3.21]
+	at org.apache.catalina.core.ApplicationFilterChain.internalDoFilter(ApplicationFilterChain.java:189) ~[tomcat-embed-core-9.0.64.jar:9.0.64]
+	at org.apache.catalina.core.ApplicationFilterChain.doFilter(ApplicationFilterChain.java:162) ~[tomcat-embed-core-9.0.64.jar:9.0.64]
+	at org.springframework.web.filter.CharacterEncodingFilter.doFilterInternal(CharacterEncodingFilter.java:201) ~[spring-web-5.3.21.jar:5.3.21]
+	at org.springframework.web.filter.OncePerRequestFilter.doFilter(OncePerRequestFilter.java:117) ~[spring-web-5.3.21.jar:5.3.21]
+	at org.apache.catalina.core.ApplicationFilterChain.internalDoFilter(ApplicationFilterChain.java:189) ~[tomcat-embed-core-9.0.64.jar:9.0.64]
+	at org.apache.catalina.core.ApplicationFilterChain.doFilter(ApplicationFilterChain.java:162) ~[tomcat-embed-core-9.0.64.jar:9.0.64]
+	at org.apache.catalina.core.StandardWrapperValve.invoke(StandardWrapperValve.java:197) ~[tomcat-embed-core-9.0.64.jar:9.0.64]
+	at org.apache.catalina.core.StandardContextValve.invoke(StandardContextValve.java:97) ~[tomcat-embed-core-9.0.64.jar:9.0.64]
+	at org.apache.catalina.authenticator.AuthenticatorBase.invoke(AuthenticatorBase.java:541) ~[tomcat-embed-core-9.0.64.jar:9.0.64]
+	at org.apache.catalina.core.StandardHostValve.invoke(StandardHostValve.java:135) ~[tomcat-embed-core-9.0.64.jar:9.0.64]
+	at org.apache.catalina.valves.ErrorReportValve.invoke(ErrorReportValve.java:92) ~[tomcat-embed-core-9.0.64.jar:9.0.64]
+	at org.apache.catalina.core.StandardEngineValve.invoke(StandardEngineValve.java:78) ~[tomcat-embed-core-9.0.64.jar:9.0.64]
+	at org.apache.catalina.connector.CoyoteAdapter.service(CoyoteAdapter.java:360) ~[tomcat-embed-core-9.0.64.jar:9.0.64]
+	at org.apache.coyote.http11.Http11Processor.service(Http11Processor.java:399) ~[tomcat-embed-core-9.0.64.jar:9.0.64]
+	at org.apache.coyote.AbstractProcessorLight.process(AbstractProcessorLight.java:65) ~[tomcat-embed-core-9.0.64.jar:9.0.64]
+	at org.apache.coyote.AbstractProtocol$ConnectionHandler.process(AbstractProtocol.java:890) ~[tomcat-embed-core-9.0.64.jar:9.0.64]
+	at org.apache.tomcat.util.net.NioEndpoint$SocketProcessor.doRun(NioEndpoint.java:1787) ~[tomcat-embed-core-9.0.64.jar:9.0.64]
+	at org.apache.tomcat.util.net.SocketProcessorBase.run(SocketProcessorBase.java:49) ~[tomcat-embed-core-9.0.64.jar:9.0.64]
+	at org.apache.tomcat.util.threads.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1191) ~[tomcat-embed-core-9.0.64.jar:9.0.64]
+	at org.apache.tomcat.util.threads.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:659) ~[tomcat-embed-core-9.0.64.jar:9.0.64]
+	at org.apache.tomcat.util.threads.TaskThread$WrappingRunnable.run(TaskThread.java:61) ~[tomcat-embed-core-9.0.64.jar:9.0.64]
+	at java.lang.Thread.run(Thread.java:840) ~[?:?]
+Caused by: com.fasterxml.jackson.databind.exc.UnrecognizedPropertyException: Unrecognized field "address" (class com.ninimum.api.dto.UserDto), not marked as ignorable (17 known properties: "gender", "region_id", "created_at", "blocked_until", "birth_date", "status", "last_name", "profile_image_url", "updated_at", "first_name", "id", "email", "is_phone_verified", "phone_number", "password", "token_mb", "is_active"])
+ at [Source: (String)"{"is_phone_verified":false,"address":"Uzbekistan, Kashkadarya Region, Shakhrisabz District, Maktobod mahalla fuqarolar yigʻini","is_active":true,"location_latitude":39.03145316514833,"region_id":1,"last_name":"Karimov","created_at":"2026-05-28 13:40:28","password":"{bcrypt}$2a$10$EL/sxzMIo.szDzdfa8o9IOzUDCTJ7zeQTNZSHuCqe1Mx46PE0it/6","updated_at":"2026-05-28 13:40:28","phone_number":"998998887766","id":7,"first_name":"Akmal","location_longitude":66.89331751316786,"status":"ACTIVE"}"; line: 1, column: 39] (through reference chain: com.ninimum.api.dto.UserDto["address"])
+	at com.fasterxml.jackson.databind.exc.UnrecognizedPropertyException.from(UnrecognizedPropertyException.java:61) ~[jackson-databind-2.15.2.jar:2.15.2]
+	at com.fasterxml.jackson.databind.DeserializationContext.handleUnknownProperty(DeserializationContext.java:1138) ~[jackson-databind-2.15.2.jar:2.15.2]
+	at com.fasterxml.jackson.databind.deser.std.StdDeserializer.handleUnknownProperty(StdDeserializer.java:2224) ~[jackson-databind-2.15.2.jar:2.15.2]
+	at com.fasterxml.jackson.databind.deser.BeanDeserializerBase.handleUnknownProperty(BeanDeserializerBase.java:1709) ~[jackson-databind-2.15.2.jar:2.15.2]
+	at com.fasterxml.jackson.databind.deser.BeanDeserializerBase.handleUnknownVanilla(BeanDeserializerBase.java:1687) ~[jackson-databind-2.15.2.jar:2.15.2]
+	at com.fasterxml.jackson.databind.deser.BeanDeserializer.vanillaDeserialize(BeanDeserializer.java:320) ~[jackson-databind-2.15.2.jar:2.15.2]
+	at com.fasterxml.jackson.databind.deser.BeanDeserializer.deserialize(BeanDeserializer.java:177) ~[jackson-databind-2.15.2.jar:2.15.2]
+	at com.fasterxml.jackson.databind.deser.DefaultDeserializationContext.readRootValue(DefaultDeserializationContext.java:323) ~[jackson-databind-2.15.2.jar:2.15.2]
+	at com.fasterxml.jackson.databind.ObjectMapper._readMapAndClose(ObjectMapper.java:4825) ~[jackson-databind-2.15.2.jar:2.15.2]
+	at com.fasterxml.jackson.databind.ObjectMapper.readValue(ObjectMapper.java:3772) ~[jackson-databind-2.15.2.jar:2.15.2]
+	at com.fasterxml.jackson.databind.ObjectMapper.readValue(ObjectMapper.java:3740) ~[jackson-databind-2.15.2.jar:2.15.2]
+	at com.ninimum.api.camelcase.CamelCaseMap.toObject(CamelCaseMap.java:30) ~[classes/:?]
+	... 65 more
+2026-05-30 16:04:50 [http-nio-0.0.0.0-8083-exec-7] INFO  com.ninimum.api.security.filter.UserAuthenticationFilter - Unsuccessful authentication attempt
+2026-05-30 16:06:55 [http-nio-0.0.0.0-8083-exec-9] INFO  com.ninimum.api.security.provider.UserAuthenticationProvider - userId => 998998887766
+2026-05-30 16:06:56 [http-nio-0.0.0.0-8083-exec-9] INFO  com.ninimum.api.security.provider.UserAuthenticationProvider - passwd => 12
+2026-05-30 16:07:33 [HikariPool-1 housekeeper] WARN  com.zaxxer.hikari.pool.HikariPool - HikariPool-1 - Thread starvation or clock leap detected (housekeeper delta=1m3s389ms).
+2026-05-30 16:08:18 [http-nio-0.0.0.0-8083-exec-9] ERROR com.ninimum.api.security.provider.UserAuthenticationProvider - UserAuthenticationProvider => Unexpected error while processing user data
+java.lang.RuntimeException: Failed to map CamelCaseMap to com.ninimum.api.dto.UserDto
+	at com.ninimum.api.camelcase.CamelCaseMap.toObject(CamelCaseMap.java:32) ~[classes/:?]
+	at com.ninimum.api.security.provider.UserAuthenticationProvider.authenticate(UserAuthenticationProvider.java:54) ~[classes/:?]
+	at com.ninimum.api.security.filter.UserAuthenticationFilter.attemptAuthentication(UserAuthenticationFilter.java:45) ~[classes/:?]
+	at org.springframework.security.web.authentication.AbstractAuthenticationProcessingFilter.doFilter(AbstractAuthenticationProcessingFilter.java:227) ~[spring-security-web-5.7.2.jar:5.7.2]
+	at org.springframework.security.web.authentication.AbstractAuthenticationProcessingFilter.doFilter(AbstractAuthenticationProcessingFilter.java:217) ~[spring-security-web-5.7.2.jar:5.7.2]
+	at org.springframework.security.web.FilterChainProxy$VirtualFilterChain.doFilter(FilterChainProxy.java:336) ~[spring-security-web-5.7.2.jar:5.7.2]
+	at com.ninimum.api.security.jwt.JwtAuthenticationFilter.doFilterInternal(JwtAuthenticationFilter.java:40) ~[classes/:?]
+	at org.springframework.web.filter.OncePerRequestFilter.doFilter(OncePerRequestFilter.java:117) ~[spring-web-5.3.21.jar:5.3.21]
+	at org.springframework.security.web.FilterChainProxy$VirtualFilterChain.doFilter(FilterChainProxy.java:336) ~[spring-security-web-5.7.2.jar:5.7.2]
+	at org.springframework.security.web.authentication.logout.LogoutFilter.doFilter(LogoutFilter.java:103) ~[spring-security-web-5.7.2.jar:5.7.2]
+	at org.springframework.security.web.authentication.logout.LogoutFilter.doFilter(LogoutFilter.java:89) ~[spring-security-web-5.7.2.jar:5.7.2]
+	at org.springframework.security.web.FilterChainProxy$VirtualFilterChain.doFilter(FilterChainProxy.java:336) ~[spring-security-web-5.7.2.jar:5.7.2]
+	at org.springframework.web.filter.CorsFilter.doFilterInternal(CorsFilter.java:91) ~[spring-web-5.3.21.jar:5.3.21]
+	at org.springframework.web.filter.OncePerRequestFilter.doFilter(OncePerRequestFilter.java:117) ~[spring-web-5.3.21.jar:5.3.21]
+	at org.springframework.security.web.FilterChainProxy$VirtualFilterChain.doFilter(FilterChainProxy.java:336) ~[spring-security-web-5.7.2.jar:5.7.2]
+	at org.springframework.security.web.header.HeaderWriterFilter.doHeadersAfter(HeaderWriterFilter.java:90) ~[spring-security-web-5.7.2.jar:5.7.2]
+	at org.springframework.security.web.header.HeaderWriterFilter.doFilterInternal(HeaderWriterFilter.java:75) ~[spring-security-web-5.7.2.jar:5.7.2]
+	at org.springframework.web.filter.OncePerRequestFilter.doFilter(OncePerRequestFilter.java:117) ~[spring-web-5.3.21.jar:5.3.21]
+	at org.springframework.security.web.FilterChainProxy$VirtualFilterChain.doFilter(FilterChainProxy.java:336) ~[spring-security-web-5.7.2.jar:5.7.2]
+	at org.springframework.security.web.context.SecurityContextPersistenceFilter.doFilter(SecurityContextPersistenceFilter.java:112) ~[spring-security-web-5.7.2.jar:5.7.2]
+	at org.springframework.security.web.context.SecurityContextPersistenceFilter.doFilter(SecurityContextPersistenceFilter.java:82) ~[spring-security-web-5.7.2.jar:5.7.2]
+	at org.springframework.security.web.FilterChainProxy$VirtualFilterChain.doFilter(FilterChainProxy.java:336) ~[spring-security-web-5.7.2.jar:5.7.2]
+	at org.springframework.security.web.context.request.async.WebAsyncManagerIntegrationFilter.doFilterInternal(WebAsyncManagerIntegrationFilter.java:55) ~[spring-security-web-5.7.2.jar:5.7.2]
+	at org.springframework.web.filter.OncePerRequestFilter.doFilter(OncePerRequestFilter.java:117) ~[spring-web-5.3.21.jar:5.3.21]
+	at org.springframework.security.web.FilterChainProxy$VirtualFilterChain.doFilter(FilterChainProxy.java:336) ~[spring-security-web-5.7.2.jar:5.7.2]
+	at org.springframework.security.web.session.DisableEncodeUrlFilter.doFilterInternal(DisableEncodeUrlFilter.java:42) ~[spring-security-web-5.7.2.jar:5.7.2]
+	at org.springframework.web.filter.OncePerRequestFilter.doFilter(OncePerRequestFilter.java:117) ~[spring-web-5.3.21.jar:5.3.21]
+	at org.springframework.security.web.FilterChainProxy$VirtualFilterChain.doFilter(FilterChainProxy.java:336) ~[spring-security-web-5.7.2.jar:5.7.2]
+	at org.springframework.security.web.FilterChainProxy.doFilterInternal(FilterChainProxy.java:211) ~[spring-security-web-5.7.2.jar:5.7.2]
+	at org.springframework.security.web.FilterChainProxy.doFilter(FilterChainProxy.java:183) ~[spring-security-web-5.7.2.jar:5.7.2]
+	at org.springframework.web.filter.DelegatingFilterProxy.invokeDelegate(DelegatingFilterProxy.java:354) ~[spring-web-5.3.21.jar:5.3.21]
+	at org.springframework.web.filter.DelegatingFilterProxy.doFilter(DelegatingFilterProxy.java:267) ~[spring-web-5.3.21.jar:5.3.21]
+	at org.apache.catalina.core.ApplicationFilterChain.internalDoFilter(ApplicationFilterChain.java:189) ~[tomcat-embed-core-9.0.64.jar:9.0.64]
+	at org.apache.catalina.core.ApplicationFilterChain.doFilter(ApplicationFilterChain.java:162) ~[tomcat-embed-core-9.0.64.jar:9.0.64]
+	at org.springframework.web.filter.RequestContextFilter.doFilterInternal(RequestContextFilter.java:100) ~[spring-web-5.3.21.jar:5.3.21]
+	at org.springframework.web.filter.OncePerRequestFilter.doFilter(OncePerRequestFilter.java:117) ~[spring-web-5.3.21.jar:5.3.21]
+	at org.apache.catalina.core.ApplicationFilterChain.internalDoFilter(ApplicationFilterChain.java:189) ~[tomcat-embed-core-9.0.64.jar:9.0.64]
+	at org.apache.catalina.core.ApplicationFilterChain.doFilter(ApplicationFilterChain.java:162) ~[tomcat-embed-core-9.0.64.jar:9.0.64]
+	at org.springframework.web.filter.FormContentFilter.doFilterInternal(FormContentFilter.java:93) ~[spring-web-5.3.21.jar:5.3.21]
+	at org.springframework.web.filter.OncePerRequestFilter.doFilter(OncePerRequestFilter.java:117) ~[spring-web-5.3.21.jar:5.3.21]
+	at org.apache.catalina.core.ApplicationFilterChain.internalDoFilter(ApplicationFilterChain.java:189) ~[tomcat-embed-core-9.0.64.jar:9.0.64]
+	at org.apache.catalina.core.ApplicationFilterChain.doFilter(ApplicationFilterChain.java:162) ~[tomcat-embed-core-9.0.64.jar:9.0.64]
+	at org.springframework.boot.actuate.metrics.web.servlet.WebMvcMetricsFilter.doFilterInternal(WebMvcMetricsFilter.java:96) ~[spring-boot-actuator-2.7.1.jar:2.7.1]
+	at org.springframework.web.filter.OncePerRequestFilter.doFilter(OncePerRequestFilter.java:117) ~[spring-web-5.3.21.jar:5.3.21]
+	at org.apache.catalina.core.ApplicationFilterChain.internalDoFilter(ApplicationFilterChain.java:189) ~[tomcat-embed-core-9.0.64.jar:9.0.64]
+	at org.apache.catalina.core.ApplicationFilterChain.doFilter(ApplicationFilterChain.java:162) ~[tomcat-embed-core-9.0.64.jar:9.0.64]
+	at org.springframework.web.filter.CharacterEncodingFilter.doFilterInternal(CharacterEncodingFilter.java:201) ~[spring-web-5.3.21.jar:5.3.21]
+	at org.springframework.web.filter.OncePerRequestFilter.doFilter(OncePerRequestFilter.java:117) ~[spring-web-5.3.21.jar:5.3.21]
+	at org.apache.catalina.core.ApplicationFilterChain.internalDoFilter(ApplicationFilterChain.java:189) ~[tomcat-embed-core-9.0.64.jar:9.0.64]
+	at org.apache.catalina.core.ApplicationFilterChain.doFilter(ApplicationFilterChain.java:162) ~[tomcat-embed-core-9.0.64.jar:9.0.64]
+	at org.apache.catalina.core.StandardWrapperValve.invoke(StandardWrapperValve.java:197) ~[tomcat-embed-core-9.0.64.jar:9.0.64]
+	at org.apache.catalina.core.StandardContextValve.invoke(StandardContextValve.java:97) ~[tomcat-embed-core-9.0.64.jar:9.0.64]
+	at org.apache.catalina.authenticator.AuthenticatorBase.invoke(AuthenticatorBase.java:541) ~[tomcat-embed-core-9.0.64.jar:9.0.64]
+	at org.apache.catalina.core.StandardHostValve.invoke(StandardHostValve.java:135) ~[tomcat-embed-core-9.0.64.jar:9.0.64]
+	at org.apache.catalina.valves.ErrorReportValve.invoke(ErrorReportValve.java:92) ~[tomcat-embed-core-9.0.64.jar:9.0.64]
+	at org.apache.catalina.core.StandardEngineValve.invoke(StandardEngineValve.java:78) ~[tomcat-embed-core-9.0.64.jar:9.0.64]
+	at org.apache.catalina.connector.CoyoteAdapter.service(CoyoteAdapter.java:360) ~[tomcat-embed-core-9.0.64.jar:9.0.64]
+	at org.apache.coyote.http11.Http11Processor.service(Http11Processor.java:399) ~[tomcat-embed-core-9.0.64.jar:9.0.64]
+	at org.apache.coyote.AbstractProcessorLight.process(AbstractProcessorLight.java:65) ~[tomcat-embed-core-9.0.64.jar:9.0.64]
+	at org.apache.coyote.AbstractProtocol$ConnectionHandler.process(AbstractProtocol.java:890) ~[tomcat-embed-core-9.0.64.jar:9.0.64]
+	at org.apache.tomcat.util.net.NioEndpoint$SocketProcessor.doRun(NioEndpoint.java:1787) ~[tomcat-embed-core-9.0.64.jar:9.0.64]
+	at org.apache.tomcat.util.net.SocketProcessorBase.run(SocketProcessorBase.java:49) ~[tomcat-embed-core-9.0.64.jar:9.0.64]
+	at org.apache.tomcat.util.threads.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1191) ~[tomcat-embed-core-9.0.64.jar:9.0.64]
+	at org.apache.tomcat.util.threads.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:659) ~[tomcat-embed-core-9.0.64.jar:9.0.64]
+	at org.apache.tomcat.util.threads.TaskThread$WrappingRunnable.run(TaskThread.java:61) ~[tomcat-embed-core-9.0.64.jar:9.0.64]
+	at java.lang.Thread.run(Thread.java:840) ~[?:?]
+Caused by: com.fasterxml.jackson.databind.exc.UnrecognizedPropertyException: Unrecognized field "address" (class com.ninimum.api.dto.UserDto), not marked as ignorable (17 known properties: "gender", "region_id", "created_at", "blocked_until", "birth_date", "status", "last_name", "profile_image_url", "updated_at", "first_name", "id", "email", "is_phone_verified", "phone_number", "password", "token_mb", "is_active"])
+ at [Source: (String)"{"is_phone_verified":false,"address":"Uzbekistan, Kashkadarya Region, Shakhrisabz District, Maktobod mahalla fuqarolar yigʻini","is_active":true,"location_latitude":39.03145316514833,"region_id":1,"last_name":"Karimov","created_at":"2026-05-28 13:40:28","password":"{bcrypt}$2a$10$EL/sxzMIo.szDzdfa8o9IOzUDCTJ7zeQTNZSHuCqe1Mx46PE0it/6","updated_at":"2026-05-28 13:40:28","phone_number":"998998887766","id":7,"first_name":"Akmal","location_longitude":66.89331751316786,"status":"ACTIVE"}"; line: 1, column: 39] (through reference chain: com.ninimum.api.dto.UserDto["address"])
+	at com.fasterxml.jackson.databind.exc.UnrecognizedPropertyException.from(UnrecognizedPropertyException.java:61) ~[jackson-databind-2.15.2.jar:2.15.2]
+	at com.fasterxml.jackson.databind.DeserializationContext.handleUnknownProperty(DeserializationContext.java:1138) ~[jackson-databind-2.15.2.jar:2.15.2]
+	at com.fasterxml.jackson.databind.deser.std.StdDeserializer.handleUnknownProperty(StdDeserializer.java:2224) ~[jackson-databind-2.15.2.jar:2.15.2]
+	at com.fasterxml.jackson.databind.deser.BeanDeserializerBase.handleUnknownProperty(BeanDeserializerBase.java:1709) ~[jackson-databind-2.15.2.jar:2.15.2]
+	at com.fasterxml.jackson.databind.deser.BeanDeserializerBase.handleUnknownVanilla(BeanDeserializerBase.java:1687) ~[jackson-databind-2.15.2.jar:2.15.2]
+	at com.fasterxml.jackson.databind.deser.BeanDeserializer.vanillaDeserialize(BeanDeserializer.java:320) ~[jackson-databind-2.15.2.jar:2.15.2]
+	at com.fasterxml.jackson.databind.deser.BeanDeserializer.deserialize(BeanDeserializer.java:177) ~[jackson-databind-2.15.2.jar:2.15.2]
+	at com.fasterxml.jackson.databind.deser.DefaultDeserializationContext.readRootValue(DefaultDeserializationContext.java:323) ~[jackson-databind-2.15.2.jar:2.15.2]
+	at com.fasterxml.jackson.databind.ObjectMapper._readMapAndClose(ObjectMapper.java:4825) ~[jackson-databind-2.15.2.jar:2.15.2]
+	at com.fasterxml.jackson.databind.ObjectMapper.readValue(ObjectMapper.java:3772) ~[jackson-databind-2.15.2.jar:2.15.2]
+	at com.fasterxml.jackson.databind.ObjectMapper.readValue(ObjectMapper.java:3740) ~[jackson-databind-2.15.2.jar:2.15.2]
+	at com.ninimum.api.camelcase.CamelCaseMap.toObject(CamelCaseMap.java:30) ~[classes/:?]
+	... 65 more
+2026-05-30 16:08:18 [http-nio-0.0.0.0-8083-exec-9] INFO  com.ninimum.api.security.filter.UserAuthenticationFilter - Unsuccessful authentication attempt
+2026-05-30 16:08:18 [SpringApplicationShutdownHook] INFO  com.zaxxer.hikari.HikariDataSource - HikariPool-1 - Shutdown initiated...
+2026-05-30 16:08:18 [SpringApplicationShutdownHook] INFO  com.zaxxer.hikari.HikariDataSource - HikariPool-1 - Shutdown completed.
+2026-05-30 16:09:18 [restartedMain] INFO  com.ninimum.api.NinimumApplication - Starting NinimumApplication using Java 17.0.14 on Akmalui-MacBookPro.local with PID 82228 (/Users/akmalbukhariev/Projects/NinimumBackend/NinimumBackend/target/classes started by akmalbukhariev in /Users/akmalbukhariev/Projects/NinimumBackend/NinimumBackend)
+2026-05-30 16:09:18 [restartedMain] INFO  com.ninimum.api.NinimumApplication - The following 1 profile is active: "default"
+2026-05-30 16:09:18 [restartedMain] INFO  org.springframework.boot.devtools.env.DevToolsPropertyDefaultsPostProcessor - Devtools property defaults active! Set 'spring.devtools.add-properties' to 'false' to disable
+2026-05-30 16:09:18 [restartedMain] INFO  org.springframework.boot.devtools.env.DevToolsPropertyDefaultsPostProcessor - For additional web related logging consider setting the 'logging.level.web' property to 'DEBUG'
+2026-05-30 16:09:20 [restartedMain] INFO  org.springframework.data.repository.config.RepositoryConfigurationDelegate - Bootstrapping Spring Data JDBC repositories in DEFAULT mode.
+2026-05-30 16:09:20 [restartedMain] INFO  org.springframework.data.repository.config.RepositoryConfigurationDelegate - Finished Spring Data repository scanning in 39 ms. Found 0 JDBC repository interfaces.
+2026-05-30 16:09:21 [restartedMain] INFO  com.ulisesbocchio.jasyptspringboot.configuration.EnableEncryptablePropertiesBeanFactoryPostProcessor - Post-processing PropertySource instances
+2026-05-30 16:09:21 [restartedMain] INFO  com.ulisesbocchio.jasyptspringboot.EncryptablePropertySourceConverter - Skipping PropertySource configurationProperties [class org.springframework.boot.context.properties.source.ConfigurationPropertySourcesPropertySource
+2026-05-30 16:09:21 [restartedMain] INFO  com.ulisesbocchio.jasyptspringboot.EncryptablePropertySourceConverter - Skipping PropertySource servletConfigInitParams [class org.springframework.core.env.PropertySource$StubPropertySource
+2026-05-30 16:09:21 [restartedMain] INFO  com.ulisesbocchio.jasyptspringboot.EncryptablePropertySourceConverter - Skipping PropertySource servletContextInitParams [class org.springframework.core.env.PropertySource$StubPropertySource
+2026-05-30 16:09:21 [restartedMain] INFO  com.ulisesbocchio.jasyptspringboot.EncryptablePropertySourceConverter - Converting PropertySource systemProperties [org.springframework.core.env.PropertiesPropertySource] to EncryptableMapPropertySourceWrapper
+2026-05-30 16:09:21 [restartedMain] INFO  com.ulisesbocchio.jasyptspringboot.EncryptablePropertySourceConverter - Converting PropertySource systemEnvironment [org.springframework.boot.env.SystemEnvironmentPropertySourceEnvironmentPostProcessor$OriginAwareSystemEnvironmentPropertySource] to EncryptableSystemEnvironmentPropertySourceWrapper
+2026-05-30 16:09:21 [restartedMain] INFO  com.ulisesbocchio.jasyptspringboot.EncryptablePropertySourceConverter - Converting PropertySource random [org.springframework.boot.env.RandomValuePropertySource] to EncryptablePropertySourceWrapper
+2026-05-30 16:09:21 [restartedMain] INFO  com.ulisesbocchio.jasyptspringboot.EncryptablePropertySourceConverter - Converting PropertySource Config resource 'class path resource [application.yaml]' via location 'optional:classpath:/' [org.springframework.boot.env.OriginTrackedMapPropertySource] to EncryptableMapPropertySourceWrapper
+2026-05-30 16:09:21 [restartedMain] INFO  com.ulisesbocchio.jasyptspringboot.EncryptablePropertySourceConverter - Converting PropertySource devtools [org.springframework.core.env.MapPropertySource] to EncryptableMapPropertySourceWrapper
+2026-05-30 16:09:21 [restartedMain] INFO  com.ulisesbocchio.jasyptspringboot.filter.DefaultLazyPropertyFilter - Property Filter custom Bean not found with name 'encryptablePropertyFilter'. Initializing Default Property Filter
+2026-05-30 16:09:21 [restartedMain] INFO  com.ulisesbocchio.jasyptspringboot.resolver.DefaultLazyPropertyResolver - Property Resolver custom Bean not found with name 'encryptablePropertyResolver'. Initializing Default Property Resolver
+2026-05-30 16:09:21 [restartedMain] INFO  com.ulisesbocchio.jasyptspringboot.detector.DefaultLazyPropertyDetector - Property Detector custom Bean not found with name 'encryptablePropertyDetector'. Initializing Default Property Detector
+2026-05-30 16:09:21 [restartedMain] INFO  org.springframework.boot.web.embedded.tomcat.TomcatWebServer - Tomcat initialized with port(s): 8083 (http)
+2026-05-30 16:09:22 [restartedMain] INFO  org.springframework.boot.web.servlet.context.ServletWebServerApplicationContext - Root WebApplicationContext: initialization completed in 3485 ms
+2026-05-30 16:09:24 [restartedMain] INFO  org.springframework.boot.actuate.endpoint.web.EndpointLinksResolver - Exposing 2 endpoint(s) beneath base path '/actuator'
+2026-05-30 16:09:24 [restartedMain] INFO  org.springframework.security.web.DefaultSecurityFilterChain - Will secure any request with [org.springframework.security.web.session.DisableEncodeUrlFilter@5683a17a, org.springframework.security.web.context.request.async.WebAsyncManagerIntegrationFilter@51141be0, org.springframework.security.web.context.SecurityContextPersistenceFilter@64ece946, org.springframework.security.web.header.HeaderWriterFilter@7c04d63e, org.springframework.web.filter.CorsFilter@45fbfa35, org.springframework.security.web.authentication.logout.LogoutFilter@30470eca, com.ninimum.api.security.jwt.JwtAuthenticationFilter@2e5eff1e, com.ninimum.api.security.filter.UserAuthenticationFilter@659d03de, org.springframework.security.web.savedrequest.RequestCacheAwareFilter@3138359c, org.springframework.security.web.servletapi.SecurityContextHolderAwareRequestFilter@189ccf54, org.springframework.security.web.authentication.AnonymousAuthenticationFilter@1427df96, org.springframework.security.web.session.SessionManagementFilter@312d0257, org.springframework.security.web.access.ExceptionTranslationFilter@503e142, org.springframework.security.web.access.intercept.AuthorizationFilter@3897f0ea]
+2026-05-30 16:09:24 [restartedMain] WARN  org.springframework.security.config.annotation.web.builders.WebSecurity - You are asking Spring Security to ignore Ant [pattern='/**/webjars/**']. This is not recommended -- please use permitAll via HttpSecurity#authorizeHttpRequests instead.
+2026-05-30 16:09:24 [restartedMain] INFO  org.springframework.security.web.DefaultSecurityFilterChain - Will not secure Ant [pattern='/**/webjars/**']
+2026-05-30 16:09:24 [restartedMain] WARN  org.springframework.security.config.annotation.web.builders.WebSecurity - You are asking Spring Security to ignore Ant [pattern='/v2/api-docs']. This is not recommended -- please use permitAll via HttpSecurity#authorizeHttpRequests instead.
+2026-05-30 16:09:24 [restartedMain] INFO  org.springframework.security.web.DefaultSecurityFilterChain - Will not secure Ant [pattern='/v2/api-docs']
+2026-05-30 16:09:24 [restartedMain] WARN  org.springframework.security.config.annotation.web.builders.WebSecurity - You are asking Spring Security to ignore Ant [pattern='/swagger-resources']. This is not recommended -- please use permitAll via HttpSecurity#authorizeHttpRequests instead.
+2026-05-30 16:09:24 [restartedMain] INFO  org.springframework.security.web.DefaultSecurityFilterChain - Will not secure Ant [pattern='/swagger-resources']
+2026-05-30 16:09:24 [restartedMain] WARN  org.springframework.security.config.annotation.web.builders.WebSecurity - You are asking Spring Security to ignore Ant [pattern='/swagger-resources/**']. This is not recommended -- please use permitAll via HttpSecurity#authorizeHttpRequests instead.
+2026-05-30 16:09:24 [restartedMain] INFO  org.springframework.security.web.DefaultSecurityFilterChain - Will not secure Ant [pattern='/swagger-resources/**']
+2026-05-30 16:09:24 [restartedMain] WARN  org.springframework.security.config.annotation.web.builders.WebSecurity - You are asking Spring Security to ignore Ant [pattern='/configuration/ui']. This is not recommended -- please use permitAll via HttpSecurity#authorizeHttpRequests instead.
+2026-05-30 16:09:24 [restartedMain] INFO  org.springframework.security.web.DefaultSecurityFilterChain - Will not secure Ant [pattern='/configuration/ui']
+2026-05-30 16:09:24 [restartedMain] WARN  org.springframework.security.config.annotation.web.builders.WebSecurity - You are asking Spring Security to ignore Ant [pattern='/configuration/security']. This is not recommended -- please use permitAll via HttpSecurity#authorizeHttpRequests instead.
+2026-05-30 16:09:24 [restartedMain] INFO  org.springframework.security.web.DefaultSecurityFilterChain - Will not secure Ant [pattern='/configuration/security']
+2026-05-30 16:09:24 [restartedMain] WARN  org.springframework.security.config.annotation.web.builders.WebSecurity - You are asking Spring Security to ignore Ant [pattern='/swagger-ui/**']. This is not recommended -- please use permitAll via HttpSecurity#authorizeHttpRequests instead.
+2026-05-30 16:09:24 [restartedMain] INFO  org.springframework.security.web.DefaultSecurityFilterChain - Will not secure Ant [pattern='/swagger-ui/**']
+2026-05-30 16:09:24 [restartedMain] WARN  org.springframework.security.config.annotation.web.builders.WebSecurity - You are asking Spring Security to ignore Ant [pattern='/webjars/**']. This is not recommended -- please use permitAll via HttpSecurity#authorizeHttpRequests instead.
+2026-05-30 16:09:24 [restartedMain] INFO  org.springframework.security.web.DefaultSecurityFilterChain - Will not secure Ant [pattern='/webjars/**']
+2026-05-30 16:09:24 [restartedMain] WARN  org.springframework.security.config.annotation.web.builders.WebSecurity - You are asking Spring Security to ignore Ant [pattern='/v3/api-docs/**']. This is not recommended -- please use permitAll via HttpSecurity#authorizeHttpRequests instead.
+2026-05-30 16:09:24 [restartedMain] INFO  org.springframework.security.web.DefaultSecurityFilterChain - Will not secure Ant [pattern='/v3/api-docs/**']
+2026-05-30 16:09:24 [restartedMain] WARN  org.springframework.security.config.annotation.web.builders.WebSecurity - You are asking Spring Security to ignore Ant [pattern='/actuator/health/**']. This is not recommended -- please use permitAll via HttpSecurity#authorizeHttpRequests instead.
+2026-05-30 16:09:24 [restartedMain] INFO  org.springframework.security.web.DefaultSecurityFilterChain - Will not secure Ant [pattern='/actuator/health/**']
+2026-05-30 16:09:24 [restartedMain] WARN  org.springframework.security.config.annotation.web.builders.WebSecurity - You are asking Spring Security to ignore Ant [pattern='/actuator/info']. This is not recommended -- please use permitAll via HttpSecurity#authorizeHttpRequests instead.
+2026-05-30 16:09:24 [restartedMain] INFO  org.springframework.security.web.DefaultSecurityFilterChain - Will not secure Ant [pattern='/actuator/info']
+2026-05-30 16:09:24 [restartedMain] WARN  org.springframework.security.config.annotation.web.builders.WebSecurity - You are asking Spring Security to ignore Ant [pattern='/ninimum/actuator/**']. This is not recommended -- please use permitAll via HttpSecurity#authorizeHttpRequests instead.
+2026-05-30 16:09:24 [restartedMain] INFO  org.springframework.security.web.DefaultSecurityFilterChain - Will not secure Ant [pattern='/ninimum/actuator/**']
+2026-05-30 16:09:24 [restartedMain] WARN  org.springframework.security.config.annotation.web.builders.WebSecurity - You are asking Spring Security to ignore Ant [pattern='/api/v1/status']. This is not recommended -- please use permitAll via HttpSecurity#authorizeHttpRequests instead.
+2026-05-30 16:09:24 [restartedMain] INFO  org.springframework.security.web.DefaultSecurityFilterChain - Will not secure Ant [pattern='/api/v1/status']
+2026-05-30 16:09:24 [restartedMain] WARN  org.springframework.security.config.annotation.web.builders.WebSecurity - You are asking Spring Security to ignore Ant [pattern='/ninimum/api/v1/status']. This is not recommended -- please use permitAll via HttpSecurity#authorizeHttpRequests instead.
+2026-05-30 16:09:24 [restartedMain] INFO  org.springframework.security.web.DefaultSecurityFilterChain - Will not secure Ant [pattern='/ninimum/api/v1/status']
+2026-05-30 16:09:24 [restartedMain] WARN  org.springframework.security.config.annotation.web.builders.WebSecurity - You are asking Spring Security to ignore Ant [pattern='/ninimum/api/v1/user/checkPhoneNumber']. This is not recommended -- please use permitAll via HttpSecurity#authorizeHttpRequests instead.
+2026-05-30 16:09:24 [restartedMain] INFO  org.springframework.security.web.DefaultSecurityFilterChain - Will not secure Ant [pattern='/ninimum/api/v1/user/checkPhoneNumber']
+2026-05-30 16:09:24 [restartedMain] WARN  org.springframework.security.config.annotation.web.builders.WebSecurity - You are asking Spring Security to ignore Ant [pattern='/ninimum/api/v1/user/register']. This is not recommended -- please use permitAll via HttpSecurity#authorizeHttpRequests instead.
+2026-05-30 16:09:24 [restartedMain] INFO  org.springframework.security.web.DefaultSecurityFilterChain - Will not secure Ant [pattern='/ninimum/api/v1/user/register']
+2026-05-30 16:09:24 [restartedMain] WARN  org.springframework.security.config.annotation.web.builders.WebSecurity - You are asking Spring Security to ignore Ant [pattern='/ninimum/api/v1/message/verifyPhoneNumber']. This is not recommended -- please use permitAll via HttpSecurity#authorizeHttpRequests instead.
+2026-05-30 16:09:24 [restartedMain] INFO  org.springframework.security.web.DefaultSecurityFilterChain - Will not secure Ant [pattern='/ninimum/api/v1/message/verifyPhoneNumber']
+2026-05-30 16:09:24 [restartedMain] WARN  org.springframework.security.config.annotation.web.builders.WebSecurity - You are asking Spring Security to ignore Ant [pattern='/error']. This is not recommended -- please use permitAll via HttpSecurity#authorizeHttpRequests instead.
+2026-05-30 16:09:24 [restartedMain] INFO  org.springframework.security.web.DefaultSecurityFilterChain - Will not secure Ant [pattern='/error']
+2026-05-30 16:09:25 [restartedMain] INFO  com.zaxxer.hikari.HikariDataSource - HikariPool-1 - Starting...
+2026-05-30 16:09:26 [restartedMain] INFO  com.zaxxer.hikari.HikariDataSource - HikariPool-1 - Start completed.
+2026-05-30 16:09:26 [restartedMain] INFO  org.springframework.boot.devtools.autoconfigure.OptionalLiveReloadServer - LiveReload server is running on port 35729
+2026-05-30 16:09:26 [restartedMain] INFO  org.springframework.boot.web.embedded.tomcat.TomcatWebServer - Tomcat started on port(s): 8083 (http) with context path ''
+2026-05-30 16:09:26 [restartedMain] INFO  com.ulisesbocchio.jasyptspringboot.caching.RefreshScopeRefreshedEventListener - Refreshing cached encryptable property sources on ServletWebServerInitializedEvent
+2026-05-30 16:09:26 [restartedMain] INFO  com.ulisesbocchio.jasyptspringboot.caching.CachingDelegateEncryptablePropertySource - Property Source systemProperties refreshed
+2026-05-30 16:09:26 [restartedMain] INFO  com.ulisesbocchio.jasyptspringboot.caching.CachingDelegateEncryptablePropertySource - Property Source systemEnvironment refreshed
+2026-05-30 16:09:26 [restartedMain] INFO  com.ulisesbocchio.jasyptspringboot.caching.CachingDelegateEncryptablePropertySource - Property Source random refreshed
+2026-05-30 16:09:26 [restartedMain] INFO  com.ulisesbocchio.jasyptspringboot.caching.CachingDelegateEncryptablePropertySource - Property Source Config resource 'class path resource [application.yaml]' via location 'optional:classpath:/' refreshed
+2026-05-30 16:09:26 [restartedMain] INFO  com.ulisesbocchio.jasyptspringboot.caching.CachingDelegateEncryptablePropertySource - Property Source devtools refreshed
+2026-05-30 16:09:26 [restartedMain] INFO  com.ulisesbocchio.jasyptspringboot.EncryptablePropertySourceConverter - Converting PropertySource server.ports [org.springframework.core.env.MapPropertySource] to EncryptableMapPropertySourceWrapper
+2026-05-30 16:09:26 [restartedMain] INFO  com.ulisesbocchio.jasyptspringboot.EncryptablePropertySourceConverter - Skipping PropertySource configurationProperties [class org.springframework.boot.context.properties.source.ConfigurationPropertySourcesPropertySource
+2026-05-30 16:09:26 [restartedMain] INFO  com.ulisesbocchio.jasyptspringboot.EncryptablePropertySourceConverter - Skipping PropertySource servletConfigInitParams [class org.springframework.core.env.PropertySource$StubPropertySource
+2026-05-30 16:09:26 [restartedMain] INFO  com.ulisesbocchio.jasyptspringboot.EncryptablePropertySourceConverter - Converting PropertySource servletContextInitParams [org.springframework.web.context.support.ServletContextPropertySource] to EncryptableEnumerablePropertySourceWrapper
+2026-05-30 16:09:26 [restartedMain] INFO  com.ulisesbocchio.jasyptspringboot.EncryptablePropertySourceConverter - Converting PropertySource Management Server [org.springframework.boot.actuate.autoconfigure.web.server.ManagementContextAutoConfiguration$SameManagementContextConfiguration$1] to EncryptablePropertySourceWrapper
+2026-05-30 16:09:27 [restartedMain] INFO  com.ninimum.api.NinimumApplication - Started NinimumApplication in 8.909 seconds (JVM running for 10.475)
+2026-05-30 16:09:42 [http-nio-0.0.0.0-8083-exec-1] INFO  org.springframework.web.servlet.DispatcherServlet - Initializing Servlet 'dispatcherServlet'
+2026-05-30 16:09:42 [http-nio-0.0.0.0-8083-exec-1] INFO  org.springframework.web.servlet.DispatcherServlet - Completed initialization in 1 ms
+2026-05-30 16:09:42 [http-nio-0.0.0.0-8083-exec-1] INFO  com.ninimum.api.security.provider.UserAuthenticationProvider - userId => 998998887766
+2026-05-30 16:09:42 [http-nio-0.0.0.0-8083-exec-1] INFO  com.ninimum.api.security.provider.UserAuthenticationProvider - passwd => 12
+2026-05-30 16:11:09 [HikariPool-1 housekeeper] WARN  com.zaxxer.hikari.pool.HikariPool - HikariPool-1 - Thread starvation or clock leap detected (housekeeper delta=1m43s176ms).
+2026-05-30 16:11:09 [http-nio-0.0.0.0-8083-exec-1] ERROR com.ninimum.api.security.provider.UserAuthenticationProvider - UserAuthenticationProvider => Unexpected error while processing user data
+java.lang.RuntimeException: Failed to map CamelCaseMap to com.ninimum.api.dto.UserDto
+	at com.ninimum.api.camelcase.CamelCaseMap.toObject(CamelCaseMap.java:32) ~[classes/:?]
+	at com.ninimum.api.security.provider.UserAuthenticationProvider.authenticate(UserAuthenticationProvider.java:54) ~[classes/:?]
+	at com.ninimum.api.security.filter.UserAuthenticationFilter.attemptAuthentication(UserAuthenticationFilter.java:45) ~[classes/:?]
+	at org.springframework.security.web.authentication.AbstractAuthenticationProcessingFilter.doFilter(AbstractAuthenticationProcessingFilter.java:227) ~[spring-security-web-5.7.2.jar:5.7.2]
+	at org.springframework.security.web.authentication.AbstractAuthenticationProcessingFilter.doFilter(AbstractAuthenticationProcessingFilter.java:217) ~[spring-security-web-5.7.2.jar:5.7.2]
+	at org.springframework.security.web.FilterChainProxy$VirtualFilterChain.doFilter(FilterChainProxy.java:336) ~[spring-security-web-5.7.2.jar:5.7.2]
+	at com.ninimum.api.security.jwt.JwtAuthenticationFilter.doFilterInternal(JwtAuthenticationFilter.java:40) ~[classes/:?]
+	at org.springframework.web.filter.OncePerRequestFilter.doFilter(OncePerRequestFilter.java:117) ~[spring-web-5.3.21.jar:5.3.21]
+	at org.springframework.security.web.FilterChainProxy$VirtualFilterChain.doFilter(FilterChainProxy.java:336) ~[spring-security-web-5.7.2.jar:5.7.2]
+	at org.springframework.security.web.authentication.logout.LogoutFilter.doFilter(LogoutFilter.java:103) ~[spring-security-web-5.7.2.jar:5.7.2]
+	at org.springframework.security.web.authentication.logout.LogoutFilter.doFilter(LogoutFilter.java:89) ~[spring-security-web-5.7.2.jar:5.7.2]
+	at org.springframework.security.web.FilterChainProxy$VirtualFilterChain.doFilter(FilterChainProxy.java:336) ~[spring-security-web-5.7.2.jar:5.7.2]
+	at org.springframework.web.filter.CorsFilter.doFilterInternal(CorsFilter.java:91) ~[spring-web-5.3.21.jar:5.3.21]
+	at org.springframework.web.filter.OncePerRequestFilter.doFilter(OncePerRequestFilter.java:117) ~[spring-web-5.3.21.jar:5.3.21]
+	at org.springframework.security.web.FilterChainProxy$VirtualFilterChain.doFilter(FilterChainProxy.java:336) ~[spring-security-web-5.7.2.jar:5.7.2]
+	at org.springframework.security.web.header.HeaderWriterFilter.doHeadersAfter(HeaderWriterFilter.java:90) ~[spring-security-web-5.7.2.jar:5.7.2]
+	at org.springframework.security.web.header.HeaderWriterFilter.doFilterInternal(HeaderWriterFilter.java:75) ~[spring-security-web-5.7.2.jar:5.7.2]
+	at org.springframework.web.filter.OncePerRequestFilter.doFilter(OncePerRequestFilter.java:117) ~[spring-web-5.3.21.jar:5.3.21]
+	at org.springframework.security.web.FilterChainProxy$VirtualFilterChain.doFilter(FilterChainProxy.java:336) ~[spring-security-web-5.7.2.jar:5.7.2]
+	at org.springframework.security.web.context.SecurityContextPersistenceFilter.doFilter(SecurityContextPersistenceFilter.java:112) ~[spring-security-web-5.7.2.jar:5.7.2]
+	at org.springframework.security.web.context.SecurityContextPersistenceFilter.doFilter(SecurityContextPersistenceFilter.java:82) ~[spring-security-web-5.7.2.jar:5.7.2]
+	at org.springframework.security.web.FilterChainProxy$VirtualFilterChain.doFilter(FilterChainProxy.java:336) ~[spring-security-web-5.7.2.jar:5.7.2]
+	at org.springframework.security.web.context.request.async.WebAsyncManagerIntegrationFilter.doFilterInternal(WebAsyncManagerIntegrationFilter.java:55) ~[spring-security-web-5.7.2.jar:5.7.2]
+	at org.springframework.web.filter.OncePerRequestFilter.doFilter(OncePerRequestFilter.java:117) ~[spring-web-5.3.21.jar:5.3.21]
+	at org.springframework.security.web.FilterChainProxy$VirtualFilterChain.doFilter(FilterChainProxy.java:336) ~[spring-security-web-5.7.2.jar:5.7.2]
+	at org.springframework.security.web.session.DisableEncodeUrlFilter.doFilterInternal(DisableEncodeUrlFilter.java:42) ~[spring-security-web-5.7.2.jar:5.7.2]
+	at org.springframework.web.filter.OncePerRequestFilter.doFilter(OncePerRequestFilter.java:117) ~[spring-web-5.3.21.jar:5.3.21]
+	at org.springframework.security.web.FilterChainProxy$VirtualFilterChain.doFilter(FilterChainProxy.java:336) ~[spring-security-web-5.7.2.jar:5.7.2]
+	at org.springframework.security.web.FilterChainProxy.doFilterInternal(FilterChainProxy.java:211) ~[spring-security-web-5.7.2.jar:5.7.2]
+	at org.springframework.security.web.FilterChainProxy.doFilter(FilterChainProxy.java:183) ~[spring-security-web-5.7.2.jar:5.7.2]
+	at org.springframework.web.filter.DelegatingFilterProxy.invokeDelegate(DelegatingFilterProxy.java:354) ~[spring-web-5.3.21.jar:5.3.21]
+	at org.springframework.web.filter.DelegatingFilterProxy.doFilter(DelegatingFilterProxy.java:267) ~[spring-web-5.3.21.jar:5.3.21]
+	at org.apache.catalina.core.ApplicationFilterChain.internalDoFilter(ApplicationFilterChain.java:189) ~[tomcat-embed-core-9.0.64.jar:9.0.64]
+	at org.apache.catalina.core.ApplicationFilterChain.doFilter(ApplicationFilterChain.java:162) ~[tomcat-embed-core-9.0.64.jar:9.0.64]
+	at org.springframework.web.filter.RequestContextFilter.doFilterInternal(RequestContextFilter.java:100) ~[spring-web-5.3.21.jar:5.3.21]
+	at org.springframework.web.filter.OncePerRequestFilter.doFilter(OncePerRequestFilter.java:117) ~[spring-web-5.3.21.jar:5.3.21]
+	at org.apache.catalina.core.ApplicationFilterChain.internalDoFilter(ApplicationFilterChain.java:189) ~[tomcat-embed-core-9.0.64.jar:9.0.64]
+	at org.apache.catalina.core.ApplicationFilterChain.doFilter(ApplicationFilterChain.java:162) ~[tomcat-embed-core-9.0.64.jar:9.0.64]
+	at org.springframework.web.filter.FormContentFilter.doFilterInternal(FormContentFilter.java:93) ~[spring-web-5.3.21.jar:5.3.21]
+	at org.springframework.web.filter.OncePerRequestFilter.doFilter(OncePerRequestFilter.java:117) ~[spring-web-5.3.21.jar:5.3.21]
+	at org.apache.catalina.core.ApplicationFilterChain.internalDoFilter(ApplicationFilterChain.java:189) ~[tomcat-embed-core-9.0.64.jar:9.0.64]
+	at org.apache.catalina.core.ApplicationFilterChain.doFilter(ApplicationFilterChain.java:162) ~[tomcat-embed-core-9.0.64.jar:9.0.64]
+	at org.springframework.boot.actuate.metrics.web.servlet.WebMvcMetricsFilter.doFilterInternal(WebMvcMetricsFilter.java:96) ~[spring-boot-actuator-2.7.1.jar:2.7.1]
+	at org.springframework.web.filter.OncePerRequestFilter.doFilter(OncePerRequestFilter.java:117) ~[spring-web-5.3.21.jar:5.3.21]
+	at org.apache.catalina.core.ApplicationFilterChain.internalDoFilter(ApplicationFilterChain.java:189) ~[tomcat-embed-core-9.0.64.jar:9.0.64]
+	at org.apache.catalina.core.ApplicationFilterChain.doFilter(ApplicationFilterChain.java:162) ~[tomcat-embed-core-9.0.64.jar:9.0.64]
+	at org.springframework.web.filter.CharacterEncodingFilter.doFilterInternal(CharacterEncodingFilter.java:201) ~[spring-web-5.3.21.jar:5.3.21]
+	at org.springframework.web.filter.OncePerRequestFilter.doFilter(OncePerRequestFilter.java:117) ~[spring-web-5.3.21.jar:5.3.21]
+	at org.apache.catalina.core.ApplicationFilterChain.internalDoFilter(ApplicationFilterChain.java:189) ~[tomcat-embed-core-9.0.64.jar:9.0.64]
+	at org.apache.catalina.core.ApplicationFilterChain.doFilter(ApplicationFilterChain.java:162) ~[tomcat-embed-core-9.0.64.jar:9.0.64]
+	at org.apache.catalina.core.StandardWrapperValve.invoke(StandardWrapperValve.java:197) ~[tomcat-embed-core-9.0.64.jar:9.0.64]
+	at org.apache.catalina.core.StandardContextValve.invoke(StandardContextValve.java:97) ~[tomcat-embed-core-9.0.64.jar:9.0.64]
+	at org.apache.catalina.authenticator.AuthenticatorBase.invoke(AuthenticatorBase.java:541) ~[tomcat-embed-core-9.0.64.jar:9.0.64]
+	at org.apache.catalina.core.StandardHostValve.invoke(StandardHostValve.java:135) ~[tomcat-embed-core-9.0.64.jar:9.0.64]
+	at org.apache.catalina.valves.ErrorReportValve.invoke(ErrorReportValve.java:92) ~[tomcat-embed-core-9.0.64.jar:9.0.64]
+	at org.apache.catalina.core.StandardEngineValve.invoke(StandardEngineValve.java:78) ~[tomcat-embed-core-9.0.64.jar:9.0.64]
+	at org.apache.catalina.connector.CoyoteAdapter.service(CoyoteAdapter.java:360) ~[tomcat-embed-core-9.0.64.jar:9.0.64]
+	at org.apache.coyote.http11.Http11Processor.service(Http11Processor.java:399) ~[tomcat-embed-core-9.0.64.jar:9.0.64]
+	at org.apache.coyote.AbstractProcessorLight.process(AbstractProcessorLight.java:65) ~[tomcat-embed-core-9.0.64.jar:9.0.64]
+	at org.apache.coyote.AbstractProtocol$ConnectionHandler.process(AbstractProtocol.java:890) ~[tomcat-embed-core-9.0.64.jar:9.0.64]
+	at org.apache.tomcat.util.net.NioEndpoint$SocketProcessor.doRun(NioEndpoint.java:1787) ~[tomcat-embed-core-9.0.64.jar:9.0.64]
+	at org.apache.tomcat.util.net.SocketProcessorBase.run(SocketProcessorBase.java:49) ~[tomcat-embed-core-9.0.64.jar:9.0.64]
+	at org.apache.tomcat.util.threads.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1191) ~[tomcat-embed-core-9.0.64.jar:9.0.64]
+	at org.apache.tomcat.util.threads.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:659) ~[tomcat-embed-core-9.0.64.jar:9.0.64]
+	at org.apache.tomcat.util.threads.TaskThread$WrappingRunnable.run(TaskThread.java:61) ~[tomcat-embed-core-9.0.64.jar:9.0.64]
+	at java.lang.Thread.run(Thread.java:840) ~[?:?]
+Caused by: com.fasterxml.jackson.databind.exc.UnrecognizedPropertyException: Unrecognized field "address" (class com.ninimum.api.dto.UserDto), not marked as ignorable (17 known properties: "gender", "region_id", "created_at", "blocked_until", "birth_date", "status", "last_name", "profile_image_url", "updated_at", "first_name", "id", "email", "is_phone_verified", "phone_number", "password", "token_mb", "is_active"])
+ at [Source: (String)"{"is_phone_verified":false,"address":"Uzbekistan, Kashkadarya Region, Shakhrisabz District, Maktobod mahalla fuqarolar yigʻini","is_active":true,"location_latitude":39.03145316514833,"region_id":1,"last_name":"Karimov","created_at":"2026-05-28 13:40:28","password":"{bcrypt}$2a$10$EL/sxzMIo.szDzdfa8o9IOzUDCTJ7zeQTNZSHuCqe1Mx46PE0it/6","updated_at":"2026-05-28 13:40:28","phone_number":"998998887766","id":7,"first_name":"Akmal","location_longitude":66.89331751316786,"status":"ACTIVE"}"; line: 1, column: 39] (through reference chain: com.ninimum.api.dto.UserDto["address"])
+	at com.fasterxml.jackson.databind.exc.UnrecognizedPropertyException.from(UnrecognizedPropertyException.java:61) ~[jackson-databind-2.15.2.jar:2.15.2]
+	at com.fasterxml.jackson.databind.DeserializationContext.handleUnknownProperty(DeserializationContext.java:1138) ~[jackson-databind-2.15.2.jar:2.15.2]
+	at com.fasterxml.jackson.databind.deser.std.StdDeserializer.handleUnknownProperty(StdDeserializer.java:2224) ~[jackson-databind-2.15.2.jar:2.15.2]
+	at com.fasterxml.jackson.databind.deser.BeanDeserializerBase.handleUnknownProperty(BeanDeserializerBase.java:1709) ~[jackson-databind-2.15.2.jar:2.15.2]
+	at com.fasterxml.jackson.databind.deser.BeanDeserializerBase.handleUnknownVanilla(BeanDeserializerBase.java:1687) ~[jackson-databind-2.15.2.jar:2.15.2]
+	at com.fasterxml.jackson.databind.deser.BeanDeserializer.vanillaDeserialize(BeanDeserializer.java:320) ~[jackson-databind-2.15.2.jar:2.15.2]
+	at com.fasterxml.jackson.databind.deser.BeanDeserializer.deserialize(BeanDeserializer.java:177) ~[jackson-databind-2.15.2.jar:2.15.2]
+	at com.fasterxml.jackson.databind.deser.DefaultDeserializationContext.readRootValue(DefaultDeserializationContext.java:323) ~[jackson-databind-2.15.2.jar:2.15.2]
+	at com.fasterxml.jackson.databind.ObjectMapper._readMapAndClose(ObjectMapper.java:4825) ~[jackson-databind-2.15.2.jar:2.15.2]
+	at com.fasterxml.jackson.databind.ObjectMapper.readValue(ObjectMapper.java:3772) ~[jackson-databind-2.15.2.jar:2.15.2]
+	at com.fasterxml.jackson.databind.ObjectMapper.readValue(ObjectMapper.java:3740) ~[jackson-databind-2.15.2.jar:2.15.2]
+	at com.ninimum.api.camelcase.CamelCaseMap.toObject(CamelCaseMap.java:30) ~[classes/:?]
+	... 65 more
+2026-05-30 16:11:09 [http-nio-0.0.0.0-8083-exec-1] INFO  com.ninimum.api.security.filter.UserAuthenticationFilter - Unsuccessful authentication attempt
+2026-05-30 16:11:09 [SpringApplicationShutdownHook] INFO  com.zaxxer.hikari.HikariDataSource - HikariPool-1 - Shutdown initiated...
+2026-05-30 16:11:09 [SpringApplicationShutdownHook] INFO  com.zaxxer.hikari.HikariDataSource - HikariPool-1 - Shutdown completed.
+2026-05-30 16:21:55 [restartedMain] INFO  com.ninimum.api.NinimumApplication - Starting NinimumApplication using Java 17.0.14 on Akmalui-MacBookPro.local with PID 83215 (/Users/akmalbukhariev/Projects/NinimumBackend/NinimumBackend/target/classes started by akmalbukhariev in /Users/akmalbukhariev/Projects/NinimumBackend/NinimumBackend)
+2026-05-30 16:21:55 [restartedMain] INFO  com.ninimum.api.NinimumApplication - The following 1 profile is active: "default"
+2026-05-30 16:21:55 [restartedMain] INFO  org.springframework.boot.devtools.env.DevToolsPropertyDefaultsPostProcessor - Devtools property defaults active! Set 'spring.devtools.add-properties' to 'false' to disable
+2026-05-30 16:21:55 [restartedMain] INFO  org.springframework.boot.devtools.env.DevToolsPropertyDefaultsPostProcessor - For additional web related logging consider setting the 'logging.level.web' property to 'DEBUG'
+2026-05-30 16:21:57 [restartedMain] INFO  org.springframework.data.repository.config.RepositoryConfigurationDelegate - Bootstrapping Spring Data JDBC repositories in DEFAULT mode.
+2026-05-30 16:21:57 [restartedMain] INFO  org.springframework.data.repository.config.RepositoryConfigurationDelegate - Finished Spring Data repository scanning in 50 ms. Found 0 JDBC repository interfaces.
+2026-05-30 16:21:58 [restartedMain] INFO  com.ulisesbocchio.jasyptspringboot.configuration.EnableEncryptablePropertiesBeanFactoryPostProcessor - Post-processing PropertySource instances
+2026-05-30 16:21:58 [restartedMain] INFO  com.ulisesbocchio.jasyptspringboot.EncryptablePropertySourceConverter - Skipping PropertySource configurationProperties [class org.springframework.boot.context.properties.source.ConfigurationPropertySourcesPropertySource
+2026-05-30 16:21:58 [restartedMain] INFO  com.ulisesbocchio.jasyptspringboot.EncryptablePropertySourceConverter - Skipping PropertySource servletConfigInitParams [class org.springframework.core.env.PropertySource$StubPropertySource
+2026-05-30 16:21:58 [restartedMain] INFO  com.ulisesbocchio.jasyptspringboot.EncryptablePropertySourceConverter - Skipping PropertySource servletContextInitParams [class org.springframework.core.env.PropertySource$StubPropertySource
+2026-05-30 16:21:58 [restartedMain] INFO  com.ulisesbocchio.jasyptspringboot.EncryptablePropertySourceConverter - Converting PropertySource systemProperties [org.springframework.core.env.PropertiesPropertySource] to EncryptableMapPropertySourceWrapper
+2026-05-30 16:21:58 [restartedMain] INFO  com.ulisesbocchio.jasyptspringboot.EncryptablePropertySourceConverter - Converting PropertySource systemEnvironment [org.springframework.boot.env.SystemEnvironmentPropertySourceEnvironmentPostProcessor$OriginAwareSystemEnvironmentPropertySource] to EncryptableSystemEnvironmentPropertySourceWrapper
+2026-05-30 16:21:58 [restartedMain] INFO  com.ulisesbocchio.jasyptspringboot.EncryptablePropertySourceConverter - Converting PropertySource random [org.springframework.boot.env.RandomValuePropertySource] to EncryptablePropertySourceWrapper
+2026-05-30 16:21:58 [restartedMain] INFO  com.ulisesbocchio.jasyptspringboot.EncryptablePropertySourceConverter - Converting PropertySource Config resource 'class path resource [application.yaml]' via location 'optional:classpath:/' [org.springframework.boot.env.OriginTrackedMapPropertySource] to EncryptableMapPropertySourceWrapper
+2026-05-30 16:21:58 [restartedMain] INFO  com.ulisesbocchio.jasyptspringboot.EncryptablePropertySourceConverter - Converting PropertySource devtools [org.springframework.core.env.MapPropertySource] to EncryptableMapPropertySourceWrapper
+2026-05-30 16:21:58 [restartedMain] INFO  com.ulisesbocchio.jasyptspringboot.filter.DefaultLazyPropertyFilter - Property Filter custom Bean not found with name 'encryptablePropertyFilter'. Initializing Default Property Filter
+2026-05-30 16:21:58 [restartedMain] INFO  com.ulisesbocchio.jasyptspringboot.resolver.DefaultLazyPropertyResolver - Property Resolver custom Bean not found with name 'encryptablePropertyResolver'. Initializing Default Property Resolver
+2026-05-30 16:21:58 [restartedMain] INFO  com.ulisesbocchio.jasyptspringboot.detector.DefaultLazyPropertyDetector - Property Detector custom Bean not found with name 'encryptablePropertyDetector'. Initializing Default Property Detector
+2026-05-30 16:21:59 [restartedMain] INFO  org.springframework.boot.web.embedded.tomcat.TomcatWebServer - Tomcat initialized with port(s): 8083 (http)
+2026-05-30 16:21:59 [restartedMain] INFO  org.springframework.boot.web.servlet.context.ServletWebServerApplicationContext - Root WebApplicationContext: initialization completed in 3955 ms
+2026-05-30 16:22:01 [restartedMain] INFO  org.springframework.boot.actuate.endpoint.web.EndpointLinksResolver - Exposing 2 endpoint(s) beneath base path '/actuator'
+2026-05-30 16:22:01 [restartedMain] INFO  org.springframework.security.web.DefaultSecurityFilterChain - Will secure any request with [org.springframework.security.web.session.DisableEncodeUrlFilter@5dac8915, org.springframework.security.web.context.request.async.WebAsyncManagerIntegrationFilter@320d3870, org.springframework.security.web.context.SecurityContextPersistenceFilter@12371c48, org.springframework.security.web.header.HeaderWriterFilter@35c74613, org.springframework.web.filter.CorsFilter@4014b2df, org.springframework.security.web.authentication.logout.LogoutFilter@2e772c3d, com.ninimum.api.security.jwt.JwtAuthenticationFilter@4dff28d3, com.ninimum.api.security.filter.UserAuthenticationFilter@7422e458, org.springframework.security.web.savedrequest.RequestCacheAwareFilter@49a71245, org.springframework.security.web.servletapi.SecurityContextHolderAwareRequestFilter@4838f36, org.springframework.security.web.authentication.AnonymousAuthenticationFilter@2f379c14, org.springframework.security.web.session.SessionManagementFilter@46769689, org.springframework.security.web.access.ExceptionTranslationFilter@3ca1a773, org.springframework.security.web.access.intercept.AuthorizationFilter@11efd424]
+2026-05-30 16:22:01 [restartedMain] WARN  org.springframework.security.config.annotation.web.builders.WebSecurity - You are asking Spring Security to ignore Ant [pattern='/**/webjars/**']. This is not recommended -- please use permitAll via HttpSecurity#authorizeHttpRequests instead.
+2026-05-30 16:22:01 [restartedMain] INFO  org.springframework.security.web.DefaultSecurityFilterChain - Will not secure Ant [pattern='/**/webjars/**']
+2026-05-30 16:22:01 [restartedMain] WARN  org.springframework.security.config.annotation.web.builders.WebSecurity - You are asking Spring Security to ignore Ant [pattern='/v2/api-docs']. This is not recommended -- please use permitAll via HttpSecurity#authorizeHttpRequests instead.
+2026-05-30 16:22:01 [restartedMain] INFO  org.springframework.security.web.DefaultSecurityFilterChain - Will not secure Ant [pattern='/v2/api-docs']
+2026-05-30 16:22:01 [restartedMain] WARN  org.springframework.security.config.annotation.web.builders.WebSecurity - You are asking Spring Security to ignore Ant [pattern='/swagger-resources']. This is not recommended -- please use permitAll via HttpSecurity#authorizeHttpRequests instead.
+2026-05-30 16:22:01 [restartedMain] INFO  org.springframework.security.web.DefaultSecurityFilterChain - Will not secure Ant [pattern='/swagger-resources']
+2026-05-30 16:22:01 [restartedMain] WARN  org.springframework.security.config.annotation.web.builders.WebSecurity - You are asking Spring Security to ignore Ant [pattern='/swagger-resources/**']. This is not recommended -- please use permitAll via HttpSecurity#authorizeHttpRequests instead.
+2026-05-30 16:22:01 [restartedMain] INFO  org.springframework.security.web.DefaultSecurityFilterChain - Will not secure Ant [pattern='/swagger-resources/**']
+2026-05-30 16:22:01 [restartedMain] WARN  org.springframework.security.config.annotation.web.builders.WebSecurity - You are asking Spring Security to ignore Ant [pattern='/configuration/ui']. This is not recommended -- please use permitAll via HttpSecurity#authorizeHttpRequests instead.
+2026-05-30 16:22:01 [restartedMain] INFO  org.springframework.security.web.DefaultSecurityFilterChain - Will not secure Ant [pattern='/configuration/ui']
+2026-05-30 16:22:01 [restartedMain] WARN  org.springframework.security.config.annotation.web.builders.WebSecurity - You are asking Spring Security to ignore Ant [pattern='/configuration/security']. This is not recommended -- please use permitAll via HttpSecurity#authorizeHttpRequests instead.
+2026-05-30 16:22:01 [restartedMain] INFO  org.springframework.security.web.DefaultSecurityFilterChain - Will not secure Ant [pattern='/configuration/security']
+2026-05-30 16:22:01 [restartedMain] WARN  org.springframework.security.config.annotation.web.builders.WebSecurity - You are asking Spring Security to ignore Ant [pattern='/swagger-ui/**']. This is not recommended -- please use permitAll via HttpSecurity#authorizeHttpRequests instead.
+2026-05-30 16:22:01 [restartedMain] INFO  org.springframework.security.web.DefaultSecurityFilterChain - Will not secure Ant [pattern='/swagger-ui/**']
+2026-05-30 16:22:01 [restartedMain] WARN  org.springframework.security.config.annotation.web.builders.WebSecurity - You are asking Spring Security to ignore Ant [pattern='/webjars/**']. This is not recommended -- please use permitAll via HttpSecurity#authorizeHttpRequests instead.
+2026-05-30 16:22:01 [restartedMain] INFO  org.springframework.security.web.DefaultSecurityFilterChain - Will not secure Ant [pattern='/webjars/**']
+2026-05-30 16:22:01 [restartedMain] WARN  org.springframework.security.config.annotation.web.builders.WebSecurity - You are asking Spring Security to ignore Ant [pattern='/v3/api-docs/**']. This is not recommended -- please use permitAll via HttpSecurity#authorizeHttpRequests instead.
+2026-05-30 16:22:01 [restartedMain] INFO  org.springframework.security.web.DefaultSecurityFilterChain - Will not secure Ant [pattern='/v3/api-docs/**']
+2026-05-30 16:22:01 [restartedMain] WARN  org.springframework.security.config.annotation.web.builders.WebSecurity - You are asking Spring Security to ignore Ant [pattern='/actuator/health/**']. This is not recommended -- please use permitAll via HttpSecurity#authorizeHttpRequests instead.
+2026-05-30 16:22:01 [restartedMain] INFO  org.springframework.security.web.DefaultSecurityFilterChain - Will not secure Ant [pattern='/actuator/health/**']
+2026-05-30 16:22:01 [restartedMain] WARN  org.springframework.security.config.annotation.web.builders.WebSecurity - You are asking Spring Security to ignore Ant [pattern='/actuator/info']. This is not recommended -- please use permitAll via HttpSecurity#authorizeHttpRequests instead.
+2026-05-30 16:22:01 [restartedMain] INFO  org.springframework.security.web.DefaultSecurityFilterChain - Will not secure Ant [pattern='/actuator/info']
+2026-05-30 16:22:01 [restartedMain] WARN  org.springframework.security.config.annotation.web.builders.WebSecurity - You are asking Spring Security to ignore Ant [pattern='/ninimum/actuator/**']. This is not recommended -- please use permitAll via HttpSecurity#authorizeHttpRequests instead.
+2026-05-30 16:22:01 [restartedMain] INFO  org.springframework.security.web.DefaultSecurityFilterChain - Will not secure Ant [pattern='/ninimum/actuator/**']
+2026-05-30 16:22:01 [restartedMain] WARN  org.springframework.security.config.annotation.web.builders.WebSecurity - You are asking Spring Security to ignore Ant [pattern='/api/v1/status']. This is not recommended -- please use permitAll via HttpSecurity#authorizeHttpRequests instead.
+2026-05-30 16:22:01 [restartedMain] INFO  org.springframework.security.web.DefaultSecurityFilterChain - Will not secure Ant [pattern='/api/v1/status']
+2026-05-30 16:22:01 [restartedMain] WARN  org.springframework.security.config.annotation.web.builders.WebSecurity - You are asking Spring Security to ignore Ant [pattern='/ninimum/api/v1/status']. This is not recommended -- please use permitAll via HttpSecurity#authorizeHttpRequests instead.
+2026-05-30 16:22:01 [restartedMain] INFO  org.springframework.security.web.DefaultSecurityFilterChain - Will not secure Ant [pattern='/ninimum/api/v1/status']
+2026-05-30 16:22:01 [restartedMain] WARN  org.springframework.security.config.annotation.web.builders.WebSecurity - You are asking Spring Security to ignore Ant [pattern='/ninimum/api/v1/user/checkPhoneNumber']. This is not recommended -- please use permitAll via HttpSecurity#authorizeHttpRequests instead.
+2026-05-30 16:22:01 [restartedMain] INFO  org.springframework.security.web.DefaultSecurityFilterChain - Will not secure Ant [pattern='/ninimum/api/v1/user/checkPhoneNumber']
+2026-05-30 16:22:01 [restartedMain] WARN  org.springframework.security.config.annotation.web.builders.WebSecurity - You are asking Spring Security to ignore Ant [pattern='/ninimum/api/v1/user/register']. This is not recommended -- please use permitAll via HttpSecurity#authorizeHttpRequests instead.
+2026-05-30 16:22:01 [restartedMain] INFO  org.springframework.security.web.DefaultSecurityFilterChain - Will not secure Ant [pattern='/ninimum/api/v1/user/register']
+2026-05-30 16:22:01 [restartedMain] WARN  org.springframework.security.config.annotation.web.builders.WebSecurity - You are asking Spring Security to ignore Ant [pattern='/ninimum/api/v1/message/verifyPhoneNumber']. This is not recommended -- please use permitAll via HttpSecurity#authorizeHttpRequests instead.
+2026-05-30 16:22:01 [restartedMain] INFO  org.springframework.security.web.DefaultSecurityFilterChain - Will not secure Ant [pattern='/ninimum/api/v1/message/verifyPhoneNumber']
+2026-05-30 16:22:01 [restartedMain] WARN  org.springframework.security.config.annotation.web.builders.WebSecurity - You are asking Spring Security to ignore Ant [pattern='/error']. This is not recommended -- please use permitAll via HttpSecurity#authorizeHttpRequests instead.
+2026-05-30 16:22:01 [restartedMain] INFO  org.springframework.security.web.DefaultSecurityFilterChain - Will not secure Ant [pattern='/error']
+2026-05-30 16:22:02 [restartedMain] INFO  com.zaxxer.hikari.HikariDataSource - HikariPool-1 - Starting...
+2026-05-30 16:22:03 [restartedMain] INFO  com.zaxxer.hikari.HikariDataSource - HikariPool-1 - Start completed.
+2026-05-30 16:22:03 [restartedMain] INFO  org.springframework.boot.devtools.autoconfigure.OptionalLiveReloadServer - LiveReload server is running on port 35729
+2026-05-30 16:22:03 [restartedMain] INFO  org.springframework.boot.web.embedded.tomcat.TomcatWebServer - Tomcat started on port(s): 8083 (http) with context path ''
+2026-05-30 16:22:03 [restartedMain] INFO  com.ulisesbocchio.jasyptspringboot.caching.RefreshScopeRefreshedEventListener - Refreshing cached encryptable property sources on ServletWebServerInitializedEvent
+2026-05-30 16:22:03 [restartedMain] INFO  com.ulisesbocchio.jasyptspringboot.caching.CachingDelegateEncryptablePropertySource - Property Source systemProperties refreshed
+2026-05-30 16:22:03 [restartedMain] INFO  com.ulisesbocchio.jasyptspringboot.caching.CachingDelegateEncryptablePropertySource - Property Source systemEnvironment refreshed
+2026-05-30 16:22:03 [restartedMain] INFO  com.ulisesbocchio.jasyptspringboot.caching.CachingDelegateEncryptablePropertySource - Property Source random refreshed
+2026-05-30 16:22:03 [restartedMain] INFO  com.ulisesbocchio.jasyptspringboot.caching.CachingDelegateEncryptablePropertySource - Property Source Config resource 'class path resource [application.yaml]' via location 'optional:classpath:/' refreshed
+2026-05-30 16:22:03 [restartedMain] INFO  com.ulisesbocchio.jasyptspringboot.caching.CachingDelegateEncryptablePropertySource - Property Source devtools refreshed
+2026-05-30 16:22:03 [restartedMain] INFO  com.ulisesbocchio.jasyptspringboot.EncryptablePropertySourceConverter - Converting PropertySource server.ports [org.springframework.core.env.MapPropertySource] to EncryptableMapPropertySourceWrapper
+2026-05-30 16:22:03 [restartedMain] INFO  com.ulisesbocchio.jasyptspringboot.EncryptablePropertySourceConverter - Skipping PropertySource configurationProperties [class org.springframework.boot.context.properties.source.ConfigurationPropertySourcesPropertySource
+2026-05-30 16:22:03 [restartedMain] INFO  com.ulisesbocchio.jasyptspringboot.EncryptablePropertySourceConverter - Skipping PropertySource servletConfigInitParams [class org.springframework.core.env.PropertySource$StubPropertySource
+2026-05-30 16:22:03 [restartedMain] INFO  com.ulisesbocchio.jasyptspringboot.EncryptablePropertySourceConverter - Converting PropertySource servletContextInitParams [org.springframework.web.context.support.ServletContextPropertySource] to EncryptableEnumerablePropertySourceWrapper
+2026-05-30 16:22:03 [restartedMain] INFO  com.ulisesbocchio.jasyptspringboot.EncryptablePropertySourceConverter - Converting PropertySource Management Server [org.springframework.boot.actuate.autoconfigure.web.server.ManagementContextAutoConfiguration$SameManagementContextConfiguration$1] to EncryptablePropertySourceWrapper
+2026-05-30 16:22:03 [restartedMain] INFO  com.ninimum.api.NinimumApplication - Started NinimumApplication in 9.273 seconds (JVM running for 11.538)
+2026-05-30 16:22:47 [http-nio-0.0.0.0-8083-exec-1] INFO  org.springframework.web.servlet.DispatcherServlet - Initializing Servlet 'dispatcherServlet'
+2026-05-30 16:22:47 [http-nio-0.0.0.0-8083-exec-1] INFO  org.springframework.web.servlet.DispatcherServlet - Completed initialization in 2 ms
+2026-05-30 16:22:47 [http-nio-0.0.0.0-8083-exec-1] INFO  com.ninimum.api.security.provider.UserAuthenticationProvider - userId => 998998887766
+2026-05-30 16:22:47 [http-nio-0.0.0.0-8083-exec-1] INFO  com.ninimum.api.security.provider.UserAuthenticationProvider - passwd => 12
+2026-05-30 16:23:01 [http-nio-0.0.0.0-8083-exec-1] INFO  com.ninimum.api.security.filter.UserAuthenticationFilter - Unsuccessful authentication attempt
+2026-05-30 16:24:35 [http-nio-0.0.0.0-8083-exec-3] INFO  com.ninimum.api.security.provider.UserAuthenticationProvider - userId => 998998887766
+2026-05-30 16:24:35 [http-nio-0.0.0.0-8083-exec-3] INFO  com.ninimum.api.security.provider.UserAuthenticationProvider - passwd => 12
+2026-05-30 16:24:36 [http-nio-0.0.0.0-8083-exec-3] INFO  com.ninimum.api.security.filter.UserAuthenticationFilter - Unsuccessful authentication attempt
+2026-05-30 16:24:52 [SpringApplicationShutdownHook] INFO  com.zaxxer.hikari.HikariDataSource - HikariPool-1 - Shutdown initiated...
+2026-05-30 16:24:52 [SpringApplicationShutdownHook] INFO  com.zaxxer.hikari.HikariDataSource - HikariPool-1 - Shutdown completed.
+2026-05-30 16:26:11 [restartedMain] INFO  com.ninimum.api.NinimumApplication - Starting NinimumApplication using Java 17.0.14 on Akmalui-MacBookPro.local with PID 83565 (/Users/akmalbukhariev/Projects/NinimumBackend/NinimumBackend/target/classes started by akmalbukhariev in /Users/akmalbukhariev/Projects/NinimumBackend/NinimumBackend)
+2026-05-30 16:26:11 [restartedMain] INFO  com.ninimum.api.NinimumApplication - The following 1 profile is active: "default"
+2026-05-30 16:26:11 [restartedMain] INFO  org.springframework.boot.devtools.env.DevToolsPropertyDefaultsPostProcessor - Devtools property defaults active! Set 'spring.devtools.add-properties' to 'false' to disable
+2026-05-30 16:26:11 [restartedMain] INFO  org.springframework.boot.devtools.env.DevToolsPropertyDefaultsPostProcessor - For additional web related logging consider setting the 'logging.level.web' property to 'DEBUG'
+2026-05-30 16:26:13 [restartedMain] INFO  org.springframework.data.repository.config.RepositoryConfigurationDelegate - Bootstrapping Spring Data JDBC repositories in DEFAULT mode.
+2026-05-30 16:26:13 [restartedMain] INFO  org.springframework.data.repository.config.RepositoryConfigurationDelegate - Finished Spring Data repository scanning in 47 ms. Found 0 JDBC repository interfaces.
+2026-05-30 16:26:13 [restartedMain] INFO  com.ulisesbocchio.jasyptspringboot.configuration.EnableEncryptablePropertiesBeanFactoryPostProcessor - Post-processing PropertySource instances
+2026-05-30 16:26:13 [restartedMain] INFO  com.ulisesbocchio.jasyptspringboot.EncryptablePropertySourceConverter - Skipping PropertySource configurationProperties [class org.springframework.boot.context.properties.source.ConfigurationPropertySourcesPropertySource
+2026-05-30 16:26:13 [restartedMain] INFO  com.ulisesbocchio.jasyptspringboot.EncryptablePropertySourceConverter - Skipping PropertySource servletConfigInitParams [class org.springframework.core.env.PropertySource$StubPropertySource
+2026-05-30 16:26:13 [restartedMain] INFO  com.ulisesbocchio.jasyptspringboot.EncryptablePropertySourceConverter - Skipping PropertySource servletContextInitParams [class org.springframework.core.env.PropertySource$StubPropertySource
+2026-05-30 16:26:13 [restartedMain] INFO  com.ulisesbocchio.jasyptspringboot.EncryptablePropertySourceConverter - Converting PropertySource systemProperties [org.springframework.core.env.PropertiesPropertySource] to EncryptableMapPropertySourceWrapper
+2026-05-30 16:26:13 [restartedMain] INFO  com.ulisesbocchio.jasyptspringboot.EncryptablePropertySourceConverter - Converting PropertySource systemEnvironment [org.springframework.boot.env.SystemEnvironmentPropertySourceEnvironmentPostProcessor$OriginAwareSystemEnvironmentPropertySource] to EncryptableSystemEnvironmentPropertySourceWrapper
+2026-05-30 16:26:13 [restartedMain] INFO  com.ulisesbocchio.jasyptspringboot.EncryptablePropertySourceConverter - Converting PropertySource random [org.springframework.boot.env.RandomValuePropertySource] to EncryptablePropertySourceWrapper
+2026-05-30 16:26:13 [restartedMain] INFO  com.ulisesbocchio.jasyptspringboot.EncryptablePropertySourceConverter - Converting PropertySource Config resource 'class path resource [application.yaml]' via location 'optional:classpath:/' [org.springframework.boot.env.OriginTrackedMapPropertySource] to EncryptableMapPropertySourceWrapper
+2026-05-30 16:26:13 [restartedMain] INFO  com.ulisesbocchio.jasyptspringboot.EncryptablePropertySourceConverter - Converting PropertySource devtools [org.springframework.core.env.MapPropertySource] to EncryptableMapPropertySourceWrapper
+2026-05-30 16:26:14 [restartedMain] INFO  com.ulisesbocchio.jasyptspringboot.filter.DefaultLazyPropertyFilter - Property Filter custom Bean not found with name 'encryptablePropertyFilter'. Initializing Default Property Filter
+2026-05-30 16:26:14 [restartedMain] INFO  com.ulisesbocchio.jasyptspringboot.resolver.DefaultLazyPropertyResolver - Property Resolver custom Bean not found with name 'encryptablePropertyResolver'. Initializing Default Property Resolver
+2026-05-30 16:26:14 [restartedMain] INFO  com.ulisesbocchio.jasyptspringboot.detector.DefaultLazyPropertyDetector - Property Detector custom Bean not found with name 'encryptablePropertyDetector'. Initializing Default Property Detector
+2026-05-30 16:26:14 [restartedMain] INFO  org.springframework.boot.web.embedded.tomcat.TomcatWebServer - Tomcat initialized with port(s): 8083 (http)
+2026-05-30 16:26:14 [restartedMain] INFO  org.springframework.boot.web.servlet.context.ServletWebServerApplicationContext - Root WebApplicationContext: initialization completed in 3267 ms
+2026-05-30 16:26:16 [restartedMain] INFO  org.springframework.boot.actuate.endpoint.web.EndpointLinksResolver - Exposing 2 endpoint(s) beneath base path '/actuator'
+2026-05-30 16:26:16 [restartedMain] INFO  org.springframework.security.web.DefaultSecurityFilterChain - Will secure any request with [org.springframework.security.web.session.DisableEncodeUrlFilter@45fbfa35, org.springframework.security.web.context.request.async.WebAsyncManagerIntegrationFilter@2e5eff1e, org.springframework.security.web.context.SecurityContextPersistenceFilter@3138359c, org.springframework.security.web.header.HeaderWriterFilter@312d0257, org.springframework.web.filter.CorsFilter@659d03de, org.springframework.security.web.authentication.logout.LogoutFilter@155852f7, com.ninimum.api.security.jwt.JwtAuthenticationFilter@1427df96, com.ninimum.api.security.filter.UserAuthenticationFilter@e97a575, org.springframework.security.web.savedrequest.RequestCacheAwareFilter@189ccf54, org.springframework.security.web.servletapi.SecurityContextHolderAwareRequestFilter@61dc837, org.springframework.security.web.authentication.AnonymousAuthenticationFilter@57e81db6, org.springframework.security.web.session.SessionManagementFilter@38f24b2c, org.springframework.security.web.access.ExceptionTranslationFilter@7c04d63e, org.springframework.security.web.access.intercept.AuthorizationFilter@48147b57]
+2026-05-30 16:26:16 [restartedMain] WARN  org.springframework.security.config.annotation.web.builders.WebSecurity - You are asking Spring Security to ignore Ant [pattern='/**/webjars/**']. This is not recommended -- please use permitAll via HttpSecurity#authorizeHttpRequests instead.
+2026-05-30 16:26:16 [restartedMain] INFO  org.springframework.security.web.DefaultSecurityFilterChain - Will not secure Ant [pattern='/**/webjars/**']
+2026-05-30 16:26:16 [restartedMain] WARN  org.springframework.security.config.annotation.web.builders.WebSecurity - You are asking Spring Security to ignore Ant [pattern='/v2/api-docs']. This is not recommended -- please use permitAll via HttpSecurity#authorizeHttpRequests instead.
+2026-05-30 16:26:16 [restartedMain] INFO  org.springframework.security.web.DefaultSecurityFilterChain - Will not secure Ant [pattern='/v2/api-docs']
+2026-05-30 16:26:16 [restartedMain] WARN  org.springframework.security.config.annotation.web.builders.WebSecurity - You are asking Spring Security to ignore Ant [pattern='/swagger-resources']. This is not recommended -- please use permitAll via HttpSecurity#authorizeHttpRequests instead.
+2026-05-30 16:26:16 [restartedMain] INFO  org.springframework.security.web.DefaultSecurityFilterChain - Will not secure Ant [pattern='/swagger-resources']
+2026-05-30 16:26:16 [restartedMain] WARN  org.springframework.security.config.annotation.web.builders.WebSecurity - You are asking Spring Security to ignore Ant [pattern='/swagger-resources/**']. This is not recommended -- please use permitAll via HttpSecurity#authorizeHttpRequests instead.
+2026-05-30 16:26:16 [restartedMain] INFO  org.springframework.security.web.DefaultSecurityFilterChain - Will not secure Ant [pattern='/swagger-resources/**']
+2026-05-30 16:26:16 [restartedMain] WARN  org.springframework.security.config.annotation.web.builders.WebSecurity - You are asking Spring Security to ignore Ant [pattern='/configuration/ui']. This is not recommended -- please use permitAll via HttpSecurity#authorizeHttpRequests instead.
+2026-05-30 16:26:16 [restartedMain] INFO  org.springframework.security.web.DefaultSecurityFilterChain - Will not secure Ant [pattern='/configuration/ui']
+2026-05-30 16:26:16 [restartedMain] WARN  org.springframework.security.config.annotation.web.builders.WebSecurity - You are asking Spring Security to ignore Ant [pattern='/configuration/security']. This is not recommended -- please use permitAll via HttpSecurity#authorizeHttpRequests instead.
+2026-05-30 16:26:16 [restartedMain] INFO  org.springframework.security.web.DefaultSecurityFilterChain - Will not secure Ant [pattern='/configuration/security']
+2026-05-30 16:26:16 [restartedMain] WARN  org.springframework.security.config.annotation.web.builders.WebSecurity - You are asking Spring Security to ignore Ant [pattern='/swagger-ui/**']. This is not recommended -- please use permitAll via HttpSecurity#authorizeHttpRequests instead.
+2026-05-30 16:26:16 [restartedMain] INFO  org.springframework.security.web.DefaultSecurityFilterChain - Will not secure Ant [pattern='/swagger-ui/**']
+2026-05-30 16:26:16 [restartedMain] WARN  org.springframework.security.config.annotation.web.builders.WebSecurity - You are asking Spring Security to ignore Ant [pattern='/webjars/**']. This is not recommended -- please use permitAll via HttpSecurity#authorizeHttpRequests instead.
+2026-05-30 16:26:16 [restartedMain] INFO  org.springframework.security.web.DefaultSecurityFilterChain - Will not secure Ant [pattern='/webjars/**']
+2026-05-30 16:26:16 [restartedMain] WARN  org.springframework.security.config.annotation.web.builders.WebSecurity - You are asking Spring Security to ignore Ant [pattern='/v3/api-docs/**']. This is not recommended -- please use permitAll via HttpSecurity#authorizeHttpRequests instead.
+2026-05-30 16:26:16 [restartedMain] INFO  org.springframework.security.web.DefaultSecurityFilterChain - Will not secure Ant [pattern='/v3/api-docs/**']
+2026-05-30 16:26:16 [restartedMain] WARN  org.springframework.security.config.annotation.web.builders.WebSecurity - You are asking Spring Security to ignore Ant [pattern='/actuator/health/**']. This is not recommended -- please use permitAll via HttpSecurity#authorizeHttpRequests instead.
+2026-05-30 16:26:16 [restartedMain] INFO  org.springframework.security.web.DefaultSecurityFilterChain - Will not secure Ant [pattern='/actuator/health/**']
+2026-05-30 16:26:16 [restartedMain] WARN  org.springframework.security.config.annotation.web.builders.WebSecurity - You are asking Spring Security to ignore Ant [pattern='/actuator/info']. This is not recommended -- please use permitAll via HttpSecurity#authorizeHttpRequests instead.
+2026-05-30 16:26:16 [restartedMain] INFO  org.springframework.security.web.DefaultSecurityFilterChain - Will not secure Ant [pattern='/actuator/info']
+2026-05-30 16:26:16 [restartedMain] WARN  org.springframework.security.config.annotation.web.builders.WebSecurity - You are asking Spring Security to ignore Ant [pattern='/ninimum/actuator/**']. This is not recommended -- please use permitAll via HttpSecurity#authorizeHttpRequests instead.
+2026-05-30 16:26:16 [restartedMain] INFO  org.springframework.security.web.DefaultSecurityFilterChain - Will not secure Ant [pattern='/ninimum/actuator/**']
+2026-05-30 16:26:16 [restartedMain] WARN  org.springframework.security.config.annotation.web.builders.WebSecurity - You are asking Spring Security to ignore Ant [pattern='/api/v1/status']. This is not recommended -- please use permitAll via HttpSecurity#authorizeHttpRequests instead.
+2026-05-30 16:26:16 [restartedMain] INFO  org.springframework.security.web.DefaultSecurityFilterChain - Will not secure Ant [pattern='/api/v1/status']
+2026-05-30 16:26:16 [restartedMain] WARN  org.springframework.security.config.annotation.web.builders.WebSecurity - You are asking Spring Security to ignore Ant [pattern='/ninimum/api/v1/status']. This is not recommended -- please use permitAll via HttpSecurity#authorizeHttpRequests instead.
+2026-05-30 16:26:16 [restartedMain] INFO  org.springframework.security.web.DefaultSecurityFilterChain - Will not secure Ant [pattern='/ninimum/api/v1/status']
+2026-05-30 16:26:16 [restartedMain] WARN  org.springframework.security.config.annotation.web.builders.WebSecurity - You are asking Spring Security to ignore Ant [pattern='/ninimum/api/v1/user/checkPhoneNumber']. This is not recommended -- please use permitAll via HttpSecurity#authorizeHttpRequests instead.
+2026-05-30 16:26:16 [restartedMain] INFO  org.springframework.security.web.DefaultSecurityFilterChain - Will not secure Ant [pattern='/ninimum/api/v1/user/checkPhoneNumber']
+2026-05-30 16:26:16 [restartedMain] WARN  org.springframework.security.config.annotation.web.builders.WebSecurity - You are asking Spring Security to ignore Ant [pattern='/ninimum/api/v1/user/register']. This is not recommended -- please use permitAll via HttpSecurity#authorizeHttpRequests instead.
+2026-05-30 16:26:16 [restartedMain] INFO  org.springframework.security.web.DefaultSecurityFilterChain - Will not secure Ant [pattern='/ninimum/api/v1/user/register']
+2026-05-30 16:26:16 [restartedMain] WARN  org.springframework.security.config.annotation.web.builders.WebSecurity - You are asking Spring Security to ignore Ant [pattern='/ninimum/api/v1/message/verifyPhoneNumber']. This is not recommended -- please use permitAll via HttpSecurity#authorizeHttpRequests instead.
+2026-05-30 16:26:16 [restartedMain] INFO  org.springframework.security.web.DefaultSecurityFilterChain - Will not secure Ant [pattern='/ninimum/api/v1/message/verifyPhoneNumber']
+2026-05-30 16:26:16 [restartedMain] WARN  org.springframework.security.config.annotation.web.builders.WebSecurity - You are asking Spring Security to ignore Ant [pattern='/error']. This is not recommended -- please use permitAll via HttpSecurity#authorizeHttpRequests instead.
+2026-05-30 16:26:16 [restartedMain] INFO  org.springframework.security.web.DefaultSecurityFilterChain - Will not secure Ant [pattern='/error']
+2026-05-30 16:26:16 [restartedMain] INFO  com.zaxxer.hikari.HikariDataSource - HikariPool-1 - Starting...
+2026-05-30 16:26:17 [restartedMain] INFO  com.zaxxer.hikari.HikariDataSource - HikariPool-1 - Start completed.
+2026-05-30 16:26:18 [restartedMain] INFO  org.springframework.boot.devtools.autoconfigure.OptionalLiveReloadServer - LiveReload server is running on port 35729
+2026-05-30 16:26:18 [restartedMain] INFO  org.springframework.boot.web.embedded.tomcat.TomcatWebServer - Tomcat started on port(s): 8083 (http) with context path ''
+2026-05-30 16:26:18 [restartedMain] INFO  com.ulisesbocchio.jasyptspringboot.caching.RefreshScopeRefreshedEventListener - Refreshing cached encryptable property sources on ServletWebServerInitializedEvent
+2026-05-30 16:26:18 [restartedMain] INFO  com.ulisesbocchio.jasyptspringboot.caching.CachingDelegateEncryptablePropertySource - Property Source systemProperties refreshed
+2026-05-30 16:26:18 [restartedMain] INFO  com.ulisesbocchio.jasyptspringboot.caching.CachingDelegateEncryptablePropertySource - Property Source systemEnvironment refreshed
+2026-05-30 16:26:18 [restartedMain] INFO  com.ulisesbocchio.jasyptspringboot.caching.CachingDelegateEncryptablePropertySource - Property Source random refreshed
+2026-05-30 16:26:18 [restartedMain] INFO  com.ulisesbocchio.jasyptspringboot.caching.CachingDelegateEncryptablePropertySource - Property Source Config resource 'class path resource [application.yaml]' via location 'optional:classpath:/' refreshed
+2026-05-30 16:26:18 [restartedMain] INFO  com.ulisesbocchio.jasyptspringboot.caching.CachingDelegateEncryptablePropertySource - Property Source devtools refreshed
+2026-05-30 16:26:18 [restartedMain] INFO  com.ulisesbocchio.jasyptspringboot.EncryptablePropertySourceConverter - Converting PropertySource server.ports [org.springframework.core.env.MapPropertySource] to EncryptableMapPropertySourceWrapper
+2026-05-30 16:26:18 [restartedMain] INFO  com.ulisesbocchio.jasyptspringboot.EncryptablePropertySourceConverter - Skipping PropertySource configurationProperties [class org.springframework.boot.context.properties.source.ConfigurationPropertySourcesPropertySource
+2026-05-30 16:26:18 [restartedMain] INFO  com.ulisesbocchio.jasyptspringboot.EncryptablePropertySourceConverter - Skipping PropertySource servletConfigInitParams [class org.springframework.core.env.PropertySource$StubPropertySource
+2026-05-30 16:26:18 [restartedMain] INFO  com.ulisesbocchio.jasyptspringboot.EncryptablePropertySourceConverter - Converting PropertySource servletContextInitParams [org.springframework.web.context.support.ServletContextPropertySource] to EncryptableEnumerablePropertySourceWrapper
+2026-05-30 16:26:18 [restartedMain] INFO  com.ulisesbocchio.jasyptspringboot.EncryptablePropertySourceConverter - Converting PropertySource Management Server [org.springframework.boot.actuate.autoconfigure.web.server.ManagementContextAutoConfiguration$SameManagementContextConfiguration$1] to EncryptablePropertySourceWrapper
+2026-05-30 16:26:18 [restartedMain] INFO  com.ninimum.api.NinimumApplication - Started NinimumApplication in 8.301 seconds (JVM running for 9.503)
+2026-05-30 16:27:15 [http-nio-0.0.0.0-8083-exec-1] INFO  org.springframework.web.servlet.DispatcherServlet - Initializing Servlet 'dispatcherServlet'
+2026-05-30 16:27:15 [http-nio-0.0.0.0-8083-exec-1] INFO  org.springframework.web.servlet.DispatcherServlet - Completed initialization in 2 ms
+2026-05-30 16:27:15 [http-nio-0.0.0.0-8083-exec-1] INFO  com.ninimum.api.security.provider.UserAuthenticationProvider - userId => 998998887766
+2026-05-30 16:27:15 [http-nio-0.0.0.0-8083-exec-1] INFO  com.ninimum.api.security.provider.UserAuthenticationProvider - passwd => 123
+2026-05-30 16:27:35 [SpringApplicationShutdownHook] INFO  com.zaxxer.hikari.HikariDataSource - HikariPool-1 - Shutdown initiated...
+2026-05-30 16:27:35 [SpringApplicationShutdownHook] INFO  com.zaxxer.hikari.HikariDataSource - HikariPool-1 - Shutdown completed.
+2026-05-30 16:27:38 [restartedMain] INFO  com.ninimum.api.NinimumApplication - Starting NinimumApplication using Java 17.0.14 on Akmalui-MacBookPro.local with PID 83688 (/Users/akmalbukhariev/Projects/NinimumBackend/NinimumBackend/target/classes started by akmalbukhariev in /Users/akmalbukhariev/Projects/NinimumBackend/NinimumBackend)
+2026-05-30 16:27:38 [restartedMain] INFO  com.ninimum.api.NinimumApplication - The following 1 profile is active: "default"
+2026-05-30 16:27:38 [restartedMain] INFO  org.springframework.boot.devtools.env.DevToolsPropertyDefaultsPostProcessor - Devtools property defaults active! Set 'spring.devtools.add-properties' to 'false' to disable
+2026-05-30 16:27:38 [restartedMain] INFO  org.springframework.boot.devtools.env.DevToolsPropertyDefaultsPostProcessor - For additional web related logging consider setting the 'logging.level.web' property to 'DEBUG'
+2026-05-30 16:27:40 [restartedMain] INFO  org.springframework.data.repository.config.RepositoryConfigurationDelegate - Bootstrapping Spring Data JDBC repositories in DEFAULT mode.
+2026-05-30 16:27:40 [restartedMain] INFO  org.springframework.data.repository.config.RepositoryConfigurationDelegate - Finished Spring Data repository scanning in 33 ms. Found 0 JDBC repository interfaces.
+2026-05-30 16:27:40 [restartedMain] INFO  com.ulisesbocchio.jasyptspringboot.configuration.EnableEncryptablePropertiesBeanFactoryPostProcessor - Post-processing PropertySource instances
+2026-05-30 16:27:40 [restartedMain] INFO  com.ulisesbocchio.jasyptspringboot.EncryptablePropertySourceConverter - Skipping PropertySource configurationProperties [class org.springframework.boot.context.properties.source.ConfigurationPropertySourcesPropertySource
+2026-05-30 16:27:40 [restartedMain] INFO  com.ulisesbocchio.jasyptspringboot.EncryptablePropertySourceConverter - Skipping PropertySource servletConfigInitParams [class org.springframework.core.env.PropertySource$StubPropertySource
+2026-05-30 16:27:40 [restartedMain] INFO  com.ulisesbocchio.jasyptspringboot.EncryptablePropertySourceConverter - Skipping PropertySource servletContextInitParams [class org.springframework.core.env.PropertySource$StubPropertySource
+2026-05-30 16:27:40 [restartedMain] INFO  com.ulisesbocchio.jasyptspringboot.EncryptablePropertySourceConverter - Converting PropertySource systemProperties [org.springframework.core.env.PropertiesPropertySource] to EncryptableMapPropertySourceWrapper
+2026-05-30 16:27:40 [restartedMain] INFO  com.ulisesbocchio.jasyptspringboot.EncryptablePropertySourceConverter - Converting PropertySource systemEnvironment [org.springframework.boot.env.SystemEnvironmentPropertySourceEnvironmentPostProcessor$OriginAwareSystemEnvironmentPropertySource] to EncryptableSystemEnvironmentPropertySourceWrapper
+2026-05-30 16:27:40 [restartedMain] INFO  com.ulisesbocchio.jasyptspringboot.EncryptablePropertySourceConverter - Converting PropertySource random [org.springframework.boot.env.RandomValuePropertySource] to EncryptablePropertySourceWrapper
+2026-05-30 16:27:40 [restartedMain] INFO  com.ulisesbocchio.jasyptspringboot.EncryptablePropertySourceConverter - Converting PropertySource Config resource 'class path resource [application.yaml]' via location 'optional:classpath:/' [org.springframework.boot.env.OriginTrackedMapPropertySource] to EncryptableMapPropertySourceWrapper
+2026-05-30 16:27:40 [restartedMain] INFO  com.ulisesbocchio.jasyptspringboot.EncryptablePropertySourceConverter - Converting PropertySource devtools [org.springframework.core.env.MapPropertySource] to EncryptableMapPropertySourceWrapper
+2026-05-30 16:27:40 [restartedMain] INFO  com.ulisesbocchio.jasyptspringboot.filter.DefaultLazyPropertyFilter - Property Filter custom Bean not found with name 'encryptablePropertyFilter'. Initializing Default Property Filter
+2026-05-30 16:27:40 [restartedMain] INFO  com.ulisesbocchio.jasyptspringboot.resolver.DefaultLazyPropertyResolver - Property Resolver custom Bean not found with name 'encryptablePropertyResolver'. Initializing Default Property Resolver
+2026-05-30 16:27:40 [restartedMain] INFO  com.ulisesbocchio.jasyptspringboot.detector.DefaultLazyPropertyDetector - Property Detector custom Bean not found with name 'encryptablePropertyDetector'. Initializing Default Property Detector
+2026-05-30 16:27:41 [restartedMain] INFO  org.springframework.boot.web.embedded.tomcat.TomcatWebServer - Tomcat initialized with port(s): 8083 (http)
+2026-05-30 16:27:41 [restartedMain] INFO  org.springframework.boot.web.servlet.context.ServletWebServerApplicationContext - Root WebApplicationContext: initialization completed in 2462 ms
+2026-05-30 16:27:43 [restartedMain] INFO  org.springframework.boot.actuate.endpoint.web.EndpointLinksResolver - Exposing 2 endpoint(s) beneath base path '/actuator'
+2026-05-30 16:27:43 [restartedMain] INFO  org.springframework.security.web.DefaultSecurityFilterChain - Will secure any request with [org.springframework.security.web.session.DisableEncodeUrlFilter@51141be0, org.springframework.security.web.context.request.async.WebAsyncManagerIntegrationFilter@45fbfa35, org.springframework.security.web.context.SecurityContextPersistenceFilter@3d0a7036, org.springframework.security.web.header.HeaderWriterFilter@2b3eef83, org.springframework.web.filter.CorsFilter@2e5eff1e, org.springframework.security.web.authentication.logout.LogoutFilter@2cd003ac, com.ninimum.api.security.jwt.JwtAuthenticationFilter@659d03de, com.ninimum.api.security.filter.UserAuthenticationFilter@1427df96, org.springframework.security.web.savedrequest.RequestCacheAwareFilter@1bb9b3bc, org.springframework.security.web.servletapi.SecurityContextHolderAwareRequestFilter@767997b1, org.springframework.security.web.authentication.AnonymousAuthenticationFilter@e97a575, org.springframework.security.web.session.SessionManagementFilter@621dc477, org.springframework.security.web.access.ExceptionTranslationFilter@237e03b6, org.springframework.security.web.access.intercept.AuthorizationFilter@55b83877]
+2026-05-30 16:27:43 [restartedMain] WARN  org.springframework.security.config.annotation.web.builders.WebSecurity - You are asking Spring Security to ignore Ant [pattern='/**/webjars/**']. This is not recommended -- please use permitAll via HttpSecurity#authorizeHttpRequests instead.
+2026-05-30 16:27:43 [restartedMain] INFO  org.springframework.security.web.DefaultSecurityFilterChain - Will not secure Ant [pattern='/**/webjars/**']
+2026-05-30 16:27:43 [restartedMain] WARN  org.springframework.security.config.annotation.web.builders.WebSecurity - You are asking Spring Security to ignore Ant [pattern='/v2/api-docs']. This is not recommended -- please use permitAll via HttpSecurity#authorizeHttpRequests instead.
+2026-05-30 16:27:43 [restartedMain] INFO  org.springframework.security.web.DefaultSecurityFilterChain - Will not secure Ant [pattern='/v2/api-docs']
+2026-05-30 16:27:43 [restartedMain] WARN  org.springframework.security.config.annotation.web.builders.WebSecurity - You are asking Spring Security to ignore Ant [pattern='/swagger-resources']. This is not recommended -- please use permitAll via HttpSecurity#authorizeHttpRequests instead.
+2026-05-30 16:27:43 [restartedMain] INFO  org.springframework.security.web.DefaultSecurityFilterChain - Will not secure Ant [pattern='/swagger-resources']
+2026-05-30 16:27:43 [restartedMain] WARN  org.springframework.security.config.annotation.web.builders.WebSecurity - You are asking Spring Security to ignore Ant [pattern='/swagger-resources/**']. This is not recommended -- please use permitAll via HttpSecurity#authorizeHttpRequests instead.
+2026-05-30 16:27:43 [restartedMain] INFO  org.springframework.security.web.DefaultSecurityFilterChain - Will not secure Ant [pattern='/swagger-resources/**']
+2026-05-30 16:27:43 [restartedMain] WARN  org.springframework.security.config.annotation.web.builders.WebSecurity - You are asking Spring Security to ignore Ant [pattern='/configuration/ui']. This is not recommended -- please use permitAll via HttpSecurity#authorizeHttpRequests instead.
+2026-05-30 16:27:43 [restartedMain] INFO  org.springframework.security.web.DefaultSecurityFilterChain - Will not secure Ant [pattern='/configuration/ui']
+2026-05-30 16:27:43 [restartedMain] WARN  org.springframework.security.config.annotation.web.builders.WebSecurity - You are asking Spring Security to ignore Ant [pattern='/configuration/security']. This is not recommended -- please use permitAll via HttpSecurity#authorizeHttpRequests instead.
+2026-05-30 16:27:43 [restartedMain] INFO  org.springframework.security.web.DefaultSecurityFilterChain - Will not secure Ant [pattern='/configuration/security']
+2026-05-30 16:27:43 [restartedMain] WARN  org.springframework.security.config.annotation.web.builders.WebSecurity - You are asking Spring Security to ignore Ant [pattern='/swagger-ui/**']. This is not recommended -- please use permitAll via HttpSecurity#authorizeHttpRequests instead.
+2026-05-30 16:27:43 [restartedMain] INFO  org.springframework.security.web.DefaultSecurityFilterChain - Will not secure Ant [pattern='/swagger-ui/**']
+2026-05-30 16:27:43 [restartedMain] WARN  org.springframework.security.config.annotation.web.builders.WebSecurity - You are asking Spring Security to ignore Ant [pattern='/webjars/**']. This is not recommended -- please use permitAll via HttpSecurity#authorizeHttpRequests instead.
+2026-05-30 16:27:43 [restartedMain] INFO  org.springframework.security.web.DefaultSecurityFilterChain - Will not secure Ant [pattern='/webjars/**']
+2026-05-30 16:27:43 [restartedMain] WARN  org.springframework.security.config.annotation.web.builders.WebSecurity - You are asking Spring Security to ignore Ant [pattern='/v3/api-docs/**']. This is not recommended -- please use permitAll via HttpSecurity#authorizeHttpRequests instead.
+2026-05-30 16:27:43 [restartedMain] INFO  org.springframework.security.web.DefaultSecurityFilterChain - Will not secure Ant [pattern='/v3/api-docs/**']
+2026-05-30 16:27:43 [restartedMain] WARN  org.springframework.security.config.annotation.web.builders.WebSecurity - You are asking Spring Security to ignore Ant [pattern='/actuator/health/**']. This is not recommended -- please use permitAll via HttpSecurity#authorizeHttpRequests instead.
+2026-05-30 16:27:43 [restartedMain] INFO  org.springframework.security.web.DefaultSecurityFilterChain - Will not secure Ant [pattern='/actuator/health/**']
+2026-05-30 16:27:43 [restartedMain] WARN  org.springframework.security.config.annotation.web.builders.WebSecurity - You are asking Spring Security to ignore Ant [pattern='/actuator/info']. This is not recommended -- please use permitAll via HttpSecurity#authorizeHttpRequests instead.
+2026-05-30 16:27:43 [restartedMain] INFO  org.springframework.security.web.DefaultSecurityFilterChain - Will not secure Ant [pattern='/actuator/info']
+2026-05-30 16:27:43 [restartedMain] WARN  org.springframework.security.config.annotation.web.builders.WebSecurity - You are asking Spring Security to ignore Ant [pattern='/ninimum/actuator/**']. This is not recommended -- please use permitAll via HttpSecurity#authorizeHttpRequests instead.
+2026-05-30 16:27:43 [restartedMain] INFO  org.springframework.security.web.DefaultSecurityFilterChain - Will not secure Ant [pattern='/ninimum/actuator/**']
+2026-05-30 16:27:43 [restartedMain] WARN  org.springframework.security.config.annotation.web.builders.WebSecurity - You are asking Spring Security to ignore Ant [pattern='/api/v1/status']. This is not recommended -- please use permitAll via HttpSecurity#authorizeHttpRequests instead.
+2026-05-30 16:27:43 [restartedMain] INFO  org.springframework.security.web.DefaultSecurityFilterChain - Will not secure Ant [pattern='/api/v1/status']
+2026-05-30 16:27:43 [restartedMain] WARN  org.springframework.security.config.annotation.web.builders.WebSecurity - You are asking Spring Security to ignore Ant [pattern='/ninimum/api/v1/status']. This is not recommended -- please use permitAll via HttpSecurity#authorizeHttpRequests instead.
+2026-05-30 16:27:43 [restartedMain] INFO  org.springframework.security.web.DefaultSecurityFilterChain - Will not secure Ant [pattern='/ninimum/api/v1/status']
+2026-05-30 16:27:43 [restartedMain] WARN  org.springframework.security.config.annotation.web.builders.WebSecurity - You are asking Spring Security to ignore Ant [pattern='/ninimum/api/v1/user/checkPhoneNumber']. This is not recommended -- please use permitAll via HttpSecurity#authorizeHttpRequests instead.
+2026-05-30 16:27:43 [restartedMain] INFO  org.springframework.security.web.DefaultSecurityFilterChain - Will not secure Ant [pattern='/ninimum/api/v1/user/checkPhoneNumber']
+2026-05-30 16:27:43 [restartedMain] WARN  org.springframework.security.config.annotation.web.builders.WebSecurity - You are asking Spring Security to ignore Ant [pattern='/ninimum/api/v1/user/register']. This is not recommended -- please use permitAll via HttpSecurity#authorizeHttpRequests instead.
+2026-05-30 16:27:43 [restartedMain] INFO  org.springframework.security.web.DefaultSecurityFilterChain - Will not secure Ant [pattern='/ninimum/api/v1/user/register']
+2026-05-30 16:27:43 [restartedMain] WARN  org.springframework.security.config.annotation.web.builders.WebSecurity - You are asking Spring Security to ignore Ant [pattern='/ninimum/api/v1/message/verifyPhoneNumber']. This is not recommended -- please use permitAll via HttpSecurity#authorizeHttpRequests instead.
+2026-05-30 16:27:43 [restartedMain] INFO  org.springframework.security.web.DefaultSecurityFilterChain - Will not secure Ant [pattern='/ninimum/api/v1/message/verifyPhoneNumber']
+2026-05-30 16:27:43 [restartedMain] WARN  org.springframework.security.config.annotation.web.builders.WebSecurity - You are asking Spring Security to ignore Ant [pattern='/error']. This is not recommended -- please use permitAll via HttpSecurity#authorizeHttpRequests instead.
+2026-05-30 16:27:43 [restartedMain] INFO  org.springframework.security.web.DefaultSecurityFilterChain - Will not secure Ant [pattern='/error']
+2026-05-30 16:27:43 [restartedMain] INFO  com.zaxxer.hikari.HikariDataSource - HikariPool-1 - Starting...
+2026-05-30 16:27:44 [restartedMain] INFO  com.zaxxer.hikari.HikariDataSource - HikariPool-1 - Start completed.
+2026-05-30 16:27:45 [restartedMain] INFO  org.springframework.boot.devtools.autoconfigure.OptionalLiveReloadServer - LiveReload server is running on port 35729
+2026-05-30 16:27:45 [restartedMain] INFO  org.springframework.boot.web.embedded.tomcat.TomcatWebServer - Tomcat started on port(s): 8083 (http) with context path ''
+2026-05-30 16:27:45 [restartedMain] INFO  com.ulisesbocchio.jasyptspringboot.caching.RefreshScopeRefreshedEventListener - Refreshing cached encryptable property sources on ServletWebServerInitializedEvent
+2026-05-30 16:27:45 [restartedMain] INFO  com.ulisesbocchio.jasyptspringboot.caching.CachingDelegateEncryptablePropertySource - Property Source systemProperties refreshed
+2026-05-30 16:27:45 [restartedMain] INFO  com.ulisesbocchio.jasyptspringboot.caching.CachingDelegateEncryptablePropertySource - Property Source systemEnvironment refreshed
+2026-05-30 16:27:45 [restartedMain] INFO  com.ulisesbocchio.jasyptspringboot.caching.CachingDelegateEncryptablePropertySource - Property Source random refreshed
+2026-05-30 16:27:45 [restartedMain] INFO  com.ulisesbocchio.jasyptspringboot.caching.CachingDelegateEncryptablePropertySource - Property Source Config resource 'class path resource [application.yaml]' via location 'optional:classpath:/' refreshed
+2026-05-30 16:27:45 [restartedMain] INFO  com.ulisesbocchio.jasyptspringboot.caching.CachingDelegateEncryptablePropertySource - Property Source devtools refreshed
+2026-05-30 16:27:45 [restartedMain] INFO  com.ulisesbocchio.jasyptspringboot.EncryptablePropertySourceConverter - Converting PropertySource server.ports [org.springframework.core.env.MapPropertySource] to EncryptableMapPropertySourceWrapper
+2026-05-30 16:27:45 [restartedMain] INFO  com.ulisesbocchio.jasyptspringboot.EncryptablePropertySourceConverter - Skipping PropertySource configurationProperties [class org.springframework.boot.context.properties.source.ConfigurationPropertySourcesPropertySource
+2026-05-30 16:27:45 [restartedMain] INFO  com.ulisesbocchio.jasyptspringboot.EncryptablePropertySourceConverter - Skipping PropertySource servletConfigInitParams [class org.springframework.core.env.PropertySource$StubPropertySource
+2026-05-30 16:27:45 [restartedMain] INFO  com.ulisesbocchio.jasyptspringboot.EncryptablePropertySourceConverter - Converting PropertySource servletContextInitParams [org.springframework.web.context.support.ServletContextPropertySource] to EncryptableEnumerablePropertySourceWrapper
+2026-05-30 16:27:45 [restartedMain] INFO  com.ulisesbocchio.jasyptspringboot.EncryptablePropertySourceConverter - Converting PropertySource Management Server [org.springframework.boot.actuate.autoconfigure.web.server.ManagementContextAutoConfiguration$SameManagementContextConfiguration$1] to EncryptablePropertySourceWrapper
+2026-05-30 16:27:45 [restartedMain] INFO  com.ninimum.api.NinimumApplication - Started NinimumApplication in 7.055 seconds (JVM running for 8.444)
+2026-05-30 16:28:14 [http-nio-0.0.0.0-8083-exec-1] INFO  org.springframework.web.servlet.DispatcherServlet - Initializing Servlet 'dispatcherServlet'
+2026-05-30 16:28:14 [http-nio-0.0.0.0-8083-exec-1] INFO  org.springframework.web.servlet.DispatcherServlet - Completed initialization in 2 ms
+2026-05-30 16:28:14 [http-nio-0.0.0.0-8083-exec-1] INFO  com.ninimum.api.security.provider.UserAuthenticationProvider - userId => 998998887766
+2026-05-30 16:28:14 [http-nio-0.0.0.0-8083-exec-1] INFO  com.ninimum.api.security.provider.UserAuthenticationProvider - passwd => 12
+2026-05-30 16:28:15 [http-nio-0.0.0.0-8083-exec-1] INFO  com.ninimum.api.security.filter.UserAuthenticationFilter - Unsuccessful authentication attempt
+2026-05-30 16:28:28 [http-nio-0.0.0.0-8083-exec-2] INFO  com.ninimum.api.security.provider.UserAuthenticationProvider - userId => 998998887766
+2026-05-30 16:28:28 [http-nio-0.0.0.0-8083-exec-2] INFO  com.ninimum.api.security.provider.UserAuthenticationProvider - passwd => 123
+2026-05-30 16:28:56 [http-nio-0.0.0.0-8083-exec-3] INFO  com.ninimum.api.security.provider.UserAuthenticationProvider - userId => 998998887766
+2026-05-30 16:28:56 [http-nio-0.0.0.0-8083-exec-3] INFO  com.ninimum.api.security.provider.UserAuthenticationProvider - passwd => 123
+2026-05-30 16:30:41 [HikariPool-1 housekeeper] WARN  com.zaxxer.hikari.pool.HikariPool - HikariPool-1 - Thread starvation or clock leap detected (housekeeper delta=54s653ms).
+2026-05-30 16:57:44 [HikariPool-1 housekeeper] WARN  com.zaxxer.hikari.pool.HikariPool - HikariPool-1 - Thread starvation or clock leap detected (housekeeper delta=1m31s841ms).
+2026-05-30 17:08:09 [http-nio-0.0.0.0-8083-exec-4] INFO  com.ninimum.api.security.provider.UserAuthenticationProvider - userId => 998997766
+2026-05-30 17:08:09 [http-nio-0.0.0.0-8083-exec-4] INFO  com.ninimum.api.security.provider.UserAuthenticationProvider - passwd => q22
+2026-05-30 17:08:09 [http-nio-0.0.0.0-8083-exec-4] INFO  com.ninimum.api.security.filter.UserAuthenticationFilter - Unsuccessful authentication attempt
+2026-05-30 17:09:40 [http-nio-0.0.0.0-8083-exec-6] INFO  com.ninimum.api.security.provider.UserAuthenticationProvider - userId => 998998887766
+2026-05-30 17:09:40 [http-nio-0.0.0.0-8083-exec-6] INFO  com.ninimum.api.security.provider.UserAuthenticationProvider - passwd => q22
+2026-05-30 17:09:41 [http-nio-0.0.0.0-8083-exec-6] INFO  com.ninimum.api.security.filter.UserAuthenticationFilter - Unsuccessful authentication attempt
+2026-05-30 17:09:55 [http-nio-0.0.0.0-8083-exec-7] INFO  com.ninimum.api.security.provider.UserAuthenticationProvider - userId => 998998887766
+2026-05-30 17:09:55 [http-nio-0.0.0.0-8083-exec-7] INFO  com.ninimum.api.security.provider.UserAuthenticationProvider - passwd => 122
+2026-05-30 17:09:56 [http-nio-0.0.0.0-8083-exec-7] INFO  com.ninimum.api.security.filter.UserAuthenticationFilter - Unsuccessful authentication attempt
+2026-05-30 17:10:19 [http-nio-0.0.0.0-8083-exec-8] INFO  com.ninimum.api.security.provider.UserAuthenticationProvider - userId => 998998887766
+2026-05-30 17:10:19 [http-nio-0.0.0.0-8083-exec-8] INFO  com.ninimum.api.security.provider.UserAuthenticationProvider - passwd => 123
+2026-05-30 17:11:04 [http-nio-0.0.0.0-8083-exec-9] INFO  com.ninimum.api.security.provider.UserAuthenticationProvider - userId => 998998887766
+2026-05-30 17:11:04 [http-nio-0.0.0.0-8083-exec-9] INFO  com.ninimum.api.security.provider.UserAuthenticationProvider - passwd => 123
+2026-05-30 17:11:13 [http-nio-0.0.0.0-8083-exec-1] INFO  org.springdoc.api.AbstractOpenApiResource - Init duration for springdoc-openapi is: 1276 ms
+2026-05-30 17:11:37 [http-nio-0.0.0.0-8083-exec-2] INFO  com.ninimum.api.security.provider.UserAuthenticationProvider - userId => 998998887766
+2026-05-30 17:11:37 [http-nio-0.0.0.0-8083-exec-2] INFO  com.ninimum.api.security.provider.UserAuthenticationProvider - passwd => 123
+2026-05-30 17:12:39 [http-nio-0.0.0.0-8083-exec-5] INFO  com.ninimum.api.security.provider.UserAuthenticationProvider - userId => 998998887766
+2026-05-30 17:12:39 [http-nio-0.0.0.0-8083-exec-5] INFO  com.ninimum.api.security.provider.UserAuthenticationProvider - passwd => 123
+2026-05-30 17:16:14 [http-nio-0.0.0.0-8083-exec-7] INFO  com.ninimum.api.security.provider.UserAuthenticationProvider - userId => 998998887766
+2026-05-30 17:16:14 [http-nio-0.0.0.0-8083-exec-7] INFO  com.ninimum.api.security.provider.UserAuthenticationProvider - passwd => 123
+2026-05-30 17:20:37 [http-nio-0.0.0.0-8083-exec-9] INFO  com.ninimum.api.security.provider.UserAuthenticationProvider - userId => 998998887766
+2026-05-30 17:20:37 [http-nio-0.0.0.0-8083-exec-9] INFO  com.ninimum.api.security.provider.UserAuthenticationProvider - passwd => 123
+2026-05-30 18:02:08 [HikariPool-1 housekeeper] WARN  com.zaxxer.hikari.pool.HikariPool - HikariPool-1 - Thread starvation or clock leap detected (housekeeper delta=30m23s915ms).
+2026-05-30 18:04:18 [HikariPool-1 housekeeper] WARN  com.zaxxer.hikari.pool.HikariPool - HikariPool-1 - Thread starvation or clock leap detected (housekeeper delta=2m9s615ms).
+2026-05-30 18:13:12 [HikariPool-1 housekeeper] WARN  com.zaxxer.hikari.pool.HikariPool - HikariPool-1 - Thread starvation or clock leap detected (housekeeper delta=8m23s469ms).
+2026-05-30 18:29:50 [http-nio-0.0.0.0-8083-exec-2] INFO  com.ninimum.api.security.provider.UserAuthenticationProvider - userId => 998998887766
+2026-05-30 18:29:50 [http-nio-0.0.0.0-8083-exec-2] INFO  com.ninimum.api.security.provider.UserAuthenticationProvider - passwd => 123
+2026-05-30 18:29:55 [http-nio-0.0.0.0-8083-exec-2] WARN  com.zaxxer.hikari.pool.PoolBase - HikariPool-1 - Failed to validate connection org.mariadb.jdbc.MariaDbConnection@54f73608 ((conn=180616) Connection.setNetworkTimeout cannot be called on a closed connection). Possibly consider using a shorter maxLifetime value.
+2026-05-30 18:30:00 [http-nio-0.0.0.0-8083-exec-2] WARN  com.zaxxer.hikari.pool.PoolBase - HikariPool-1 - Failed to validate connection org.mariadb.jdbc.MariaDbConnection@790293ba ((conn=180617) Connection.setNetworkTimeout cannot be called on a closed connection). Possibly consider using a shorter maxLifetime value.
+2026-05-30 18:47:41 [http-nio-0.0.0.0-8083-exec-5] INFO  com.ninimum.api.security.provider.UserAuthenticationProvider - userId => 998998887766
+2026-05-30 18:47:41 [http-nio-0.0.0.0-8083-exec-5] INFO  com.ninimum.api.security.provider.UserAuthenticationProvider - passwd => 123
+2026-05-30 19:17:30 [http-nio-0.0.0.0-8083-exec-8] INFO  com.ninimum.api.security.provider.UserAuthenticationProvider - userId => 998998887766
+2026-05-30 19:17:30 [http-nio-0.0.0.0-8083-exec-8] INFO  com.ninimum.api.security.provider.UserAuthenticationProvider - passwd => 123
+2026-05-30 19:23:53 [http-nio-0.0.0.0-8083-exec-1] INFO  com.ninimum.api.security.provider.UserAuthenticationProvider - userId => 998998887766
+2026-05-30 19:23:53 [http-nio-0.0.0.0-8083-exec-1] INFO  com.ninimum.api.security.provider.UserAuthenticationProvider - passwd => 123
+2026-05-30 19:24:14 [http-nio-0.0.0.0-8083-exec-3] INFO  com.ninimum.api.security.provider.UserAuthenticationProvider - userId => 998998887766
+2026-05-30 19:24:14 [http-nio-0.0.0.0-8083-exec-3] INFO  com.ninimum.api.security.provider.UserAuthenticationProvider - passwd => 123
+2026-05-30 20:09:07 [HikariPool-1 housekeeper] WARN  com.zaxxer.hikari.pool.HikariPool - HikariPool-1 - Thread starvation or clock leap detected (housekeeper delta=30m24s272ms).
+2026-05-30 20:25:04 [HikariPool-1 housekeeper] WARN  com.zaxxer.hikari.pool.HikariPool - HikariPool-1 - Thread starvation or clock leap detected (housekeeper delta=15m26s733ms).
+2026-05-30 20:33:17 [HikariPool-1 housekeeper] WARN  com.zaxxer.hikari.pool.HikariPool - HikariPool-1 - Thread starvation or clock leap detected (housekeeper delta=7m43s347ms).
+2026-05-30 20:52:08 [SpringApplicationShutdownHook] INFO  com.zaxxer.hikari.HikariDataSource - HikariPool-1 - Shutdown initiated...
+2026-05-30 20:52:08 [SpringApplicationShutdownHook] INFO  com.zaxxer.hikari.HikariDataSource - HikariPool-1 - Shutdown completed.
+2026-05-30 22:22:32 [restartedMain] INFO  com.ninimum.api.NinimumApplication - Starting NinimumApplication using Java 17.0.14 on Akmalui-MacBookPro.local with PID 4128 (/Users/akmalbukhariev/Projects/NinimumBackend/NinimumBackend/target/classes started by akmalbukhariev in /Users/akmalbukhariev/Projects/NinimumBackend/NinimumBackend)
+2026-05-30 22:22:32 [restartedMain] INFO  com.ninimum.api.NinimumApplication - The following 1 profile is active: "default"
+2026-05-30 22:22:32 [restartedMain] INFO  org.springframework.boot.devtools.env.DevToolsPropertyDefaultsPostProcessor - Devtools property defaults active! Set 'spring.devtools.add-properties' to 'false' to disable
+2026-05-30 22:22:32 [restartedMain] INFO  org.springframework.boot.devtools.env.DevToolsPropertyDefaultsPostProcessor - For additional web related logging consider setting the 'logging.level.web' property to 'DEBUG'
+2026-05-30 22:22:33 [restartedMain] INFO  org.springframework.data.repository.config.RepositoryConfigurationDelegate - Bootstrapping Spring Data JDBC repositories in DEFAULT mode.
+2026-05-30 22:22:33 [restartedMain] INFO  org.springframework.data.repository.config.RepositoryConfigurationDelegate - Finished Spring Data repository scanning in 33 ms. Found 0 JDBC repository interfaces.
+2026-05-30 22:22:34 [restartedMain] INFO  com.ulisesbocchio.jasyptspringboot.configuration.EnableEncryptablePropertiesBeanFactoryPostProcessor - Post-processing PropertySource instances
+2026-05-30 22:22:34 [restartedMain] INFO  com.ulisesbocchio.jasyptspringboot.EncryptablePropertySourceConverter - Skipping PropertySource configurationProperties [class org.springframework.boot.context.properties.source.ConfigurationPropertySourcesPropertySource
+2026-05-30 22:22:34 [restartedMain] INFO  com.ulisesbocchio.jasyptspringboot.EncryptablePropertySourceConverter - Skipping PropertySource servletConfigInitParams [class org.springframework.core.env.PropertySource$StubPropertySource
+2026-05-30 22:22:34 [restartedMain] INFO  com.ulisesbocchio.jasyptspringboot.EncryptablePropertySourceConverter - Skipping PropertySource servletContextInitParams [class org.springframework.core.env.PropertySource$StubPropertySource
+2026-05-30 22:22:34 [restartedMain] INFO  com.ulisesbocchio.jasyptspringboot.EncryptablePropertySourceConverter - Converting PropertySource systemProperties [org.springframework.core.env.PropertiesPropertySource] to EncryptableMapPropertySourceWrapper
+2026-05-30 22:22:34 [restartedMain] INFO  com.ulisesbocchio.jasyptspringboot.EncryptablePropertySourceConverter - Converting PropertySource systemEnvironment [org.springframework.boot.env.SystemEnvironmentPropertySourceEnvironmentPostProcessor$OriginAwareSystemEnvironmentPropertySource] to EncryptableSystemEnvironmentPropertySourceWrapper
+2026-05-30 22:22:34 [restartedMain] INFO  com.ulisesbocchio.jasyptspringboot.EncryptablePropertySourceConverter - Converting PropertySource random [org.springframework.boot.env.RandomValuePropertySource] to EncryptablePropertySourceWrapper
+2026-05-30 22:22:34 [restartedMain] INFO  com.ulisesbocchio.jasyptspringboot.EncryptablePropertySourceConverter - Converting PropertySource Config resource 'class path resource [application.yaml]' via location 'optional:classpath:/' [org.springframework.boot.env.OriginTrackedMapPropertySource] to EncryptableMapPropertySourceWrapper
+2026-05-30 22:22:34 [restartedMain] INFO  com.ulisesbocchio.jasyptspringboot.EncryptablePropertySourceConverter - Converting PropertySource devtools [org.springframework.core.env.MapPropertySource] to EncryptableMapPropertySourceWrapper
+2026-05-30 22:22:34 [restartedMain] INFO  com.ulisesbocchio.jasyptspringboot.filter.DefaultLazyPropertyFilter - Property Filter custom Bean not found with name 'encryptablePropertyFilter'. Initializing Default Property Filter
+2026-05-30 22:22:34 [restartedMain] INFO  com.ulisesbocchio.jasyptspringboot.resolver.DefaultLazyPropertyResolver - Property Resolver custom Bean not found with name 'encryptablePropertyResolver'. Initializing Default Property Resolver
+2026-05-30 22:22:34 [restartedMain] INFO  com.ulisesbocchio.jasyptspringboot.detector.DefaultLazyPropertyDetector - Property Detector custom Bean not found with name 'encryptablePropertyDetector'. Initializing Default Property Detector
+2026-05-30 22:22:34 [restartedMain] INFO  org.springframework.boot.web.embedded.tomcat.TomcatWebServer - Tomcat initialized with port(s): 8083 (http)
+2026-05-30 22:22:35 [restartedMain] INFO  org.springframework.boot.web.servlet.context.ServletWebServerApplicationContext - Root WebApplicationContext: initialization completed in 2374 ms
+2026-05-30 22:22:37 [restartedMain] INFO  org.springframework.boot.actuate.endpoint.web.EndpointLinksResolver - Exposing 2 endpoint(s) beneath base path '/actuator'
+2026-05-30 22:22:37 [restartedMain] INFO  org.springframework.security.web.DefaultSecurityFilterChain - Will secure any request with [org.springframework.security.web.session.DisableEncodeUrlFilter@53c208e1, org.springframework.security.web.context.request.async.WebAsyncManagerIntegrationFilter@762cc105, org.springframework.security.web.context.SecurityContextPersistenceFilter@5e064ada, org.springframework.security.web.header.HeaderWriterFilter@c2582a1, org.springframework.web.filter.CorsFilter@3668db51, org.springframework.security.web.authentication.logout.LogoutFilter@37e0eb92, com.ninimum.api.security.jwt.JwtAuthenticationFilter@526fcf96, com.ninimum.api.security.filter.UserAuthenticationFilter@11a9503a, org.springframework.security.web.savedrequest.RequestCacheAwareFilter@2cd003ac, org.springframework.security.web.servletapi.SecurityContextHolderAwareRequestFilter@79648a1c, org.springframework.security.web.authentication.AnonymousAuthenticationFilter@11d8fe3, org.springframework.security.web.session.SessionManagementFilter@392ae0b0, org.springframework.security.web.access.ExceptionTranslationFilter@66cc749a, org.springframework.security.web.access.intercept.AuthorizationFilter@7c0b2814]
+2026-05-30 22:22:37 [restartedMain] WARN  org.springframework.security.config.annotation.web.builders.WebSecurity - You are asking Spring Security to ignore Ant [pattern='/**/webjars/**']. This is not recommended -- please use permitAll via HttpSecurity#authorizeHttpRequests instead.
+2026-05-30 22:22:37 [restartedMain] INFO  org.springframework.security.web.DefaultSecurityFilterChain - Will not secure Ant [pattern='/**/webjars/**']
+2026-05-30 22:22:37 [restartedMain] WARN  org.springframework.security.config.annotation.web.builders.WebSecurity - You are asking Spring Security to ignore Ant [pattern='/v2/api-docs']. This is not recommended -- please use permitAll via HttpSecurity#authorizeHttpRequests instead.
+2026-05-30 22:22:37 [restartedMain] INFO  org.springframework.security.web.DefaultSecurityFilterChain - Will not secure Ant [pattern='/v2/api-docs']
+2026-05-30 22:22:37 [restartedMain] WARN  org.springframework.security.config.annotation.web.builders.WebSecurity - You are asking Spring Security to ignore Ant [pattern='/swagger-resources']. This is not recommended -- please use permitAll via HttpSecurity#authorizeHttpRequests instead.
+2026-05-30 22:22:37 [restartedMain] INFO  org.springframework.security.web.DefaultSecurityFilterChain - Will not secure Ant [pattern='/swagger-resources']
+2026-05-30 22:22:37 [restartedMain] WARN  org.springframework.security.config.annotation.web.builders.WebSecurity - You are asking Spring Security to ignore Ant [pattern='/swagger-resources/**']. This is not recommended -- please use permitAll via HttpSecurity#authorizeHttpRequests instead.
+2026-05-30 22:22:37 [restartedMain] INFO  org.springframework.security.web.DefaultSecurityFilterChain - Will not secure Ant [pattern='/swagger-resources/**']
+2026-05-30 22:22:37 [restartedMain] WARN  org.springframework.security.config.annotation.web.builders.WebSecurity - You are asking Spring Security to ignore Ant [pattern='/configuration/ui']. This is not recommended -- please use permitAll via HttpSecurity#authorizeHttpRequests instead.
+2026-05-30 22:22:37 [restartedMain] INFO  org.springframework.security.web.DefaultSecurityFilterChain - Will not secure Ant [pattern='/configuration/ui']
+2026-05-30 22:22:37 [restartedMain] WARN  org.springframework.security.config.annotation.web.builders.WebSecurity - You are asking Spring Security to ignore Ant [pattern='/configuration/security']. This is not recommended -- please use permitAll via HttpSecurity#authorizeHttpRequests instead.
+2026-05-30 22:22:37 [restartedMain] INFO  org.springframework.security.web.DefaultSecurityFilterChain - Will not secure Ant [pattern='/configuration/security']
+2026-05-30 22:22:37 [restartedMain] WARN  org.springframework.security.config.annotation.web.builders.WebSecurity - You are asking Spring Security to ignore Ant [pattern='/swagger-ui/**']. This is not recommended -- please use permitAll via HttpSecurity#authorizeHttpRequests instead.
+2026-05-30 22:22:37 [restartedMain] INFO  org.springframework.security.web.DefaultSecurityFilterChain - Will not secure Ant [pattern='/swagger-ui/**']
+2026-05-30 22:22:37 [restartedMain] WARN  org.springframework.security.config.annotation.web.builders.WebSecurity - You are asking Spring Security to ignore Ant [pattern='/webjars/**']. This is not recommended -- please use permitAll via HttpSecurity#authorizeHttpRequests instead.
+2026-05-30 22:22:37 [restartedMain] INFO  org.springframework.security.web.DefaultSecurityFilterChain - Will not secure Ant [pattern='/webjars/**']
+2026-05-30 22:22:37 [restartedMain] WARN  org.springframework.security.config.annotation.web.builders.WebSecurity - You are asking Spring Security to ignore Ant [pattern='/v3/api-docs/**']. This is not recommended -- please use permitAll via HttpSecurity#authorizeHttpRequests instead.
+2026-05-30 22:22:37 [restartedMain] INFO  org.springframework.security.web.DefaultSecurityFilterChain - Will not secure Ant [pattern='/v3/api-docs/**']
+2026-05-30 22:22:37 [restartedMain] WARN  org.springframework.security.config.annotation.web.builders.WebSecurity - You are asking Spring Security to ignore Ant [pattern='/actuator/health/**']. This is not recommended -- please use permitAll via HttpSecurity#authorizeHttpRequests instead.
+2026-05-30 22:22:37 [restartedMain] INFO  org.springframework.security.web.DefaultSecurityFilterChain - Will not secure Ant [pattern='/actuator/health/**']
+2026-05-30 22:22:37 [restartedMain] WARN  org.springframework.security.config.annotation.web.builders.WebSecurity - You are asking Spring Security to ignore Ant [pattern='/actuator/info']. This is not recommended -- please use permitAll via HttpSecurity#authorizeHttpRequests instead.
+2026-05-30 22:22:37 [restartedMain] INFO  org.springframework.security.web.DefaultSecurityFilterChain - Will not secure Ant [pattern='/actuator/info']
+2026-05-30 22:22:37 [restartedMain] WARN  org.springframework.security.config.annotation.web.builders.WebSecurity - You are asking Spring Security to ignore Ant [pattern='/ninimum/actuator/**']. This is not recommended -- please use permitAll via HttpSecurity#authorizeHttpRequests instead.
+2026-05-30 22:22:37 [restartedMain] INFO  org.springframework.security.web.DefaultSecurityFilterChain - Will not secure Ant [pattern='/ninimum/actuator/**']
+2026-05-30 22:22:37 [restartedMain] WARN  org.springframework.security.config.annotation.web.builders.WebSecurity - You are asking Spring Security to ignore Ant [pattern='/api/v1/status']. This is not recommended -- please use permitAll via HttpSecurity#authorizeHttpRequests instead.
+2026-05-30 22:22:37 [restartedMain] INFO  org.springframework.security.web.DefaultSecurityFilterChain - Will not secure Ant [pattern='/api/v1/status']
+2026-05-30 22:22:37 [restartedMain] WARN  org.springframework.security.config.annotation.web.builders.WebSecurity - You are asking Spring Security to ignore Ant [pattern='/ninimum/api/v1/status']. This is not recommended -- please use permitAll via HttpSecurity#authorizeHttpRequests instead.
+2026-05-30 22:22:37 [restartedMain] INFO  org.springframework.security.web.DefaultSecurityFilterChain - Will not secure Ant [pattern='/ninimum/api/v1/status']
+2026-05-30 22:22:37 [restartedMain] WARN  org.springframework.security.config.annotation.web.builders.WebSecurity - You are asking Spring Security to ignore Ant [pattern='/ninimum/api/v1/user/checkPhoneNumber']. This is not recommended -- please use permitAll via HttpSecurity#authorizeHttpRequests instead.
+2026-05-30 22:22:37 [restartedMain] INFO  org.springframework.security.web.DefaultSecurityFilterChain - Will not secure Ant [pattern='/ninimum/api/v1/user/checkPhoneNumber']
+2026-05-30 22:22:37 [restartedMain] WARN  org.springframework.security.config.annotation.web.builders.WebSecurity - You are asking Spring Security to ignore Ant [pattern='/ninimum/api/v1/user/register']. This is not recommended -- please use permitAll via HttpSecurity#authorizeHttpRequests instead.
+2026-05-30 22:22:37 [restartedMain] INFO  org.springframework.security.web.DefaultSecurityFilterChain - Will not secure Ant [pattern='/ninimum/api/v1/user/register']
+2026-05-30 22:22:37 [restartedMain] WARN  org.springframework.security.config.annotation.web.builders.WebSecurity - You are asking Spring Security to ignore Ant [pattern='/ninimum/api/v1/message/verifyPhoneNumber']. This is not recommended -- please use permitAll via HttpSecurity#authorizeHttpRequests instead.
+2026-05-30 22:22:37 [restartedMain] INFO  org.springframework.security.web.DefaultSecurityFilterChain - Will not secure Ant [pattern='/ninimum/api/v1/message/verifyPhoneNumber']
+2026-05-30 22:22:37 [restartedMain] WARN  org.springframework.security.config.annotation.web.builders.WebSecurity - You are asking Spring Security to ignore Ant [pattern='/error']. This is not recommended -- please use permitAll via HttpSecurity#authorizeHttpRequests instead.
+2026-05-30 22:22:37 [restartedMain] INFO  org.springframework.security.web.DefaultSecurityFilterChain - Will not secure Ant [pattern='/error']
+2026-05-30 22:22:37 [restartedMain] INFO  com.zaxxer.hikari.HikariDataSource - HikariPool-1 - Starting...
+2026-05-30 22:22:38 [restartedMain] INFO  com.zaxxer.hikari.HikariDataSource - HikariPool-1 - Start completed.
+2026-05-30 22:22:38 [restartedMain] INFO  org.springframework.boot.devtools.autoconfigure.OptionalLiveReloadServer - LiveReload server is running on port 35729
+2026-05-30 22:22:39 [restartedMain] INFO  org.springframework.boot.web.embedded.tomcat.TomcatWebServer - Tomcat started on port(s): 8083 (http) with context path ''
+2026-05-30 22:22:39 [restartedMain] INFO  com.ulisesbocchio.jasyptspringboot.caching.RefreshScopeRefreshedEventListener - Refreshing cached encryptable property sources on ServletWebServerInitializedEvent
+2026-05-30 22:22:39 [restartedMain] INFO  com.ulisesbocchio.jasyptspringboot.caching.CachingDelegateEncryptablePropertySource - Property Source systemProperties refreshed
+2026-05-30 22:22:39 [restartedMain] INFO  com.ulisesbocchio.jasyptspringboot.caching.CachingDelegateEncryptablePropertySource - Property Source systemEnvironment refreshed
+2026-05-30 22:22:39 [restartedMain] INFO  com.ulisesbocchio.jasyptspringboot.caching.CachingDelegateEncryptablePropertySource - Property Source random refreshed
+2026-05-30 22:22:39 [restartedMain] INFO  com.ulisesbocchio.jasyptspringboot.caching.CachingDelegateEncryptablePropertySource - Property Source Config resource 'class path resource [application.yaml]' via location 'optional:classpath:/' refreshed
+2026-05-30 22:22:39 [restartedMain] INFO  com.ulisesbocchio.jasyptspringboot.caching.CachingDelegateEncryptablePropertySource - Property Source devtools refreshed
+2026-05-30 22:22:39 [restartedMain] INFO  com.ulisesbocchio.jasyptspringboot.EncryptablePropertySourceConverter - Converting PropertySource server.ports [org.springframework.core.env.MapPropertySource] to EncryptableMapPropertySourceWrapper
+2026-05-30 22:22:39 [restartedMain] INFO  com.ulisesbocchio.jasyptspringboot.EncryptablePropertySourceConverter - Skipping PropertySource configurationProperties [class org.springframework.boot.context.properties.source.ConfigurationPropertySourcesPropertySource
+2026-05-30 22:22:39 [restartedMain] INFO  com.ulisesbocchio.jasyptspringboot.EncryptablePropertySourceConverter - Skipping PropertySource servletConfigInitParams [class org.springframework.core.env.PropertySource$StubPropertySource
+2026-05-30 22:22:39 [restartedMain] INFO  com.ulisesbocchio.jasyptspringboot.EncryptablePropertySourceConverter - Converting PropertySource servletContextInitParams [org.springframework.web.context.support.ServletContextPropertySource] to EncryptableEnumerablePropertySourceWrapper
+2026-05-30 22:22:39 [restartedMain] INFO  com.ulisesbocchio.jasyptspringboot.EncryptablePropertySourceConverter - Converting PropertySource Management Server [org.springframework.boot.actuate.autoconfigure.web.server.ManagementContextAutoConfiguration$SameManagementContextConfiguration$1] to EncryptablePropertySourceWrapper
+2026-05-30 22:22:39 [restartedMain] INFO  com.ninimum.api.NinimumApplication - Started NinimumApplication in 6.93 seconds (JVM running for 8.594)
+2026-05-30 22:44:40 [SpringApplicationShutdownHook] INFO  com.zaxxer.hikari.HikariDataSource - HikariPool-1 - Shutdown initiated...
+2026-05-30 22:44:40 [SpringApplicationShutdownHook] INFO  com.zaxxer.hikari.HikariDataSource - HikariPool-1 - Shutdown completed.

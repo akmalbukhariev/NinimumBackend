@@ -5,7 +5,7 @@ import com.ninimum.api.camelcase.CamelCaseMap;
 import com.ninimum.api.common.Result;
 import com.ninimum.api.common.VersionResponseResult;
 import com.ninimum.api.constants.Constant;
-import com.ninimum.api.constants.UserOrCompanyStatus;
+import com.ninimum.api.constants.UserStatus;
 import com.ninimum.api.dto.TokenDto;
 import com.ninimum.api.dto.UserDto;
 import com.ninimum.api.param.UserLoginInfoParam;
@@ -25,7 +25,6 @@ import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
-import java.time.LocalDateTime;
 
 @Slf4j
 @RequiredArgsConstructor
@@ -41,7 +40,7 @@ public class UserAuthenticationFilter extends UsernamePasswordAuthenticationFilt
 			user = new ObjectMapper().readValue(request.getInputStream(), UserLoginInfoParam.class);
 			//log.info("User Info: phone={}, password=****", user.getPhone_number());
 
-			UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(user.getPhone_number(), null/*user.getPassword()*/);
+			UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(user.getPhone_number(), user.getPassword());
 
 			return userAuthenticationProvider.authenticate(authToken);
 
@@ -56,17 +55,6 @@ public class UserAuthenticationFilter extends UsernamePasswordAuthenticationFilt
 	protected void successfulAuthentication(HttpServletRequest request, HttpServletResponse response, FilterChain chain, Authentication authResult) throws IOException, ServletException {
 
 		CamelCaseMap map = (CamelCaseMap) authResult.getDetails();
-		Object obj_deleted = map.get("deleted");
-
-		String deleted;
-		if (obj_deleted instanceof Integer) {
-			deleted = ((Integer) obj_deleted) == 0 ? "false" : "true";
-		} else {
-			deleted = "false";
-		}
-
-		map.put("deleted", deleted);
-		//map.put("ROLE", "USER");
 
 		VersionResponseResult resResult = new VersionResponseResult();
 		response.setContentType("application/json");
@@ -106,20 +94,19 @@ public class UserAuthenticationFilter extends UsernamePasswordAuthenticationFilt
 
 		if (tokenInfo != null && user != null) {
 			try {
-				Long userSeq = userAuthenticationProvider.getUserSeq();
+				Long userSeq = Long.valueOf(map.get("id").toString());
 				if (!userSeq.equals(0L)) {
 					updateUserStatus(userSeq, tokenInfo.getAccessToken());
 				}
 
-				map.put("status", "ACTIVE");
+				map.put("status", UserStatus.ACTIVE.getValue());
 				map.put("token_mb", "");
+				map.put("password", "");
 
 				Object profilePictureUrl = map.get("profile_picture_url");
 				if (profilePictureUrl != null) {
 					map.put("profile_picture_url", Constant.SERVER_HTTP + Constant.USER_UPLOAD_DIRECTORY_URL + profilePictureUrl.toString());
 				}
-
-				//map.put("token_mb", tokenInfo.getAccessToken());
 
 				// Set response headers
 				response.setHeader(Constant.HEADER_ACCESS_TOKEN, tokenInfo.getAccessToken());
@@ -164,10 +151,9 @@ public class UserAuthenticationFilter extends UsernamePasswordAuthenticationFilt
 	 */
 	private void updateUserStatus(Long userSeq, String accessToken) throws Exception {
 		UserDto dto = new UserDto();
-		/*dto.setToken_mb(accessToken);
-		dto.setUser_id(userSeq);
-		dto.setStatus(UserOrCompanyStatus.ACTIVE);*/
-		dto.setUpdated_at(LocalDateTime.now());
+		dto.setToken_mb(accessToken);
+		dto.setId(userSeq);
+		dto.setStatus(UserStatus.ACTIVE);
 
 		userAuthenticationProvider.updateUserStatusAndToken(dto);
 	}

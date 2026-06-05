@@ -5,13 +5,54 @@
     <select id="getBannerList"
             resultType="com.ninimum.api.dto.BannerDto">
         SELECT
-        banner_id AS bannerId,
-        title AS title,
-        image_url AS imageUrl,
-        link_url AS linkUrl
-        FROM banners
-        WHERE use_yn = 'Y'
-        ORDER BY sort_order ASC, banner_id DESC
+            b.id,
+            b.product_id AS productId,
+            b.sort_order AS sortOrder,
+            b.is_active AS isActive,
+
+            p.name,
+            p.short_description AS shortDescription,
+            p.description,
+            p.brand,
+            p.price,
+            p.subscription_price AS subscriptionPrice,
+
+        (
+            SELECT pi.image_url
+            FROM product_images pi
+            WHERE pi.product_id = p.id
+            ORDER BY pi.sort_order ASC
+            LIMIT 1
+        ) AS imageUrl
+
+        FROM banners b
+        INNER JOIN products p
+        ON p.id = b.product_id
+        WHERE b.is_active = 1
+        AND p.is_active = 1
+        ORDER BY b.sort_order ASC, b.created_at DESC
     </select>
+
+    <insert id="insertBanner"
+            parameterType="com.ninimum.api.dto.BannerDto">
+        INSERT INTO banners
+        (
+            product_id,
+            sort_order,
+            is_active
+        )
+        VALUES
+        (
+            #{product_id},
+            #{sort_order},
+            1
+        )
+    </insert>
+
+    <delete id="deleteBanner"
+            parameterType="java.lang.Long">
+        DELETE FROM banners
+        WHERE id = #{id}
+    </delete>
 
 </mapper>

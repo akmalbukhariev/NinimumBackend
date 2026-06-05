@@ -35,9 +35,9 @@ public enum Result {
     PASSWORD_IS_NOT_MATCHED(255, "Password is not matched"),
 
     VERIFY_PHONE_NUMBER_FAILED(256, "The phone verification failed."),
+    SEND_TEMP_PASSWORD_FAILED(257,"Temp password failed."),
 
     AUTHENTICATION_ERROR(300, "Your authentication information cannot be verified."),
-    //PROMOTION_IS_NOT_REGISTRATED(301, "The promotion is not registered for the users."),
     INTERNAL_ERROR(301, "Something went wrong on our end. We're working to fix it."),
     SERVER_ERROR(302, "A system error has occurred. Please contact your administrator."),
     TOKEN_EMPTY(360, "Empty token"),

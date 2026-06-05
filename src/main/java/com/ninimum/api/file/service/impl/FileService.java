@@ -6,7 +6,8 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.io.File;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.UUID;
 
 @Service
@@ -15,35 +16,34 @@ public class FileService implements IFileService {
     @Value("${file.upload.path}")
     private String uploadPath;
 
-    @Value("${file.upload.url}")
-    private String uploadUrl;
-
     @Override
     public FileUploadDto uploadFile(MultipartFile file) throws Exception {
-        File folder = new File(uploadPath);
-
-        if (!folder.exists()) {
-            folder.mkdirs();
-        }
-
-        String originalFileName = file.getOriginalFilename();
-        String extension = "";
-
-        if (originalFileName != null && originalFileName.contains(".")) {
-            extension = originalFileName.substring(originalFileName.lastIndexOf("."));
-        }
-
-        String savedFileName = UUID.randomUUID().toString() + extension;
-        File saveFile = new File(uploadPath, savedFileName);
-
-        file.transferTo(saveFile);
+        String filePath = saveProductImage(file);
 
         FileUploadDto dto = new FileUploadDto();
-        dto.setOriginalFileName(originalFileName);
-        dto.setSavedFileName(savedFileName);
-        dto.setFileUrl(uploadUrl + "/" + savedFileName);
-        dto.setFileSize(file.getSize());
+        dto.setFileUrl(filePath);
 
         return dto;
+    }
+
+    @Override
+    public String saveProductImage(MultipartFile file) throws Exception {
+
+        String originalName = file.getOriginalFilename();
+        String extension = "";
+
+        if (originalName != null && originalName.contains(".")) {
+            extension = originalName.substring(originalName.lastIndexOf("."));
+        }
+
+        String fileName = UUID.randomUUID() + extension;
+
+        Path productDir = Path.of(uploadPath, "products");
+        Files.createDirectories(productDir);
+
+        Path savePath = productDir.resolve(fileName);
+        file.transferTo(savePath.toFile());
+
+        return "products/" + fileName;
     }
 }

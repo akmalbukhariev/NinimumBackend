@@ -54,4 +54,65 @@ public class BannerController extends BaseController {
 
         return new ResponseEntity<>(result, HttpStatus.OK);
     }
+
+    @Operation(
+            tags = {"Banner"},
+            summary = "2. Insert banner",
+            description = "Insert a new banner.",
+            hidden = false,
+            responses = {
+                    @ApiResponse(responseCode = "200", description = "success")
+            },
+            security = {
+                    @SecurityRequirement(name = "bearerAuth")
+            }
+    )
+    @PostMapping(value = "/insertBanner")
+    public ResponseEntity<Object> insertBanner(@RequestBody BannerDto param) {
+        VersionResponseResult result = null;
+
+        try {
+
+            this.bannerService.insertBanner(param);
+
+            result = this.setResult(Result.SUCCESS);
+
+        } catch (Exception ex) {
+
+            result = this.setResult(Result.SERVER_ERROR);
+            log.error("BannerController => insertBanner: ", ex);
+        }
+
+        return new ResponseEntity<>(result, HttpStatus.OK);
+    }
+
+    @Operation(
+            tags = {"Banner"},
+            summary = "3. Delete banner",
+            description = "Delete banner by id.",
+            hidden = false,
+            responses = {
+                    @ApiResponse(responseCode = "200", description = "success")
+            },
+            security = {
+                    @SecurityRequirement(name = "bearerAuth")
+            }
+    )
+    @DeleteMapping(value = "/deleteBanner/{id}")
+    public ResponseEntity<Object> deleteBanner(@PathVariable Long id) {
+        VersionResponseResult result = null;
+
+        try {
+            this.bannerService.deleteBanner(id);
+
+            result = this.setResult(Result.SUCCESS);
+
+        } catch (Exception ex) {
+
+            result = this.setResult(Result.SERVER_ERROR);
+            log.error("BannerController => deleteBanner: ", ex);
+        }
+
+        return new ResponseEntity<>(result, HttpStatus.OK);
+    }
 }
