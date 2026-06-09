@@ -8,16 +8,14 @@ public class BannerDto {
     private Long id;
     private Long product_id;
     private Integer sort_order;
-    private Integer isActive;
+    private Boolean is_active;
 
-    // from products table
     private String name;
-    private String shortDescription;
+    private String short_description;
     private String description;
     private String brand;
     private Double price;
-    private Double subscriptionPrice;
+    private Double subscription_price;
 
-    // from product_images table
-    private String imageUrl;
+    private String image_url;
 }

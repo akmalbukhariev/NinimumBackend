@@ -17,7 +17,8 @@ public interface ProductMapper {
     int insertProductImages(AddProductParam param) throws Exception;
     List<ProductCategoryDto> getProductCategoryList() throws Exception;
     List<CamelCaseMap> getProductList(ProductListParam param) throws Exception;
-    ProductDto getProductDetail(ProductDetailParam param) throws Exception;
+    CamelCaseMap getProductDetail(ProductDetailParam param) throws Exception;
+    List<CamelCaseMap> getSimilarProductList(SimilarProductListParam param) throws Exception;
     List<CamelCaseMap> searchProductList(SearchProductParam param) throws Exception;
     List<ProductDto> getRecommendedProductList(ProductRecommendParam param) throws Exception;
     List<ProductDto> getPopularProductList() throws Exception;

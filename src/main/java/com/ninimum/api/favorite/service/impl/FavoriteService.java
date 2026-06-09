@@ -10,7 +10,7 @@ import com.ninimum.api.param.AddFavoriteParam;
 import com.ninimum.api.param.DeleteFavoriteParam;
 import com.ninimum.api.param.FavoriteListParam;
 import com.ninimum.api.product.service.ProductMapper;
-import com.ninimum.api.response.ProductListResponse;
+import com.ninimum.api.response.ProductResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -28,13 +28,13 @@ public class FavoriteService implements IFavoriteService {
     private String fileAccessUrl;
 
     @Override
-    public List<ProductListResponse> getFavoriteList(FavoriteListParam param) throws Exception {
+    public List<ProductResponse> getFavoriteList(FavoriteListParam param) throws Exception {
 
         List<CamelCaseMap> camProducts = this.favoriteMapper.getFavoriteList(param);
-        List<ProductListResponse> products =
-                Converter.mapToDtoList(camProducts, ProductListResponse.class);
+        List<ProductResponse> products =
+                Converter.mapToDtoList(camProducts, ProductResponse.class);
 
-        for (ProductListResponse product : products) {
+        for (ProductResponse product : products) {
 
             List<CamelCaseMap> mapList = this.productMapper.getProductImages(product.getId());
             List<ProductImageDto> images =

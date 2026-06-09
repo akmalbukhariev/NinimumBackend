@@ -9,7 +9,7 @@ import com.ninimum.api.file.service.impl.FileService;
 import com.ninimum.api.param.*;
 import com.ninimum.api.product.service.IProductService;
 import com.ninimum.api.product.service.ProductMapper;
-import com.ninimum.api.response.ProductListResponse;
+import com.ninimum.api.response.ProductResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -72,7 +72,7 @@ public class ProductService implements IProductService {
     }
 
     @Override
-    public List<ProductListResponse> getProductList(ProductListParam param) throws Exception {
+    public List<ProductResponse> getProductList(ProductListParam param) throws Exception {
 
         if (param.getPageSize() <= 0) {
             param.setPageSize(10);
@@ -83,9 +83,9 @@ public class ProductService implements IProductService {
         }
 
         List<CamelCaseMap> camProducts = this.productMapper.getProductList(param);
-        List<ProductListResponse> products = Converter.mapToDtoList(camProducts, ProductListResponse.class);
+        List<ProductResponse> products = Converter.mapToDtoList(camProducts, ProductResponse.class);
 
-        for (ProductListResponse product : products) {
+        for (ProductResponse product : products) {
 
             List<CamelCaseMap> mapList = this.productMapper.getProductImages(product.getId());
             List<ProductImageDto> images = Converter.mapToDtoList(mapList, ProductImageDto.class);
@@ -103,18 +103,69 @@ public class ProductService implements IProductService {
     }
 
     @Override
-    public ProductDto getProductDetail(ProductDetailParam param) throws Exception {
-        return this.productMapper.getProductDetail(param);
+    public ProductResponse getProductDetail(ProductDetailParam param) throws Exception {
+
+        CamelCaseMap camProduct = this.productMapper.getProductDetail(param);
+
+        if (camProduct == null) {
+            return null;
+        }
+
+        ProductResponse product = camProduct.toObject(ProductResponse.class);
+
+        List<CamelCaseMap> mapList = this.productMapper.getProductImages(product.getId());
+        List<ProductImageDto> images = Converter.mapToDtoList(mapList, ProductImageDto.class);
+
+        for (ProductImageDto image : images) {
+            if (image.getImage_url() != null && !image.getImage_url().isEmpty()) {
+                image.setImage_url(fileAccessUrl + "/" + image.getImage_url());
+            }
+        }
+
+        product.setImages(images);
+
+        return product;
     }
 
     @Override
-    public List<ProductListResponse> searchProductList(SearchProductParam param) throws Exception {
+    public List<ProductResponse> getSimilarProductList(SimilarProductListParam param) throws Exception {
+
+        if (param.getPageSize() <= 0) {
+            param.setPageSize(10);
+        }
+
+        if (param.getOffset() < 0) {
+            param.setOffset(0);
+        }
+
+        List<CamelCaseMap> camProducts = this.productMapper.getSimilarProductList(param);
+        List<ProductResponse> products = Converter.mapToDtoList(camProducts, ProductResponse.class);
+
+        for (ProductResponse product : products) {
+
+            List<CamelCaseMap> mapList = this.productMapper.getProductImages(product.getId());
+            List<ProductImageDto> images = Converter.mapToDtoList(mapList, ProductImageDto.class);
+
+            for (ProductImageDto image : images) {
+                if (image.getImage_url() != null && !image.getImage_url().isEmpty()) {
+                    image.setImage_url(fileAccessUrl + "/" + image.getImage_url());
+                }
+            }
+
+            product.setImages(images);
+        }
+
+        return products;
+    }
+
+    @Override
+    public List<ProductResponse> searchProductList(SearchProductParam param) throws Exception {
 
         List<CamelCaseMap> camProducts = this.productMapper.searchProductList(param);
-        List<ProductListResponse> products =
-                Converter.mapToDtoList(camProducts, ProductListResponse.class);
+        List<ProductResponse> products =
+                Converter.mapToDtoList(camProducts, ProductResponse.class);
 
-        for (ProductListResponse product : products) {
+        for (ProductResponse product : products) {
 
             List<CamelCaseMap> mapList = this.productMapper.getProductImages(product.getId());
             List<ProductImageDto> images =

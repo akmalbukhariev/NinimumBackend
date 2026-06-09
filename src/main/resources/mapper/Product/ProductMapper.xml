@@ -126,17 +126,87 @@
 
     <select id="getProductDetail"
             parameterType="com.ninimum.api.param.ProductDetailParam"
-            resultType="com.ninimum.api.dto.ProductDto">
+            resultType="camelMap">
+
         SELECT
-        product_id AS productId,
-        category_id AS categoryId,
-        product_name AS productName,
-        product_image_url AS productImageUrl,
-        price AS price,
-        description AS description
-        FROM products
-        WHERE use_yn = 'Y'
-        AND product_id = #{productId}
+            p.id,
+            p.category_id,
+            p.name,
+            p.short_description,
+            p.description,
+            p.sku,
+            p.barcode,
+            p.brand,
+            p.price,
+            p.subscription_price,
+            p.stock_quantity,
+            p.weight_gram,
+            p.is_active,
+            p.is_featured,
+            p.created_at,
+            p.updated_at,
+
+        CASE
+        WHEN f.id IS NOT NULL THEN TRUE
+        ELSE FALSE
+        END AS liked
+
+        FROM products p
+
+        LEFT JOIN favorites f
+        ON f.product_id = p.id
+        AND f.user_id = #{user_id}
+
+        WHERE p.is_active = 1
+        AND p.id = #{product_id}
+
+    </select>
+
+    <select id="getSimilarProductList"
+            parameterType="com.ninimum.api.param.SimilarProductListParam"
+            resultType="camelMap">
+
+        SELECT
+            p.id,
+            p.category_id,
+            p.name,
+            p.short_description,
+            p.description,
+            p.sku,
+            p.barcode,
+            p.brand,
+            p.price,
+            p.subscription_price,
+            p.stock_quantity,
+            p.weight_gram,
+            p.is_active,
+            p.is_featured,
+            p.created_at,
+            p.updated_at,
+
+        CASE
+        WHEN f.id IS NOT NULL THEN TRUE
+        ELSE FALSE
+        END AS liked
+
+        FROM products p
+
+        LEFT JOIN favorites f
+        ON f.product_id = p.id
+        AND f.user_id = #{user_id}
+
+        WHERE p.is_active = 1
+        AND p.id != #{product_id}
+        AND p.category_id = (
+            SELECT category_id
+            FROM products
+            WHERE id = #{product_id}
+        )
+
+        ORDER BY p.created_at DESC
+        LIMIT #{pageSize}
+        OFFSET #{offset}
+
     </select>
 
     <select id="searchProductList"

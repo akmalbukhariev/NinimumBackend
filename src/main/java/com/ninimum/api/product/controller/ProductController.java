@@ -8,7 +8,7 @@ import com.ninimum.api.dto.ProductCategoryDto;
 import com.ninimum.api.dto.ProductDto;
 import com.ninimum.api.param.*;
 import com.ninimum.api.product.service.IProductService;
-import com.ninimum.api.response.ProductListResponse;
+import com.ninimum.api.response.ProductResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
@@ -71,7 +71,7 @@ public class ProductController extends BaseController {
         VersionResponseResult result = null;
 
         try {
-            List<ProductListResponse> products = this.productService.getProductList(param);
+            List<ProductResponse> products = this.productService.getProductList(param);
             result = this.setResult(Result.SUCCESS, products);
         } catch (Exception ex) {
             result = this.setResult(Result.SERVER_ERROR);
@@ -94,7 +94,7 @@ public class ProductController extends BaseController {
         VersionResponseResult result = null;
 
         try {
-            ProductDto product = this.productService.getProductDetail(param);
+            ProductResponse product = this.productService.getProductDetail(param);
             result = this.setResult(Result.SUCCESS, product);
         } catch (Exception ex) {
             result = this.setResult(Result.SERVER_ERROR);
@@ -117,11 +117,34 @@ public class ProductController extends BaseController {
         VersionResponseResult result = null;
 
         try {
-            List<ProductListResponse> products = this.productService.searchProductList(param);
+            List<ProductResponse> products = this.productService.searchProductList(param);
             result = this.setResult(Result.SUCCESS, products);
         } catch (Exception ex) {
             result = this.setResult(Result.SERVER_ERROR);
             log.error("ProductController => searchProductList: ", ex);
+        }
+
+        return new ResponseEntity<>(result, HttpStatus.OK);
+    }
+
+    @Operation(
+            tags = {"Product"},
+            summary = "9. Similar product list",
+            description = "Returns similar products by product ID.",
+            hidden = false,
+            responses = { @ApiResponse(responseCode = "200", description = "success") },
+            security = { @SecurityRequirement(name = "bearerAuth") }
+    )
+    @PostMapping(value = "/getSimilarProductList", headers = { "Content-type=application/json" })
+    public ResponseEntity<Object> getSimilarProductList(@RequestBody SimilarProductListParam param) {
+        VersionResponseResult result = null;
+
+        try {
+            List<ProductResponse> products = this.productService.getSimilarProductList(param);
+            result = this.setResult(Result.SUCCESS, products);
+        } catch (Exception ex) {
+            result = this.setResult(Result.SERVER_ERROR);
+            log.error("ProductController => getSimilarProductList: ", ex);
         }
 
         return new ResponseEntity<>(result, HttpStatus.OK);

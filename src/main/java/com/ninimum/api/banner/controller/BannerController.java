@@ -57,8 +57,8 @@ public class BannerController extends BaseController {
 
     @Operation(
             tags = {"Banner"},
-            summary = "2. Insert banner",
-            description = "Insert a new banner.",
+            summary = "2. Create banner list",
+            description = "Create banners by product list.",
             hidden = false,
             responses = {
                     @ApiResponse(responseCode = "200", description = "success")
@@ -67,20 +67,17 @@ public class BannerController extends BaseController {
                     @SecurityRequirement(name = "bearerAuth")
             }
     )
-    @PostMapping(value = "/insertBanner")
-    public ResponseEntity<Object> insertBanner(@RequestBody BannerDto param) {
+    @PostMapping(value = "/createBanner")
+    public ResponseEntity<Object> createBanner(@RequestBody List<BannerDto> param) {
         VersionResponseResult result = null;
 
         try {
-
-            this.bannerService.insertBanner(param);
-
+            this.bannerService.insertBannerList(param);
             result = this.setResult(Result.SUCCESS);
 
         } catch (Exception ex) {
-
             result = this.setResult(Result.SERVER_ERROR);
-            log.error("BannerController => insertBanner: ", ex);
+            log.error("BannerController => createBanner: ", ex);
         }
 
         return new ResponseEntity<>(result, HttpStatus.OK);
@@ -98,12 +95,12 @@ public class BannerController extends BaseController {
                     @SecurityRequirement(name = "bearerAuth")
             }
     )
-    @DeleteMapping(value = "/deleteBanner/{id}")
-    public ResponseEntity<Object> deleteBanner(@PathVariable Long id) {
+    @DeleteMapping(value = "/deleteBanner")
+    public ResponseEntity<Object> deleteBanner() {
         VersionResponseResult result = null;
 
         try {
-            this.bannerService.deleteBanner(id);
+            this.bannerService.deleteBanner();
 
             result = this.setResult(Result.SUCCESS);
 

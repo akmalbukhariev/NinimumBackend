@@ -5,12 +5,12 @@ import com.ninimum.api.dto.FavoriteDto;
 import com.ninimum.api.param.AddFavoriteParam;
 import com.ninimum.api.param.DeleteFavoriteParam;
 import com.ninimum.api.param.FavoriteListParam;
-import com.ninimum.api.response.ProductListResponse;
+import com.ninimum.api.response.ProductResponse;
 
 import java.util.List;
 
 public interface IFavoriteService {
-    List<ProductListResponse> getFavoriteList(FavoriteListParam param) throws Exception;
+    List<ProductResponse> getFavoriteList(FavoriteListParam param) throws Exception;
 
     int addFavorite(AddFavoriteParam param) throws Exception;
 

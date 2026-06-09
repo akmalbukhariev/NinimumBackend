@@ -8,7 +8,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 @Data
-public class ProductListResponse extends ProductDto {
+public class ProductResponse extends ProductDto {
     private boolean liked;
     private List<ProductImageDto> images;
 }
