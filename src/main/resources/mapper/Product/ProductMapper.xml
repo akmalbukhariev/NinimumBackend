@@ -147,19 +147,27 @@
             p.updated_at,
 
         CASE
-        WHEN f.id IS NOT NULL THEN TRUE
-        ELSE FALSE
-        END AS liked
+            WHEN f.id IS NOT NULL THEN TRUE
+            ELSE FALSE
+        END AS liked,
+
+        IFNULL(ROUND(AVG(r.rating), 1), 0) AS average_rating,
+        COUNT(r.id) AS review_count
 
         FROM products p
 
         LEFT JOIN favorites f
-        ON f.product_id = p.id
-        AND f.user_id = #{user_id}
+            ON f.product_id = p.id
+            AND f.user_id = #{user_id}
+
+        LEFT JOIN reviews r
+            ON r.product_id = p.id
+            AND r.is_active = 1
 
         WHERE p.is_active = 1
-        AND p.id = #{product_id}
+            AND p.id = #{product_id}
 
+        GROUP BY p.id, f.id
     </select>
 
     <select id="getSimilarProductList"
@@ -212,6 +220,7 @@
     <select id="searchProductList"
             parameterType="com.ninimum.api.param.SearchProductParam"
             resultType="camelMap">
+
         SELECT
             p.id,
             p.category_id,
@@ -228,12 +237,21 @@
             p.is_active,
             p.is_featured,
             p.created_at,
-            p.updated_at
+            p.updated_at,
+
+        CASE
+        WHEN f.id IS NOT NULL THEN TRUE
+            ELSE FALSE
+            END AS liked
+
         FROM products p
-        LEFT JOIN product_images pi
-            ON pi.product_id = p.id
-            AND pi.sort_order = 1
+
+        LEFT JOIN favorites f
+            ON f.product_id = p.id
+            AND f.user_id = #{user_id}
+
         WHERE p.is_active = 1
+
         <if test="keyword != null and keyword != ''">
             AND (
                 p.name LIKE CONCAT('%', #{keyword}, '%')
@@ -244,6 +262,7 @@
                 OR p.barcode LIKE CONCAT('%', #{keyword}, '%')
             )
         </if>
+
         <if test="minPrice != null and minPrice > 0">
             AND p.price &gt;= #{minPrice}
         </if>
@@ -272,6 +291,7 @@
 
         LIMIT #{pageSize}
         OFFSET #{offset}
+
     </select>
 
     <select id="getRecommendedProductList"

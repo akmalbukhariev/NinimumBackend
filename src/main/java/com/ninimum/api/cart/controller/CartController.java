@@ -6,7 +6,7 @@ import com.ninimum.api.common.Result;
 import com.ninimum.api.common.VersionResponseResult;
 import com.ninimum.api.constants.Constant;
 import com.ninimum.api.dto.CartCountDto;
-import com.ninimum.api.dto.CartDto;
+import com.ninimum.api.dto.CartResponse;
 import com.ninimum.api.param.*;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -23,7 +23,7 @@ import java.util.List;
 @Slf4j
 @RestController
 @RequiredArgsConstructor
-@Tag(name = "mapper/Cart", description = "Shopping cart APIs.")
+@Tag(name = "Cart", description = "Shopping cart APIs.")
 @RequestMapping(value={"/ninimum/api/v1/cart"})
 public class CartController extends BaseController {
 
@@ -35,7 +35,7 @@ public class CartController extends BaseController {
     }
 
     @Operation(
-            tags = {"mapper/Cart"},
+            tags = {"Cart"},
             summary = "1. Cart list",
             description = "Returns cart product list by user ID.",
             hidden = false,
@@ -47,7 +47,7 @@ public class CartController extends BaseController {
         VersionResponseResult result = null;
 
         try {
-            List<CartDto> carts = this.cartService.getCartList(param);
+            List<CartResponse> carts = this.cartService.getCartList(param);
             result = this.setResult(Result.SUCCESS, carts);
         } catch (Exception ex) {
             result = this.setResult(Result.SERVER_ERROR);
@@ -58,7 +58,7 @@ public class CartController extends BaseController {
     }
 
     @Operation(
-            tags = {"mapper/Cart"},
+            tags = {"Cart"},
             summary = "2. Add cart",
             description = "Adds product to cart.",
             hidden = false,
@@ -87,7 +87,7 @@ public class CartController extends BaseController {
     }
 
     @Operation(
-            tags = {"mapper/Cart"},
+            tags = {"Cart"},
             summary = "3. Update cart quantity",
             description = "Updates product quantity in cart.",
             hidden = false,
@@ -116,15 +116,15 @@ public class CartController extends BaseController {
     }
 
     @Operation(
-            tags = {"mapper/Cart"},
+            tags = {"Cart"},
             summary = "4. Delete cart",
             description = "Deletes product from cart.",
             hidden = false,
             responses = { @ApiResponse(responseCode = "200", description = "success") },
             security = { @SecurityRequirement(name = "bearerAuth") }
     )
-    @DeleteMapping(value = "/deleteCart", headers = { "Content-type=application/json" })
-    public ResponseEntity<Object> deleteCart(@RequestBody DeleteCartParam param) {
+    @PostMapping(value = "/deleteCart", headers = { "Content-type=application/json" })
+    public ResponseEntity<Object> deleteCart(@RequestBody DeletePaymentCardParam param) {
         VersionResponseResult result = null;
 
         try {

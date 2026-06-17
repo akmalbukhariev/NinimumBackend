@@ -1,5 +1,6 @@
 package com.ninimum.api.review.controller;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ninimum.api.common.BaseController;
 import com.ninimum.api.common.Result;
 import com.ninimum.api.common.VersionResponseResult;
@@ -8,6 +9,7 @@ import com.ninimum.api.dto.ReviewDto;
 import com.ninimum.api.param.AddReviewParam;
 import com.ninimum.api.param.DeleteReviewParam;
 import com.ninimum.api.param.ReviewListParam;
+import com.ninimum.api.response.ReviewResponse;
 import com.ninimum.api.review.service.IReviewService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -17,6 +19,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.*;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import javax.annotation.PostConstruct;
 import java.util.List;
@@ -48,7 +51,7 @@ public class ReviewController extends BaseController {
         VersionResponseResult result = null;
 
         try {
-            List<ReviewDto> reviews = this.reviewService.getReviewList(param);
+            List<ReviewResponse> reviews = this.reviewService.getReviewList(param);
             result = this.setResult(Result.SUCCESS, reviews);
         } catch (Exception ex) {
             result = this.setResult(Result.SERVER_ERROR);
@@ -66,12 +69,18 @@ public class ReviewController extends BaseController {
             responses = { @ApiResponse(responseCode = "200", description = "success") },
             security = { @SecurityRequirement(name = "bearerAuth") }
     )
-    @PostMapping(value = "/addReview", headers = { "Content-type=application/json" })
-    public ResponseEntity<Object> addReview(@RequestBody AddReviewParam param) {
+    @PostMapping(value = "/addReview", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<Object> addReview(
+            @RequestParam("data") String data,
+            @RequestParam(value = "images", required = false) List<MultipartFile> images
+    ) {
         VersionResponseResult result = null;
 
         try {
-            int resultNum = this.reviewService.addReview(param);
+            ObjectMapper objectMapper = new ObjectMapper();
+            AddReviewParam param = objectMapper.readValue(data, AddReviewParam.class);
+
+            int resultNum = this.reviewService.addReview(param, images);
 
             if (resultNum != 0) {
                 result = this.setResult(Result.SUCCESS);

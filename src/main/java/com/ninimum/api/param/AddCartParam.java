@@ -4,7 +4,7 @@ import lombok.Data;
 
 @Data
 public class AddCartParam {
-    private Long userId;
-    private Long productId;
+    private Long user_id;
+    private Long product_id;
     private Integer quantity;
 }

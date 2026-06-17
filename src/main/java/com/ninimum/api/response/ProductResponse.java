@@ -10,5 +10,7 @@ import java.util.List;
 @Data
 public class ProductResponse extends ProductDto {
     private boolean liked;
+    private Double average_rating;
+    private Integer review_count;
     private List<ProductImageDto> images;
 }

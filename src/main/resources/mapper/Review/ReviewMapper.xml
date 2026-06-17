@@ -4,39 +4,76 @@
 
     <select id="getReviewList"
             parameterType="com.ninimum.api.param.ReviewListParam"
-            resultType="com.ninimum.api.dto.ReviewDto">
+            resultType="camelMap">
         SELECT
-        r.review_id AS reviewId,
-        r.user_id AS userId,
-        r.product_id AS productId,
-        u.user_name AS userName,
-        r.rating AS rating,
-        r.content AS content,
-        DATE_FORMAT(r.created_at, '%Y-%m-%d %H:%i:%s') AS createdDate
+            r.*
         FROM reviews r
-        INNER JOIN users u ON r.user_id = u.user_id
-        WHERE r.product_id = #{productId}
-        ORDER BY r.review_id DESC
+        WHERE r.product_id = #{product_id}
+            AND r.is_active = 1
+        ORDER BY r.created_at DESC
+        LIMIT #{pageSize}
+        OFFSET #{offset}
+    </select>
+
+    <select id="getReviewImages"
+            parameterType="java.lang.Long"
+            resultType="camelMap">
+        SELECT
+            id,
+            review_id,
+            image_url,
+            created_at
+        FROM review_images
+        WHERE review_id = #{reviewId}
+        ORDER BY id ASC
     </select>
 
     <insert id="addReview"
             parameterType="com.ninimum.api.param.AddReviewParam">
         INSERT INTO reviews
         (
-        user_id,
-        product_id,
-        rating,
-        content,
-        created_at
+            user_id,
+            product_id,
+            order_id,
+            rating,
+            comment,
+            is_active,
+            created_at,
+            updated_at
         )
         VALUES
         (
-        #{userId},
-        #{productId},
-        #{rating},
-        #{content},
-        NOW()
+            #{user_id},
+            #{product_id},
+            #{order_id},
+            #{rating},
+            #{comment},
+            1,
+            NOW(),
+            NOW()
         )
+    </insert>
+
+    <select id="getLastInsertId" resultType="java.lang.Long">
+        SELECT LAST_INSERT_ID()
+    </select>
+
+    <insert id="insertReviewImages"
+            parameterType="com.ninimum.api.param.AddReviewParam">
+        INSERT INTO review_images
+        (
+            review_id,
+            image_url,
+            created_at
+        )
+        VALUES
+        <foreach collection="images" item="image" separator=",">
+            (
+                #{id},
+                #{image.image_url},
+                NOW()
+            )
+        </foreach>
     </insert>
 
     <delete id="deleteReview"

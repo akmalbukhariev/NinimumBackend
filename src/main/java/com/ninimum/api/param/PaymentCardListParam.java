@@ -3,6 +3,6 @@ package com.ninimum.api.param;
 import lombok.Data;
 
 @Data
-public class CartListParam extends PageSizeParam {
+public class PaymentCardListParam {
     private Long user_id;
 }

@@ -46,4 +46,25 @@ public class FileService implements IFileService {
 
         return "products/" + fileName;
     }
+
+    @Override
+    public String saveReviewImage(MultipartFile file) throws Exception {
+
+        String originalName = file.getOriginalFilename();
+        String extension = "";
+
+        if (originalName != null && originalName.contains(".")) {
+            extension = originalName.substring(originalName.lastIndexOf("."));
+        }
+
+        String fileName = UUID.randomUUID() + extension;
+
+        Path reviewDir = Path.of(uploadPath, "reviews");
+        Files.createDirectories(reviewDir);
+
+        Path savePath = reviewDir.resolve(fileName);
+        file.transferTo(savePath.toFile());
+
+        return "reviews/" + fileName;
+    }
 }

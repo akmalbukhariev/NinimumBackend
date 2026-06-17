@@ -1,18 +1,18 @@
 package com.ninimum.api.payment.service;
 
-import com.ninimum.api.dto.PaymentDto;
-import com.ninimum.api.param.CancelPaymentParam;
-import com.ninimum.api.param.CreatePaymentParam;
-import com.ninimum.api.param.PaymentDetailParam;
-import com.ninimum.api.param.PaymentListParam;
+import com.ninimum.api.dto.PaymentCardDto;
+import com.ninimum.api.param.*;
 
 import java.util.List;
 
 public interface IPaymentService {
-    List<PaymentDto> getPaymentList(PaymentListParam param) throws Exception;
+    List<PaymentCardDto> getPaymentCardList(PaymentCardListParam param) throws Exception;
 
-    PaymentDto getPaymentDetail(PaymentDetailParam param) throws Exception;
+    int createPaymentCard(CreatePaymentCardParam param) throws Exception;
 
-    int createPayment(CreatePaymentParam param) throws Exception;
-    int cancelPayment(CancelPaymentParam param) throws Exception;
+    int deletePaymentCard(DeletePaymentCardParam param) throws Exception;
+
+    int setDefaultPaymentCard(SetDefaultPaymentCardParam param) throws Exception;
+
+    int hasPaymentCard(PaymentCardListParam param) throws Exception;
 }

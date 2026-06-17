@@ -162,14 +162,12 @@ public class ProductService implements IProductService {
     public List<ProductResponse> searchProductList(SearchProductParam param) throws Exception {
 
         List<CamelCaseMap> camProducts = this.productMapper.searchProductList(param);
-        List<ProductResponse> products =
-                Converter.mapToDtoList(camProducts, ProductResponse.class);
+        List<ProductResponse> products = Converter.mapToDtoList(camProducts, ProductResponse.class);
 
         for (ProductResponse product : products) {
 
             List<CamelCaseMap> mapList = this.productMapper.getProductImages(product.getId());
-            List<ProductImageDto> images =
-                    Converter.mapToDtoList(mapList, ProductImageDto.class);
+            List<ProductImageDto> images = Converter.mapToDtoList(mapList, ProductImageDto.class);
 
             for (ProductImageDto image : images) {
                 if (image.getImage_url() != null && !image.getImage_url().isEmpty()) {

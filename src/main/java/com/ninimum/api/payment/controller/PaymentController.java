@@ -4,11 +4,8 @@ import com.ninimum.api.common.BaseController;
 import com.ninimum.api.common.Result;
 import com.ninimum.api.common.VersionResponseResult;
 import com.ninimum.api.constants.Constant;
-import com.ninimum.api.dto.PaymentDto;
-import com.ninimum.api.param.CancelPaymentParam;
-import com.ninimum.api.param.CreatePaymentParam;
-import com.ninimum.api.param.PaymentDetailParam;
-import com.ninimum.api.param.PaymentListParam;
+import com.ninimum.api.dto.PaymentCardDto;
+import com.ninimum.api.param.*;
 import com.ninimum.api.payment.service.IPaymentService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -26,7 +23,7 @@ import java.util.List;
 @RestController
 @RequiredArgsConstructor
 @Tag(name = "Payment", description = "Payment APIs.")
-@RequestMapping(value={"/ninimum/api/v1/payment"})
+@RequestMapping(value = {"/ninimum/api/v1/payment"})
 public class PaymentController extends BaseController {
 
     private final IPaymentService paymentService;
@@ -38,74 +35,71 @@ public class PaymentController extends BaseController {
 
     @Operation(
             tags = {"Payment"},
-            summary = "1. Payment list",
-            description = "Returns payment list by user ID.",
-            hidden = false,
+            summary = "1. Payment card list",
+            description = "Returns payment card list by user ID.",
             responses = { @ApiResponse(responseCode = "200", description = "success") },
             security = { @SecurityRequirement(name = "bearerAuth") }
     )
-    @PostMapping(value = "/getPaymentList", headers = { "Content-type=application/json" })
-    public ResponseEntity<Object> getPaymentList(@RequestBody PaymentListParam param) {
-        VersionResponseResult result = null;
+    @PostMapping(value = "/getPaymentCardList", headers = { "Content-type=application/json" })
+    public ResponseEntity<Object> getPaymentCardList(@RequestBody PaymentCardListParam param) {
+        VersionResponseResult result;
 
         try {
-            List<PaymentDto> payments = this.paymentService.getPaymentList(param);
-            result = this.setResult(Result.SUCCESS, payments);
+            List<PaymentCardDto> cards = paymentService.getPaymentCardList(param);
+            result = setResult(Result.SUCCESS, cards);
         } catch (Exception ex) {
-            result = this.setResult(Result.SERVER_ERROR);
-            log.error("PaymentController => getPaymentList: ", ex);
+            result = setResult(Result.SERVER_ERROR);
+            log.error("PaymentController => getPaymentCardList: ", ex);
         }
 
         return new ResponseEntity<>(result, HttpStatus.OK);
     }
 
-    @Operation(
+    /*@Operation(
             tags = {"Payment"},
-            summary = "2. Payment detail",
-            description = "Returns payment detail by payment ID.",
-            hidden = false,
+            summary = "2. Payment card detail",
+            description = "Returns payment card detail by card ID and user ID.",
             responses = { @ApiResponse(responseCode = "200", description = "success") },
             security = { @SecurityRequirement(name = "bearerAuth") }
     )
-    @PostMapping(value = "/getPaymentDetail", headers = { "Content-type=application/json" })
-    public ResponseEntity<Object> getPaymentDetail(@RequestBody PaymentDetailParam param) {
-        VersionResponseResult result = null;
+    @PostMapping(value = "/getPaymentCardDetail", headers = { "Content-type=application/json" })
+    public ResponseEntity<Object> getPaymentCardDetail(@RequestBody PaymentDetailParam param) {
+        VersionResponseResult result;
 
         try {
-            PaymentDto payment = this.paymentService.getPaymentDetail(param);
-            result = this.setResult(Result.SUCCESS, payment);
+            PaymentCardDto card = paymentService.getPaymentDetail(param);
+            result = setResult(Result.SUCCESS, card);
         } catch (Exception ex) {
-            result = this.setResult(Result.SERVER_ERROR);
-            log.error("PaymentController => getPaymentDetail: ", ex);
+            result = setResult(Result.SERVER_ERROR);
+            log.error("PaymentController => getPaymentCardDetail: ", ex);
         }
 
         return new ResponseEntity<>(result, HttpStatus.OK);
-    }
+    }*/
 
     @Operation(
             tags = {"Payment"},
-            summary = "3. Create payment",
-            description = "Creates payment information for an order.",
-            hidden = false,
+            summary = "3. Create payment card",
+            description = "Registers a new payment card. Full card number and CVV are not saved.",
             responses = { @ApiResponse(responseCode = "200", description = "success") },
             security = { @SecurityRequirement(name = "bearerAuth") }
     )
-    @PostMapping(value = "/createPayment", headers = { "Content-type=application/json" })
-    public ResponseEntity<Object> createPayment(@RequestBody CreatePaymentParam param) {
-        VersionResponseResult result = null;
+    @PostMapping(value = "/createPaymentCard", headers = { "Content-type=application/json" })
+    public ResponseEntity<Object> createPaymentCard(@RequestBody CreatePaymentCardParam param) {
+        VersionResponseResult result;
 
         try {
-            int resultNum = this.paymentService.createPayment(param);
+            int resultNum = paymentService.createPaymentCard(param);
 
             if (resultNum != 0) {
-                result = this.setResult(Result.SUCCESS);
+                result = setResult(Result.SUCCESS);
             } else {
-                result = this.setResult(Result.SERVER_ERROR);
+                result = setResult(Result.SERVER_ERROR);
             }
 
         } catch (Exception ex) {
-            result = this.setResult(Result.SERVER_ERROR);
-            log.error("PaymentController => createPayment: ", ex);
+            result = setResult(Result.SERVER_ERROR);
+            log.error("PaymentController => createPaymentCard: ", ex);
         }
 
         return new ResponseEntity<>(result, HttpStatus.OK);
@@ -113,28 +107,77 @@ public class PaymentController extends BaseController {
 
     @Operation(
             tags = {"Payment"},
-            summary = "4. Cancel payment",
-            description = "Cancels payment by payment ID and user ID.",
-            hidden = false,
+            summary = "4. Delete payment card",
+            description = "Deletes payment card by card ID and user ID.",
             responses = { @ApiResponse(responseCode = "200", description = "success") },
             security = { @SecurityRequirement(name = "bearerAuth") }
     )
-    @PutMapping(value = "/cancelPayment", headers = { "Content-type=application/json" })
-    public ResponseEntity<Object> cancelPayment(@RequestBody CancelPaymentParam param) {
-        VersionResponseResult result = null;
+    @PostMapping(value = "/deletePaymentCard", headers = { "Content-type=application/json" })
+    public ResponseEntity<Object> deletePaymentCard(@RequestBody DeletePaymentCardParam param) {
+        VersionResponseResult result;
 
         try {
-            int resultNum = this.paymentService.cancelPayment(param);
+            int resultNum = paymentService.deletePaymentCard(param);
 
             if (resultNum != 0) {
-                result = this.setResult(Result.SUCCESS);
+                result = setResult(Result.SUCCESS);
             } else {
-                result = this.setResult(Result.SERVER_ERROR);
+                result = setResult(Result.SERVER_ERROR);
             }
 
         } catch (Exception ex) {
-            result = this.setResult(Result.SERVER_ERROR);
-            log.error("PaymentController => cancelPayment: ", ex);
+            result = setResult(Result.SERVER_ERROR);
+            log.error("PaymentController => deletePaymentCard: ", ex);
+        }
+
+        return new ResponseEntity<>(result, HttpStatus.OK);
+    }
+
+    @Operation(
+            tags = {"Payment"},
+            summary = "5. Set default payment card",
+            description = "Sets selected card as user's default payment card.",
+            responses = { @ApiResponse(responseCode = "200", description = "success") },
+            security = { @SecurityRequirement(name = "bearerAuth") }
+    )
+    @PutMapping(value = "/setDefaultPaymentCard", headers = { "Content-type=application/json" })
+    public ResponseEntity<Object> setDefaultPaymentCard(@RequestBody SetDefaultPaymentCardParam param) {
+        VersionResponseResult result;
+
+        try {
+            int resultNum = paymentService.setDefaultPaymentCard(param);
+
+            if (resultNum != 0) {
+                result = setResult(Result.SUCCESS);
+            } else {
+                result = setResult(Result.SERVER_ERROR);
+            }
+
+        } catch (Exception ex) {
+            result = setResult(Result.SERVER_ERROR);
+            log.error("PaymentController => setDefaultPaymentCard: ", ex);
+        }
+
+        return new ResponseEntity<>(result, HttpStatus.OK);
+    }
+
+    @Operation(
+            tags = {"Payment"},
+            summary = "6. Has payment card",
+            description = "Checks whether user has at least one registered payment card.",
+            responses = { @ApiResponse(responseCode = "200", description = "success") },
+            security = { @SecurityRequirement(name = "bearerAuth") }
+    )
+    @PostMapping(value = "/hasPaymentCard", headers = { "Content-type=application/json" })
+    public ResponseEntity<Object> hasPaymentCard(@RequestBody PaymentCardListParam param) {
+        VersionResponseResult result;
+
+        try {
+            int count = paymentService.hasPaymentCard(param);
+            result = setResult(Result.SUCCESS, count > 0);
+        } catch (Exception ex) {
+            result = setResult(Result.SERVER_ERROR);
+            log.error("PaymentController => hasPaymentCard: ", ex);
         }
 
         return new ResponseEntity<>(result, HttpStatus.OK);
