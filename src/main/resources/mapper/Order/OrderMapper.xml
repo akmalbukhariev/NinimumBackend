@@ -5,75 +5,144 @@
     <select id="getOrderList"
             parameterType="com.ninimum.api.param.OrderListParam"
             resultType="com.ninimum.api.dto.OrderDto">
+
         SELECT
-        order_id AS orderId,
-        user_id AS userId,
-        total_price AS totalPrice,
-        order_status AS orderStatus,
-        DATE_FORMAT(created_at, '%Y-%m-%d %H:%i:%s') AS orderDate
-        FROM orders
-        WHERE user_id = #{userId}
-        ORDER BY order_id DESC
+            o.id AS orderId,
+            o.user_id AS userId,
+            o.order_number AS orderNumber,
+            o.status AS status,
+            o.payment_status AS paymentStatus,
+            o.total_price AS totalPrice,
+            COALESCE(SUM(oi.quantity), 0) AS productCount,
+            DATE_FORMAT(o.ordered_at, '%Y-%m-%d %H:%i:%s') AS orderedAt
+        FROM orders o
+
+        LEFT JOIN order_items oi
+            ON oi.order_id = o.id
+
+        WHERE o.user_id = #{userId}
+
+        GROUP BY
+            o.id,
+            o.user_id,
+            o.order_number,
+            o.status,
+            o.payment_status,
+            o.total_price,
+            o.ordered_at
+
+        ORDER BY o.ordered_at DESC
+
     </select>
 
     <select id="getOrderDetail"
             parameterType="com.ninimum.api.param.OrderDetailParam"
             resultType="com.ninimum.api.dto.OrderDetailDto">
         SELECT
-        od.order_detail_id AS orderDetailId,
-        od.order_id AS orderId,
-        od.product_id AS productId,
-        p.product_name AS productName,
-        p.product_image_url AS productImageUrl,
-        od.price AS price,
-        od.quantity AS quantity,
-        od.price * od.quantity AS totalPrice
-        FROM order_details od
-        INNER JOIN orders o ON od.order_id = o.order_id
-        INNER JOIN products p ON od.product_id = p.product_id
-        WHERE od.order_id = #{orderId}
-        AND o.user_id = #{userId}
-        ORDER BY od.order_detail_id ASC
+            oi.id AS orderItemId,
+            oi.order_id AS orderId,
+            oi.product_id AS productId,
+            oi.product_name AS productName,
+            oi.product_image_url AS productImageUrl,
+            oi.unit_price AS unitPrice,
+            oi.quantity AS quantity,
+            oi.total_price AS totalPrice
+        FROM order_items oi
+
+        INNER JOIN orders o
+            ON o.id = oi.order_id
+
+        WHERE oi.order_id = #{orderId}
+            AND o.user_id = #{userId}
+
+        ORDER BY oi.id ASC
     </select>
 
     <insert id="createOrder"
             parameterType="com.ninimum.api.param.CreateOrderParam"
             useGeneratedKeys="true"
-            keyProperty="orderId">
+            keyProperty="orderId"
+            keyColumn="id">
+
         INSERT INTO orders
         (
-        user_id,
-        total_price,
-        order_status,
-        created_at
+            user_id,
+            address_id,
+            order_number,
+            status,
+            payment_status,
+            subtotal_price,
+            delivery_price,
+            discount_price,
+            total_price,
+            ordered_at,
+            created_at
         )
         VALUES
         (
-        #{userId},
-        #{totalPrice},
-        'ORDERED',
-        NOW()
+            #{userId},
+            #{addressId},
+            CONCAT('ORD-', REPLACE(UUID(), '-', '')),
+            'PENDING',
+            'PENDING',
+            #{totalPrice},
+            0,
+            0,
+            #{totalPrice},
+            NOW(),
+            NOW()
         )
     </insert>
 
-    <insert id="createOrderDetail"
+    <insert id="createOrderItem"
             parameterType="com.ninimum.api.param.CreateOrderProductParam">
-        INSERT INTO order_details
+
+        INSERT INTO order_items
         (
-        order_id,
-        product_id,
-        price,
-        quantity,
-        created_at
+            order_id,
+            product_id,
+            product_name,
+            product_image_url,
+            unit_price,
+            quantity,
+            total_price,
+            fiscal_mxik_code,
+            fiscal_package_code,
+            vat_percent,
+            created_at
         )
-        VALUES
-        (
-        #{orderId},
-        #{productId},
-        #{price},
-        #{quantity},
-        NOW()
-        )
+        SELECT
+            #{orderId},
+            p.id,
+            p.name,
+            (
+                SELECT pi.image_url
+                FROM product_images pi
+                WHERE pi.product_id = p.id
+                ORDER BY pi.sort_order ASC, pi.id ASC
+                LIMIT 1
+            ),
+
+            p.price,
+            #{quantity},
+            p.price * #{quantity},
+            fm.mxik_code,
+            fmp.package_code,
+            p.vat_percent,
+            NOW()
+
+        FROM products p
+
+        INNER JOIN fiscal_mxik_package fmp
+        ON fmp.id = p.fiscal_mxik_package_id
+
+        INNER JOIN fiscal_mxik fm
+        ON fm.id = fmp.mxik_id
+
+        WHERE p.id = #{productId}
+        AND p.is_active = 1
+        AND p.vat_percent IS NOT NULL
+
     </insert>
 
     <update id="cancelOrder"
@@ -93,5 +162,49 @@
         SELECT COUNT(*)
         FROM orders
         WHERE user_id = #{userId}
+    </select>
+
+    <select id="getOrderPaymentStatus"
+            parameterType="com.ninimum.api.param.OrderDetailParam"
+            resultType="com.ninimum.api.dto.payme.PaymentStatusDto">
+
+        SELECT
+            id AS orderId,
+            order_number AS orderNumber,
+            payment_status AS paymentStatus
+        FROM orders
+        WHERE id = #{orderId}
+            AND user_id = #{userId}
+        LIMIT 1
+
+    </select>
+
+    <select id="getOrderProcess"
+            parameterType="com.ninimum.api.param.OrderDetailParam"
+            resultType="com.ninimum.api.dto.OrderProcessDto">
+
+        SELECT
+            id AS orderId,
+            order_number AS orderNumber,
+            status AS status,
+
+        DATE_FORMAT(
+            ordered_at,
+            '%Y-%m-%d %H:%i:%s'
+        ) AS orderedAt,
+
+        CASE
+        WHEN delivered_at IS NULL THEN NULL
+        ELSE DATE_FORMAT(
+            delivered_at,
+            '%Y-%m-%d %H:%i:%s'
+        )
+        END AS deliveredAt
+
+        FROM orders
+        WHERE id = #{orderId}
+            AND user_id = #{userId}
+        LIMIT 1
+
     </select>
 </mapper>

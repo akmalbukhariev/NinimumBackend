@@ -1,0 +1,136 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ninimum.api.payment.service.PaymeMapper">
+
+    <select id="getPaymeOrderCheckById"
+            parameterType="com.ninimum.api.dto.payme.GetPaymeOrderParam"
+            resultType="camelMap">
+        SELECT
+            id,
+            user_id,
+            total_price,
+            payment_status,
+            status
+        FROM orders
+        WHERE id = #{order_id}
+    </select>
+
+    <select id="getPaymeOrderFiscalItems"
+            parameterType="com.ninimum.api.dto.payme.GetPaymeOrderParam"
+            resultType="camelMap">
+
+        SELECT
+            id AS order_item_id,
+            product_name,
+            unit_price,
+            quantity,
+            fiscal_mxik_code,
+            fiscal_package_code,
+            vat_percent
+        FROM order_items
+        WHERE order_id = #{order_id}
+        ORDER BY id ASC
+
+    </select>
+
+    <insert id="createPaymePayment"
+            parameterType="com.ninimum.api.dto.payme.CreatePaymePaymentParam">
+        INSERT INTO payments
+        (
+            order_id,
+            user_id,
+            provider,
+            provider_transaction_id,
+            amount,
+            amount_tiyin,
+            status,
+            payme_time,
+            payme_create_time
+        )
+        VALUES
+        (
+            #{order_id},
+            #{user_id},
+            'PAYME',
+            #{provider_transaction_id},
+            #{amount},
+            #{amount_tiyin},
+            'CREATED',
+            #{payme_time},
+            #{payme_create_time}
+        )
+    </insert>
+
+    <select id="getPaymePaymentByTransactionId"
+            parameterType="com.ninimum.api.dto.payme.GetPaymePaymentParam"
+            resultType="camelMap">
+        SELECT *
+        FROM payments
+        WHERE provider = 'PAYME'
+            AND provider_transaction_id = #{transaction_id}
+        LIMIT 1
+    </select>
+
+    <update id="updateOrderPaymentStatus"
+            parameterType="com.ninimum.api.dto.payme.UpdateOrderPaymentStatusParam">
+        UPDATE orders
+            SET payment_status = #{payment_status}
+        WHERE id = #{order_id}
+    </update>
+
+    <update id="performPaymePayment"
+            parameterType="com.ninimum.api.dto.payme.PerformPaymePaymentParam">
+        UPDATE payments
+        SET
+        status = 'PAID',
+        payme_perform_time = #{payme_perform_time}
+        WHERE provider = 'PAYME'
+            AND provider_transaction_id = #{transaction_id}
+            AND status = 'CREATED'
+    </update>
+
+    <select id="getActivePaymePaymentByOrderId"
+            parameterType="com.ninimum.api.dto.payme.GetPaymeOrderParam"
+            resultType="camelMap">
+        SELECT *
+        FROM payments
+        WHERE order_id = #{order_id}
+            AND provider = 'PAYME'
+            AND status IN ('CREATED', 'PENDING', 'PAID')
+        ORDER BY id DESC
+        LIMIT 1
+    </select>
+
+    <update id="cancelPaymePayment"
+            parameterType="com.ninimum.api.dto.payme.CancelPaymePaymentParam">
+        UPDATE payments
+        SET
+            status = #{status},
+            payme_cancel_time = #{payme_cancel_time},
+            payme_reason = #{payme_reason}
+        WHERE provider = 'PAYME'
+            AND provider_transaction_id = #{transaction_id}
+            AND status IN ('CREATED', 'PAID')
+    </update>
+
+    <select id="getPaymeStatement"
+            parameterType="com.ninimum.api.dto.payme.GetPaymeStatementParam"
+            resultType="camelMap">
+
+        SELECT
+        provider_transaction_id AS id,
+        payme_time AS time,
+        amount_tiyin AS amount,
+        payme_create_time AS create_time,
+        payme_perform_time AS perform_time,
+        payme_cancel_time AS cancel_time,
+        provider_transaction_id AS transaction,
+        payme_reason AS reason,
+        status,
+        order_id
+        FROM payments
+        WHERE payme_create_time BETWEEN #{from_time} AND #{to_time}
+        ORDER BY payme_create_time ASC
+
+    </select>
+</mapper>

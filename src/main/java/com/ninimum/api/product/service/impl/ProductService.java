@@ -5,6 +5,7 @@ import com.ninimum.api.common.Converter;
 import com.ninimum.api.dto.ProductCategoryDto;
 import com.ninimum.api.dto.ProductDto;
 import com.ninimum.api.dto.ProductImageDto;
+import com.ninimum.api.dto.payme.FiscalMxikPackageListParam;
 import com.ninimum.api.file.service.impl.FileService;
 import com.ninimum.api.param.*;
 import com.ninimum.api.product.service.IProductService;
@@ -32,6 +33,34 @@ public class ProductService implements IProductService {
     @Override
     @Transactional
     public int createProduct(AddProductParam param, List<MultipartFile> images) throws Exception {
+        if (param == null) {
+            throw new Exception("Product data is required");
+        }
+
+        if (param.getFiscal_mxik_package_id() == null) {
+            throw new Exception("Fiscal MXIK package must be selected");
+        }
+
+        if (param.getVat_percent() == null
+                || param.getVat_percent() < 0
+                || param.getVat_percent() > 100) {
+
+            throw new Exception(
+                    "VAT percentage must be between 0 and 100"
+            );
+        }
+
+        int fiscalPackageCount =
+                productMapper.countFiscalMxikPackageById(
+                        param.getFiscal_mxik_package_id()
+                );
+
+        if (fiscalPackageCount == 0) {
+            throw new Exception(
+                    "Selected fiscal MXIK package does not exist"
+            );
+        }
+
         int productResult = productMapper.insertProduct(param);
 
         if (productResult == 0) {
@@ -64,6 +93,32 @@ public class ProductService implements IProductService {
         }
 
         return productResult;
+    }
+
+    @Override
+    public List<CamelCaseMap> getFiscalMxikPackageList(FiscalMxikPackageListParam param) throws Exception {
+
+        if (param == null) {
+            param = new FiscalMxikPackageListParam();
+        }
+
+        if (param.getPageSize() <= 0) {
+            param.setPageSize(20);
+        }
+
+        if (param.getPageSize() > 100) {
+            param.setPageSize(100);
+        }
+
+        if (param.getOffset() < 0) {
+            param.setOffset(0);
+        }
+
+        if (param.getKeyword() != null) {
+            param.setKeyword(param.getKeyword().trim());
+        }
+
+        return productMapper.getFiscalMxikPackageList(param);
     }
 
     @Override

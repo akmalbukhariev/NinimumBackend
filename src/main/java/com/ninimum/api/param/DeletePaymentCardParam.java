@@ -4,6 +4,6 @@ import lombok.Data;
 
 @Data
 public class DeletePaymentCardParam {
-    private Long card_id;
+    private Long cart_id;
     private Long user_id;
 }

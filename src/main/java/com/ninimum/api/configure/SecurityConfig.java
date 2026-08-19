@@ -52,6 +52,7 @@ public class SecurityConfig {
                 .antMatchers("/uploads/**").permitAll()
                 .antMatchers("/ninimum/api/v1/admin/login").permitAll()
                 .antMatchers("/ninimum/api/v1/user/login").permitAll()
+                .antMatchers("/ninimum/api/v1/payment/payme/callback").permitAll()
                 //.antMatchers("/ninimum/api/v1/admin/**").hasAnyAuthority(Constant.ROLE_ADMIN)
                 .antMatchers("/ninimum/api/v1/**").hasAnyAuthority(Constant.ROLE_USER, Constant.ROLE_ADMIN);
 
@@ -104,6 +105,7 @@ public class SecurityConfig {
                 "/ninimum/api/v1/user/register",     //it should not be committed
                 //"/ninimum/api/v1/admin/register",     //it should not be committed
                 "/ninimum/api/v1/message/verifyPhoneNumber",     //it should not be committed
+                "/ninimum/api/v1/payment/payme/callback",     //it should not be committed
                 "/error");
     }
 }

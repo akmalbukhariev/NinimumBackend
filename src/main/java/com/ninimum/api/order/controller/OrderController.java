@@ -7,6 +7,8 @@ import com.ninimum.api.constants.Constant;
 import com.ninimum.api.dto.OrderCountDto;
 import com.ninimum.api.dto.OrderDetailDto;
 import com.ninimum.api.dto.OrderDto;
+import com.ninimum.api.dto.OrderProcessDto;
+import com.ninimum.api.dto.payme.PaymentStatusDto;
 import com.ninimum.api.order.service.IOrderService;
 import com.ninimum.api.param.CancelOrderParam;
 import com.ninimum.api.param.CreateOrderParam;
@@ -27,7 +29,7 @@ import java.util.List;
 @Slf4j
 @RestController
 @RequiredArgsConstructor
-@Tag(name = "mapper/Order", description = "Order APIs.")
+@Tag(name = "Order", description = "Order APIs.")
 @RequestMapping(value={"/ninimum/api/v1/order"})
 public class OrderController extends BaseController {
 
@@ -39,7 +41,7 @@ public class OrderController extends BaseController {
     }
 
     @Operation(
-            tags = {"mapper/Order"},
+            tags = {"Order"},
             summary = "1. Order list",
             description = "Returns order list by user ID.",
             hidden = false,
@@ -62,7 +64,7 @@ public class OrderController extends BaseController {
     }
 
     @Operation(
-            tags = {"mapper/Order"},
+            tags = {"Order"},
             summary = "2. Order detail",
             description = "Returns order detail by order ID.",
             hidden = false,
@@ -85,7 +87,7 @@ public class OrderController extends BaseController {
     }
 
     @Operation(
-            tags = {"mapper/Order"},
+            tags = {"Order"},
             summary = "3. Create order",
             description = "Creates a new order with order detail products.",
             hidden = false,
@@ -100,7 +102,7 @@ public class OrderController extends BaseController {
             int resultNum = this.orderService.createOrder(param);
 
             if (resultNum != 0) {
-                result = this.setResult(Result.SUCCESS);
+                result = this.setResult(Result.SUCCESS, param.getOrderId());
             } else {
                 result = this.setResult(Result.SERVER_ERROR);
             }
@@ -160,6 +162,58 @@ public class OrderController extends BaseController {
         } catch (Exception ex) {
             result = this.setResult(Result.SERVER_ERROR);
             log.error("OrderController => getOrderCount: ", ex);
+        }
+
+        return new ResponseEntity<>(result, HttpStatus.OK);
+    }
+
+    @Operation(
+            tags = {"Order"},
+            summary = "6. Get order payment status",
+            description = "Returns payment status by order ID and user ID.",
+            responses = {@ApiResponse(responseCode = "200",description = "success")},
+            security = {@SecurityRequirement(name = "bearerAuth")}
+    )
+    @PostMapping(value = "/getOrderPaymentStatus",headers = {"Content-type=application/json"})
+    public ResponseEntity<Object> getOrderPaymentStatus(@RequestBody OrderDetailParam param) {
+
+        VersionResponseResult result;
+
+        try {
+            PaymentStatusDto paymentStatus = orderService.getOrderPaymentStatus(param);
+
+            result = setResult(Result.SUCCESS,paymentStatus);
+
+        } catch (Exception ex) {
+            result = setResult(Result.SERVER_ERROR);
+
+            log.error("OrderController => getOrderPaymentStatus: ", ex);
+        }
+
+        return new ResponseEntity<>(result,HttpStatus.OK);
+    }
+
+    @Operation(
+            tags = {"Order"},
+            summary = "7. Get order process",
+            description = "Returns current order process status.",
+            responses = {@ApiResponse(responseCode = "200",description = "success")},
+            security = {@SecurityRequirement(name = "bearerAuth")}
+    )
+    @PostMapping(value = "/getOrderProcess",headers = {"Content-type=application/json"})
+    public ResponseEntity<Object> getOrderProcess(@RequestBody OrderDetailParam param) {
+
+        VersionResponseResult result;
+
+        try {
+            OrderProcessDto orderProcess = orderService.getOrderProcess(param);
+
+            result = setResult(Result.SUCCESS, orderProcess);
+        } catch (Exception ex) {
+            result = setResult(Result.SERVER_ERROR);
+
+            log.error("OrderController => getOrderProcess: ", ex
+            );
         }
 
         return new ResponseEntity<>(result, HttpStatus.OK);

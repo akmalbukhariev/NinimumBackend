@@ -16,14 +16,36 @@ public class OpenApiConfig {
         return new OpenAPI()
                 .info(new Info()
                         .title("Ninimum API")
-                        .version("v1"))
-                .addSecurityItem(new SecurityRequirement().addList("bearerAuth"))
-                .components(new Components()
-                        .addSecuritySchemes("bearerAuth",
-                                new SecurityScheme()
-                                        .name("bearerAuth")
-                                        .type(SecurityScheme.Type.HTTP)
-                                        .scheme("bearer")
-                                        .bearerFormat("JWT")));
+                        .version("v1")
+                )
+
+                // Default security for normal Ninimum APIs
+                .addSecurityItem(
+                        new SecurityRequirement()
+                                .addList("bearerAuth")
+                )
+
+                .components(
+                        new Components()
+
+                                // Admin/user JWT
+                                .addSecuritySchemes(
+                                        "bearerAuth",
+                                        new SecurityScheme()
+                                                .name("bearerAuth")
+                                                .type(SecurityScheme.Type.HTTP)
+                                                .scheme("bearer")
+                                                .bearerFormat("JWT")
+                                )
+
+                                // Payme callback authentication
+                                .addSecuritySchemes(
+                                        "paymeBasicAuth",
+                                        new SecurityScheme()
+                                                .name("paymeBasicAuth")
+                                                .type(SecurityScheme.Type.HTTP)
+                                                .scheme("basic")
+                                )
+                );
     }
 }

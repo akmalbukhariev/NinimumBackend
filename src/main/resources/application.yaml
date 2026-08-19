@@ -33,7 +33,7 @@ file:
   upload:
     path: ${FILE_UPLOAD_PATH:uploads}
   access:
-    url: ${FILE_ACCESS_URL:http://192.168.219.122:8083/uploads}
+    url: ${FILE_ACCESS_URL:http://192.168.219.105:8083/uploads}
 
 ### mybatis setting ###
 mybatis:
@@ -45,6 +45,13 @@ logging:
 
 jwt:
   secret: PbsqL3MYe1Z3cf3WZ9z37ygqXprKDyK6qoN3QZAkmQNwbQy9AdZvkNZjDiMe2KF1FPuWLPguqm4rsgJu
+
+payme:
+  checkout-url: https://checkout.paycom.uz/
+  subscribe-api-url: https://checkout.paycom.uz/api
+  merchant-id: 6a451710e174061946ab48df
+  key: jpQs@j8V8HnQD8D2Kc#0g6I&orExGZG2CeNY
+  return-url: ninimum://payment-result
 
 server:
   address: 0.0.0.0

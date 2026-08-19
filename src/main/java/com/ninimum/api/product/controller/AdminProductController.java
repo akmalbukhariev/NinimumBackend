@@ -1,10 +1,12 @@
 package com.ninimum.api.product.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.ninimum.api.camelcase.CamelCaseMap;
 import com.ninimum.api.common.BaseController;
 import com.ninimum.api.common.Result;
 import com.ninimum.api.common.VersionResponseResult;
 import com.ninimum.api.constants.Constant;
+import com.ninimum.api.dto.payme.FiscalMxikPackageListParam;
 import com.ninimum.api.param.AddProductParam;
 import com.ninimum.api.product.service.IProductService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -69,5 +71,41 @@ public class AdminProductController extends BaseController {
         }
 
         return new ResponseEntity<>(result, HttpStatus.OK);
+    }
+
+    @Operation(
+            tags = {"Admin Product"},
+            summary = "2. Fiscal MXIK package list",
+            description = "Searches MXIK and package combinations.",
+            hidden = false,
+            responses = {@ApiResponse(responseCode = "200",description = "success")},
+            security = {@SecurityRequirement(name = "bearerAuth")}
+    )
+    @PostMapping(value = "/getFiscalMxikPackageList",headers = {"Content-type=application/json"})
+    public ResponseEntity<Object> getFiscalMxikPackageList(@RequestBody FiscalMxikPackageListParam param) {
+        VersionResponseResult result;
+
+        try {
+            List<CamelCaseMap> fiscalPackages =
+                    productService.getFiscalMxikPackageList(param);
+
+            result = setResult(
+                    Result.SUCCESS,
+                    fiscalPackages
+            );
+        } catch (Exception ex) {
+            result = setResult(Result.SERVER_ERROR);
+
+            log.error(
+                    "AdminProductController => " +
+                            "getFiscalMxikPackageList: ",
+                    ex
+            );
+        }
+
+        return new ResponseEntity<>(
+                result,
+                HttpStatus.OK
+        );
     }
 }

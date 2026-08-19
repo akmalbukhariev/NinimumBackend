@@ -7,6 +7,7 @@ import java.util.List;
 public class CreateOrderParam {
     private Long orderId;
     private Long userId;
+    private Long addressId;
     private Integer totalPrice;
     private List<CreateOrderProductParam> products;
 }

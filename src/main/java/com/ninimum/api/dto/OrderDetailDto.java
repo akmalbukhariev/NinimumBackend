@@ -2,14 +2,16 @@ package com.ninimum.api.dto;
 
 import lombok.Data;
 
+import java.math.BigDecimal;
+
 @Data
 public class OrderDetailDto {
-    private Long orderDetailId;
+    private Long orderItemId;
     private Long orderId;
     private Long productId;
     private String productName;
     private String productImageUrl;
-    private Integer price;
+    private BigDecimal unitPrice;
     private Integer quantity;
-    private Integer totalPrice;
+    private BigDecimal totalPrice;
 }

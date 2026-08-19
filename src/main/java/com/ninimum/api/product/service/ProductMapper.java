@@ -4,14 +4,18 @@ import com.ninimum.api.camelcase.CamelCaseMap;
 import com.ninimum.api.dto.ProductCategoryDto;
 import com.ninimum.api.dto.ProductDto;
 import com.ninimum.api.dto.ProductImageDto;
+import com.ninimum.api.dto.payme.FiscalMxikPackageListParam;
 import com.ninimum.api.param.*;
 import org.apache.ibatis.annotations.Mapper;
+import org.springframework.data.repository.query.Param;
 
 import java.util.List;
 
 @Mapper
 public interface ProductMapper {
     int insertProduct(AddProductParam param) throws Exception;
+    int countFiscalMxikPackageById(@Param("fiscal_mxik_package_id") Long fiscalMxikPackageId) throws Exception;
+    List<CamelCaseMap> getFiscalMxikPackageList(FiscalMxikPackageListParam param) throws Exception;
     Long getLastInsertId() throws Exception;
     List<CamelCaseMap> getProductImages(Long productId) throws Exception;
     int insertProductImages(AddProductParam param) throws Exception;
