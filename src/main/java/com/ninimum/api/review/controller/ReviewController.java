@@ -43,8 +43,7 @@ public class ReviewController extends BaseController {
             summary = "1. Review list",
             description = "Returns product review list.",
             hidden = false,
-            responses = { @ApiResponse(responseCode = "200", description = "success") },
-            security = { @SecurityRequirement(name = "bearerAuth") }
+            responses = { @ApiResponse(responseCode = "200", description = "success") }
     )
     @PostMapping(value = "/getReviewList", headers = { "Content-type=application/json" })
     public ResponseEntity<Object> getReviewList(@RequestBody ReviewListParam param) {

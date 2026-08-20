@@ -25,6 +25,10 @@ import java.util.List;
 public class ProductService implements IProductService {
 
     private final ProductMapper productMapper;
+
+    private static long normalizeBrowsingUserId(Long userId) {
+        return userId != null && userId > 0 ? userId : 0L;
+    }
     private final FileService fileService;
 
     @Value("${file.access.url}")
@@ -129,6 +133,12 @@ public class ProductService implements IProductService {
     @Override
     public List<ProductResponse> getProductList(ProductListParam param) throws Exception {
 
+        if (param == null) {
+            param = new ProductListParam();
+        }
+
+        param.setUser_id(normalizeBrowsingUserId(param.getUser_id()));
+
         if (param.getPageSize() <= 0) {
             param.setPageSize(10);
         }
@@ -160,6 +170,12 @@ public class ProductService implements IProductService {
     @Override
     public ProductResponse getProductDetail(ProductDetailParam param) throws Exception {
 
+        if (param == null) {
+            param = new ProductDetailParam();
+        }
+
+        param.setUser_id(normalizeBrowsingUserId(param.getUser_id()));
+
         CamelCaseMap camProduct = this.productMapper.getProductDetail(param);
 
         if (camProduct == null) {
@@ -184,6 +200,12 @@ public class ProductService implements IProductService {
 
     @Override
     public List<ProductResponse> getSimilarProductList(SimilarProductListParam param) throws Exception {
+
+        if (param == null) {
+            param = new SimilarProductListParam();
+        }
+
+        param.setUser_id(normalizeBrowsingUserId(param.getUser_id()));
 
         if (param.getPageSize() <= 0) {
             param.setPageSize(10);
@@ -215,6 +237,20 @@ public class ProductService implements IProductService {
 
     @Override
     public List<ProductResponse> searchProductList(SearchProductParam param) throws Exception {
+
+        if (param == null) {
+            param = new SearchProductParam();
+        }
+
+        param.setUser_id(normalizeBrowsingUserId(param.getUser_id()));
+
+        if (param.getPageSize() <= 0) {
+            param.setPageSize(10);
+        }
+
+        if (param.getOffset() < 0) {
+            param.setOffset(0);
+        }
 
         List<CamelCaseMap> camProducts = this.productMapper.searchProductList(param);
         List<ProductResponse> products = Converter.mapToDtoList(camProducts, ProductResponse.class);

@@ -37,8 +37,7 @@ public class BannerController extends BaseController {
             summary = "1. Banner list",
             description = "Returns active banner list.",
             hidden = false,
-            responses = { @ApiResponse(responseCode = "200", description = "success") },
-            security = { @SecurityRequirement(name = "bearerAuth") }
+            responses = { @ApiResponse(responseCode = "200", description = "success") }
     )
     @GetMapping(value = "/getBannerList")
     public ResponseEntity<Object> getBannerList() {

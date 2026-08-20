@@ -40,8 +40,7 @@ public class ProductController extends BaseController {
             summary = "1. Product category list",
             description = "Returns product category list.",
             hidden = false,
-            responses = { @ApiResponse(responseCode = "200", description = "success") },
-            security = { @SecurityRequirement(name = "bearerAuth") }
+            responses = { @ApiResponse(responseCode = "200", description = "success") }
     )
     @GetMapping(value = "/getProductCategoryList")
     public ResponseEntity<Object> getProductCategoryList() {
@@ -63,8 +62,7 @@ public class ProductController extends BaseController {
             summary = "2. Product list",
             description = "Returns product list by category ID.",
             hidden = false,
-            responses = { @ApiResponse(responseCode = "200", description = "success") },
-            security = { @SecurityRequirement(name = "bearerAuth") }
+            responses = { @ApiResponse(responseCode = "200", description = "success") }
     )
     @PostMapping(value = "/getProductList", headers = { "Content-type=application/json" })
     public ResponseEntity<Object> getProductList(@RequestBody ProductListParam param) {
@@ -86,8 +84,7 @@ public class ProductController extends BaseController {
             summary = "3. Product detail",
             description = "Returns product detail by product ID.",
             hidden = false,
-            responses = { @ApiResponse(responseCode = "200", description = "success") },
-            security = { @SecurityRequirement(name = "bearerAuth") }
+            responses = { @ApiResponse(responseCode = "200", description = "success") }
     )
     @PostMapping(value = "/getProductDetail", headers = { "Content-type=application/json" })
     public ResponseEntity<Object> getProductDetail(@RequestBody ProductDetailParam param) {
@@ -109,8 +106,7 @@ public class ProductController extends BaseController {
             summary = "4. Search product list",
             description = "Searches products by keyword.",
             hidden = false,
-            responses = { @ApiResponse(responseCode = "200", description = "success") },
-            security = { @SecurityRequirement(name = "bearerAuth") }
+            responses = { @ApiResponse(responseCode = "200", description = "success") }
     )
     @PostMapping(value = "/searchProductList", headers = { "Content-type=application/json" })
     public ResponseEntity<Object> searchProductList(@RequestBody SearchProductParam param) {
@@ -132,8 +128,7 @@ public class ProductController extends BaseController {
             summary = "9. Similar product list",
             description = "Returns similar products by product ID.",
             hidden = false,
-            responses = { @ApiResponse(responseCode = "200", description = "success") },
-            security = { @SecurityRequirement(name = "bearerAuth") }
+            responses = { @ApiResponse(responseCode = "200", description = "success") }
     )
     @PostMapping(value = "/getSimilarProductList", headers = { "Content-type=application/json" })
     public ResponseEntity<Object> getSimilarProductList(@RequestBody SimilarProductListParam param) {

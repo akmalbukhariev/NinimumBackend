@@ -53,6 +53,20 @@ public class SecurityConfig {
                 .antMatchers("/ninimum/api/v1/admin/login").permitAll()
                 .antMatchers("/ninimum/api/v1/user/login").permitAll()
                 .antMatchers("/ninimum/api/v1/payment/payme/callback").permitAll()
+
+                // Guest mode: public, read-only storefront APIs used by the MAUI app.
+                .antMatchers(HttpMethod.GET,
+                        "/ninimum/api/v1/banner/getBannerList",
+                        "/ninimum/api/v1/product/getProductCategoryList"
+                ).permitAll()
+                .antMatchers(HttpMethod.POST,
+                        "/ninimum/api/v1/product/getProductList",
+                        "/ninimum/api/v1/product/getProductDetail",
+                        "/ninimum/api/v1/product/searchProductList",
+                        "/ninimum/api/v1/product/getSimilarProductList",
+                        "/ninimum/api/v1/review/getReviewList"
+                ).permitAll()
+
                 //.antMatchers("/ninimum/api/v1/admin/**").hasAnyAuthority(Constant.ROLE_ADMIN)
                 .antMatchers("/ninimum/api/v1/**").hasAnyAuthority(Constant.ROLE_USER, Constant.ROLE_ADMIN);
 

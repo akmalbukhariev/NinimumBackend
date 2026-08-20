@@ -99,8 +99,10 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter{
 				log.error("JwtAuthenticationFilter => doFilterInternal", ex);
 			}
 		} else {
-			// Missing token response
-			sendErrorResponse(response, HttpServletResponse.SC_FORBIDDEN, Result.AUTHENTICATION_ERROR.getCodeToString(), Result.AUTHENTICATION_ERROR.getMessage(), null);
+			// No JWT: continue the chain. Public endpoints configured with permitAll()
+			// can be used by guests; protected endpoints are still rejected by
+			// Spring Security because no Authentication is present.
+			filterChain.doFilter(request, response);
 		}
 	}
 
