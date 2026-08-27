@@ -16,12 +16,9 @@
             COALESCE(SUM(oi.quantity), 0) AS productCount,
             DATE_FORMAT(o.ordered_at, '%Y-%m-%d %H:%i:%s') AS orderedAt
         FROM orders o
-
         LEFT JOIN order_items oi
             ON oi.order_id = o.id
-
         WHERE o.user_id = #{userId}
-
         GROUP BY
             o.id,
             o.user_id,
@@ -30,7 +27,6 @@
             o.payment_status,
             o.total_price,
             o.ordered_at
-
         ORDER BY o.ordered_at DESC
 
     </select>
@@ -48,13 +44,10 @@
             oi.quantity AS quantity,
             oi.total_price AS totalPrice
         FROM order_items oi
-
         INNER JOIN orders o
             ON o.id = oi.order_id
-
         WHERE oi.order_id = #{orderId}
-            AND o.user_id = #{userId}
-
+          AND o.user_id = #{userId}
         ORDER BY oi.id ASC
     </select>
 
@@ -68,6 +61,7 @@
         (
             user_id,
             address_id,
+            user_tariff_id,
             order_number,
             status,
             payment_status,
@@ -82,12 +76,13 @@
         (
             #{userId},
             #{addressId},
+            #{tariffSubscriptionId},
             CONCAT('ORD-', REPLACE(UUID(), '-', '')),
             'PENDING',
             'PENDING',
-            #{totalPrice},
+            #{subtotalPrice},
             0,
-            0,
+            #{discountPrice},
             #{totalPrice},
             NOW(),
             NOW()
@@ -122,38 +117,61 @@
                 ORDER BY pi.sort_order ASC, pi.id ASC
                 LIMIT 1
             ),
-
-            p.price,
+            #{price},
             #{quantity},
-            p.price * #{quantity},
+            #{price} * #{quantity},
             fm.mxik_code,
             fmp.package_code,
             p.vat_percent,
             NOW()
-
         FROM products p
-
         INNER JOIN fiscal_mxik_package fmp
-        ON fmp.id = p.fiscal_mxik_package_id
-
+            ON fmp.id = p.fiscal_mxik_package_id
         INNER JOIN fiscal_mxik fm
-        ON fm.id = fmp.mxik_id
-
+            ON fm.id = fmp.mxik_id
         WHERE p.id = #{productId}
-        AND p.is_active = 1
-        AND p.vat_percent IS NOT NULL
+          AND p.is_active = 1
+          AND p.vat_percent IS NOT NULL
 
     </insert>
+
+    <select id="isActiveTariffSubscription"
+            parameterType="com.ninimum.api.param.CreateOrderParam"
+            resultType="int">
+        SELECT COUNT(*)
+        FROM user_tariffs
+        WHERE id = #{tariffSubscriptionId}
+          AND user_id = #{userId}
+          AND status = 'ACTIVE'
+          AND start_date IS NOT NULL
+          AND end_date IS NOT NULL
+          AND NOW() BETWEEN start_date AND end_date
+    </select>
+
+    <select id="getProductCheckoutPrice"
+            resultType="com.ninimum.api.dto.ProductCheckoutPriceDto">
+        SELECT
+            id AS productId,
+            CAST(price AS SIGNED) AS price,
+            CAST(subscription_price AS SIGNED) AS subscriptionPrice
+        FROM products
+        WHERE id = #{productId}
+          AND is_active = 1
+        LIMIT 1
+    </select>
 
     <update id="cancelOrder"
             parameterType="com.ninimum.api.param.CancelOrderParam">
         UPDATE orders
         SET
-        order_status = 'CANCELLED',
-        updated_at = NOW()
-        WHERE order_id = #{orderId}
-        AND user_id = #{userId}
-        AND order_status != 'CANCELLED'
+            status = 'CANCELLED',
+            cancel_reason = #{reason},
+            cancelled_at = NOW(),
+            updated_at = NOW()
+        WHERE id = #{orderId}
+            AND user_id = #{userId}
+            AND payment_status = 'PAID'
+            AND status IN ('PENDING', 'CONFIRMED')
     </update>
 
     <select id="getOrderCount"
@@ -167,44 +185,32 @@
     <select id="getOrderPaymentStatus"
             parameterType="com.ninimum.api.param.OrderDetailParam"
             resultType="com.ninimum.api.dto.payme.PaymentStatusDto">
-
         SELECT
             id AS orderId,
             order_number AS orderNumber,
             payment_status AS paymentStatus
         FROM orders
         WHERE id = #{orderId}
-            AND user_id = #{userId}
+          AND user_id = #{userId}
         LIMIT 1
-
     </select>
 
     <select id="getOrderProcess"
             parameterType="com.ninimum.api.param.OrderDetailParam"
             resultType="com.ninimum.api.dto.OrderProcessDto">
-
         SELECT
             id AS orderId,
             order_number AS orderNumber,
             status AS status,
-
-        DATE_FORMAT(
-            ordered_at,
-            '%Y-%m-%d %H:%i:%s'
-        ) AS orderedAt,
-
-        CASE
-        WHEN delivered_at IS NULL THEN NULL
-        ELSE DATE_FORMAT(
-            delivered_at,
-            '%Y-%m-%d %H:%i:%s'
-        )
-        END AS deliveredAt
-
+            DATE_FORMAT(ordered_at, '%Y-%m-%d %H:%i:%s') AS orderedAt,
+            CASE
+                WHEN delivered_at IS NULL THEN NULL
+                ELSE DATE_FORMAT(delivered_at, '%Y-%m-%d %H:%i:%s')
+            END AS deliveredAt
         FROM orders
         WHERE id = #{orderId}
-            AND user_id = #{userId}
+          AND user_id = #{userId}
         LIMIT 1
-
     </select>
+
 </mapper>

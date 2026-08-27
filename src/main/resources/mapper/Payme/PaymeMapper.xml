@@ -13,12 +13,38 @@
             status
         FROM orders
         WHERE id = #{order_id}
+        LIMIT 1
+    </select>
+
+    <select id="getPaymeSubscriptionCheckById"
+            parameterType="com.ninimum.api.dto.payme.GetPaymeSubscriptionParam"
+            resultType="camelMap">
+        SELECT
+            ut.id AS subscription_id,
+            ut.user_id,
+            ut.tariff_plan_id AS tariff_id,
+            ut.status AS subscription_status,
+            tp.name AS tariff_name,
+            tp.monthly_price AS price,
+            tp.duration_months AS duration_month,
+            fm.mxik_code AS fiscal_mxik_code,
+            fmp.package_code AS fiscal_package_code,
+            tp.vat_percent
+        FROM user_tariffs ut
+        INNER JOIN tariff_plans tp
+            ON tp.id = ut.tariff_plan_id
+        LEFT JOIN fiscal_mxik_package fmp
+            ON fmp.id = tp.fiscal_mxik_package_id
+        LEFT JOIN fiscal_mxik fm
+            ON fm.id = fmp.mxik_id
+        WHERE ut.id = #{subscription_id}
+          AND tp.is_active = 1
+        LIMIT 1
     </select>
 
     <select id="getPaymeOrderFiscalItems"
             parameterType="com.ninimum.api.dto.payme.GetPaymeOrderParam"
             resultType="camelMap">
-
         SELECT
             id AS order_item_id,
             product_name,
@@ -30,7 +56,6 @@
         FROM order_items
         WHERE order_id = #{order_id}
         ORDER BY id ASC
-
     </select>
 
     <insert id="createPaymePayment"
@@ -39,6 +64,8 @@
         (
             order_id,
             user_id,
+            payment_type,
+            user_tariff_id,
             provider,
             provider_transaction_id,
             amount,
@@ -51,6 +78,8 @@
         (
             #{order_id},
             #{user_id},
+            CASE WHEN #{subscription_id} IS NULL THEN 'ORDER' ELSE 'TARIFF' END,
+            #{subscription_id},
             'PAYME',
             #{provider_transaction_id},
             #{amount},
@@ -64,40 +93,90 @@
     <select id="getPaymePaymentByTransactionId"
             parameterType="com.ninimum.api.dto.payme.GetPaymePaymentParam"
             resultType="camelMap">
-        SELECT *
-        FROM payments
-        WHERE provider = 'PAYME'
-            AND provider_transaction_id = #{transaction_id}
+        SELECT
+            p.*,
+            p.user_tariff_id AS subscription_id
+        FROM payments p
+        WHERE p.provider = 'PAYME'
+          AND p.provider_transaction_id = #{transaction_id}
+        LIMIT 1
+    </select>
+
+    <select id="getActivePaymePaymentBySubscriptionId"
+            parameterType="com.ninimum.api.dto.payme.GetPaymeSubscriptionParam"
+            resultType="camelMap">
+        SELECT
+            p.*,
+            p.user_tariff_id AS subscription_id
+        FROM payments p
+        WHERE p.user_tariff_id = #{subscription_id}
+          AND p.payment_type = 'TARIFF'
+          AND p.provider = 'PAYME'
+          AND p.status IN ('CREATED', 'PENDING', 'PAID')
+        ORDER BY p.id DESC
         LIMIT 1
     </select>
 
     <update id="updateOrderPaymentStatus"
             parameterType="com.ninimum.api.dto.payme.UpdateOrderPaymentStatusParam">
         UPDATE orders
-            SET payment_status = #{payment_status}
+        SET
+            payment_status = #{payment_status},
+            updated_at = NOW()
         WHERE id = #{order_id}
+    </update>
+
+    <update id="updateSubscriptionStatus"
+            parameterType="com.ninimum.api.dto.payme.UpdateSubscriptionStatusParam">
+        UPDATE user_tariffs
+        SET
+            status = #{subscription_status},
+            cancelled_at = CASE WHEN #{subscription_status} = 'CANCELLED' THEN NOW() ELSE cancelled_at END,
+            updated_at = NOW()
+        WHERE id = #{subscription_id}
+    </update>
+
+    <update id="activateSubscription"
+            parameterType="com.ninimum.api.dto.payme.UpdateSubscriptionStatusParam">
+        UPDATE user_tariffs ut
+        INNER JOIN tariff_plans tp
+            ON tp.id = ut.tariff_plan_id
+        SET
+            ut.status = 'ACTIVE',
+            ut.start_date = NOW(),
+            ut.end_date = DATE_ADD(NOW(), INTERVAL tp.duration_months MONTH),
+            ut.activated_at = NOW(),
+            ut.cancelled_at = NULL,
+            ut.updated_at = NOW()
+        WHERE ut.id = #{subscription_id}
+          AND ut.status = 'PENDING'
+          AND tp.is_active = 1
     </update>
 
     <update id="performPaymePayment"
             parameterType="com.ninimum.api.dto.payme.PerformPaymePaymentParam">
         UPDATE payments
         SET
-        status = 'PAID',
-        payme_perform_time = #{payme_perform_time}
+            status = 'PAID',
+            payme_perform_time = #{payme_perform_time},
+            updated_at = NOW()
         WHERE provider = 'PAYME'
-            AND provider_transaction_id = #{transaction_id}
-            AND status = 'CREATED'
+          AND provider_transaction_id = #{transaction_id}
+          AND status = 'CREATED'
     </update>
 
     <select id="getActivePaymePaymentByOrderId"
             parameterType="com.ninimum.api.dto.payme.GetPaymeOrderParam"
             resultType="camelMap">
-        SELECT *
-        FROM payments
-        WHERE order_id = #{order_id}
-            AND provider = 'PAYME'
-            AND status IN ('CREATED', 'PENDING', 'PAID')
-        ORDER BY id DESC
+        SELECT
+            p.*,
+            p.user_tariff_id AS subscription_id
+        FROM payments p
+        WHERE p.order_id = #{order_id}
+          AND p.payment_type = 'ORDER'
+          AND p.provider = 'PAYME'
+          AND p.status IN ('CREATED', 'PENDING', 'PAID')
+        ORDER BY p.id DESC
         LIMIT 1
     </select>
 
@@ -107,30 +186,31 @@
         SET
             status = #{status},
             payme_cancel_time = #{payme_cancel_time},
-            payme_reason = #{payme_reason}
+            payme_reason = #{payme_reason},
+            updated_at = NOW()
         WHERE provider = 'PAYME'
-            AND provider_transaction_id = #{transaction_id}
-            AND status IN ('CREATED', 'PAID')
+          AND provider_transaction_id = #{transaction_id}
+          AND status IN ('CREATED', 'PAID')
     </update>
 
     <select id="getPaymeStatement"
             parameterType="com.ninimum.api.dto.payme.GetPaymeStatementParam"
             resultType="camelMap">
-
         SELECT
-        provider_transaction_id AS id,
-        payme_time AS time,
-        amount_tiyin AS amount,
-        payme_create_time AS create_time,
-        payme_perform_time AS perform_time,
-        payme_cancel_time AS cancel_time,
-        provider_transaction_id AS transaction,
-        payme_reason AS reason,
-        status,
-        order_id
+            provider_transaction_id AS id,
+            payme_time AS time,
+            amount_tiyin AS amount,
+            payme_create_time AS create_time,
+            payme_perform_time AS perform_time,
+            payme_cancel_time AS cancel_time,
+            provider_transaction_id AS transaction,
+            payme_reason AS reason,
+            status,
+            order_id,
+            user_tariff_id AS subscription_id
         FROM payments
         WHERE payme_create_time BETWEEN #{from_time} AND #{to_time}
         ORDER BY payme_create_time ASC
-
     </select>
+
 </mapper>

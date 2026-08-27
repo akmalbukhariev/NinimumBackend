@@ -6,4 +6,5 @@ import lombok.Data;
 public class CancelOrderParam {
     private Long orderId;
     private Long userId;
+    private String reason;
 }

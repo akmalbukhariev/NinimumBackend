@@ -6,61 +6,150 @@
             parameterType="com.ninimum.api.param.SubscriptionListParam"
             resultType="com.ninimum.api.dto.SubscriptionDto">
         SELECT
-        s.subscription_id AS subscriptionId,
-        s.user_id AS userId,
-        s.tariff_id AS tariffId,
-        t.tariff_name AS tariffName,
-        t.price AS price,
-        DATE_FORMAT(s.start_date, '%Y-%m-%d') AS startDate,
-        DATE_FORMAT(s.end_date, '%Y-%m-%d') AS endDate,
-        s.subscription_status AS subscriptionStatus
-        FROM subscriptions s
-        INNER JOIN tariffs t ON s.tariff_id = t.tariff_id
-        WHERE s.user_id = #{userId}
-        ORDER BY s.subscription_id DESC
+            ut.id AS subscriptionId,
+            ut.user_id AS userId,
+            ut.tariff_plan_id AS tariffId,
+            tp.name AS tariffName,
+            CAST(tp.monthly_price AS SIGNED) AS price,
+            DATE_FORMAT(ut.start_date, '%Y-%m-%d') AS startDate,
+            DATE_FORMAT(ut.end_date, '%Y-%m-%d') AS endDate,
+            ut.status AS subscriptionStatus
+        FROM user_tariffs ut
+        INNER JOIN tariff_plans tp
+            ON tp.id = ut.tariff_plan_id
+        WHERE ut.user_id = #{userId}
+          AND ut.status IN ('EXPIRED', 'CANCELLED')
+        ORDER BY ut.id DESC
     </select>
 
     <select id="getActiveSubscription"
             parameterType="com.ninimum.api.param.ActiveSubscriptionParam"
             resultType="com.ninimum.api.dto.SubscriptionDto">
         SELECT
-        s.subscription_id AS subscriptionId,
-        s.user_id AS userId,
-        s.tariff_id AS tariffId,
-        t.tariff_name AS tariffName,
-        t.price AS price,
-        DATE_FORMAT(s.start_date, '%Y-%m-%d') AS startDate,
-        DATE_FORMAT(s.end_date, '%Y-%m-%d') AS endDate,
-        s.subscription_status AS subscriptionStatus
-        FROM subscriptions s
-        INNER JOIN tariffs t ON s.tariff_id = t.tariff_id
-        WHERE s.user_id = #{userId}
-        AND s.subscription_status = 'ACTIVE'
-        AND CURDATE() BETWEEN s.start_date AND s.end_date
-        ORDER BY s.subscription_id DESC
+            ut.id AS subscriptionId,
+            ut.user_id AS userId,
+            ut.tariff_plan_id AS tariffId,
+            tp.name AS tariffName,
+            CAST(tp.monthly_price AS SIGNED) AS price,
+            DATE_FORMAT(ut.start_date, '%Y-%m-%d') AS startDate,
+            DATE_FORMAT(ut.end_date, '%Y-%m-%d') AS endDate,
+            ut.status AS subscriptionStatus
+        FROM user_tariffs ut
+        INNER JOIN tariff_plans tp
+            ON tp.id = ut.tariff_plan_id
+        WHERE ut.user_id = #{userId}
+          AND ut.status = 'ACTIVE'
+          AND ut.start_date IS NOT NULL
+          AND ut.end_date IS NOT NULL
+          AND NOW() BETWEEN ut.start_date AND ut.end_date
+        ORDER BY ut.id DESC
         LIMIT 1
     </select>
 
+    <!-- Kept only for mapper compatibility. Service blocks direct activation. -->
     <insert id="createSubscription"
-            parameterType="com.ninimum.api.param.CreateSubscriptionParam">
-        INSERT INTO subscriptions
+            parameterType="com.ninimum.api.param.CreateSubscriptionParam"
+            useGeneratedKeys="true"
+            keyProperty="subscriptionId"
+            keyColumn="id">
+        INSERT INTO user_tariffs
         (
-        user_id,
-        tariff_id,
-        start_date,
-        end_date,
-        subscription_status,
-        created_at
+            user_id,
+            tariff_plan_id,
+            status,
+            start_date,
+            end_date,
+            auto_renew,
+            created_at
         )
         VALUES
         (
-        #{userId},
-        #{tariffId},
-        #{startDate},
-        #{endDate},
-        'ACTIVE',
-        NOW()
+            #{userId},
+            #{tariffId},
+            'PENDING',
+            NULL,
+            NULL,
+            0,
+            NOW()
         )
     </insert>
+
+    <update id="expireSubscriptions">
+        UPDATE user_tariffs
+        SET
+            status = 'EXPIRED',
+            updated_at = NOW()
+        WHERE user_id = #{userId}
+          AND status = 'ACTIVE'
+          AND end_date IS NOT NULL
+          AND end_date &lt; NOW()
+    </update>
+
+    <select id="getTariffForCheckout" resultType="camelMap">
+        SELECT
+            id AS tariff_id,
+            name AS tariff_name,
+            monthly_price AS price,
+            duration_months AS duration_month
+        FROM tariff_plans
+        WHERE id = #{tariffId}
+          AND is_active = 1
+        LIMIT 1
+    </select>
+
+    <update id="cancelPendingSubscriptions">
+        UPDATE user_tariffs
+        SET
+            status = 'CANCELLED',
+            cancelled_at = NOW(),
+            updated_at = NOW()
+        WHERE user_id = #{userId}
+          AND status = 'PENDING'
+    </update>
+
+    <insert id="createPendingSubscription"
+            parameterType="com.ninimum.api.param.CreateSubscriptionParam"
+            useGeneratedKeys="true"
+            keyProperty="subscriptionId"
+            keyColumn="id">
+        INSERT INTO user_tariffs
+        (
+            user_id,
+            tariff_plan_id,
+            status,
+            start_date,
+            end_date,
+            auto_renew,
+            created_at
+        )
+        VALUES
+        (
+            #{userId},
+            #{tariffId},
+            'PENDING',
+            NULL,
+            NULL,
+            0,
+            NOW()
+        )
+    </insert>
+
+    <select id="getPaymentStatus"
+            parameterType="com.ninimum.api.param.TariffPaymentStatusParam"
+            resultType="com.ninimum.api.dto.TariffPaymentStatusDto">
+        SELECT
+            ut.id AS subscriptionId,
+            COALESCE(p.status, 'PENDING') AS paymentStatus,
+            ut.status AS subscriptionStatus
+        FROM user_tariffs ut
+        LEFT JOIN payments p
+          ON p.user_tariff_id = ut.id
+         AND p.payment_type = 'TARIFF'
+         AND p.provider = 'PAYME'
+        WHERE ut.id = #{subscriptionId}
+          AND ut.user_id = #{userId}
+        ORDER BY p.id DESC
+        LIMIT 1
+    </select>
 
 </mapper>

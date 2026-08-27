@@ -52,6 +52,7 @@ payme:
   merchant-id: 6a451710e174061946ab48df
   key: jpQs@j8V8HnQD8D2Kc#0g6I&orExGZG2CeNY
   return-url: ninimum://payment-result
+  tariff-account-offset: 1000000000000
 
 server:
   address: 0.0.0.0

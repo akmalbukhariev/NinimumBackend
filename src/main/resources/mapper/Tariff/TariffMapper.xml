@@ -5,28 +5,29 @@
     <select id="getTariffList"
             resultType="com.ninimum.api.dto.TariffDto">
         SELECT
-        tariff_id AS tariffId,
-        tariff_name AS tariffName,
-        price AS price,
-        duration_month AS durationMonth,
-        description AS description
-        FROM tariffs
-        WHERE use_yn = 'Y'
-        ORDER BY price ASC
+            id AS tariffId,
+            name AS tariffName,
+            CAST(monthly_price AS SIGNED) AS price,
+            duration_months AS durationMonth,
+            description AS description
+        FROM tariff_plans
+        WHERE is_active = 1
+        ORDER BY monthly_price ASC, id ASC
     </select>
 
     <select id="getTariffDetail"
             parameterType="com.ninimum.api.param.TariffDetailParam"
             resultType="com.ninimum.api.dto.TariffDto">
         SELECT
-        tariff_id AS tariffId,
-        tariff_name AS tariffName,
-        price AS price,
-        duration_month AS durationMonth,
-        description AS description
-        FROM tariffs
-        WHERE tariff_id = #{tariffId}
-        AND use_yn = 'Y'
+            id AS tariffId,
+            name AS tariffName,
+            CAST(monthly_price AS SIGNED) AS price,
+            duration_months AS durationMonth,
+            description AS description
+        FROM tariff_plans
+        WHERE id = #{tariffId}
+          AND is_active = 1
+        LIMIT 1
     </select>
 
 </mapper>

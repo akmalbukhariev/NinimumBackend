@@ -7,6 +7,7 @@ import java.math.BigDecimal;
 @Data
 public class CreatePaymePaymentParam {
     private Long order_id;
+    private Long subscription_id;
     private Long user_id;
 
     private String provider_transaction_id;
