@@ -140,6 +140,26 @@
         WHERE id = #{subscription_id}
     </update>
 
+    <!--
+        When a paid PENDING tariff is a replacement for an existing ACTIVE
+        tariff, close the old tariff only after Payme payment succeeds.
+        This keeps the user's existing benefits active if the new checkout is
+        abandoned or payment fails.
+    -->
+    <update id="expireOtherActiveSubscriptions"
+            parameterType="com.ninimum.api.dto.payme.UpdateSubscriptionStatusParam">
+        UPDATE user_tariffs current_tariff
+        INNER JOIN user_tariffs new_tariff
+            ON new_tariff.id = #{subscription_id}
+           AND current_tariff.user_id = new_tariff.user_id
+        SET
+            current_tariff.status = 'EXPIRED',
+            current_tariff.end_date = NOW(),
+            current_tariff.updated_at = NOW()
+        WHERE current_tariff.id &lt;&gt; new_tariff.id
+          AND current_tariff.status = 'ACTIVE'
+    </update>
+
     <update id="activateSubscription"
             parameterType="com.ninimum.api.dto.payme.UpdateSubscriptionStatusParam">
         UPDATE user_tariffs ut

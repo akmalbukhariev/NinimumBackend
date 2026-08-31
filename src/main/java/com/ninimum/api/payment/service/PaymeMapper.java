@@ -28,6 +28,8 @@ public interface PaymeMapper {
 
     int updateSubscriptionStatus(UpdateSubscriptionStatusParam param);
 
+    int expireOtherActiveSubscriptions(UpdateSubscriptionStatusParam param);
+
     int activateSubscription(UpdateSubscriptionStatusParam param);
     int cancelPaymePayment(CancelPaymePaymentParam param);
 

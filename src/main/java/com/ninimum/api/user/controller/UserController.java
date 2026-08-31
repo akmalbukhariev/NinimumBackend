@@ -268,7 +268,9 @@ public class UserController extends BaseController {
         try {
             int resultNum = this.userService.changePassword(param);
 
-            if (resultNum != 0) {
+            if (resultNum == Result.PASSWORD_IS_NOT_MATCHED.getCode()) {
+                result = this.setResult(Result.PASSWORD_IS_NOT_MATCHED);
+            } else if (resultNum == 1) {
                 result = this.setResult(Result.SUCCESS);
             } else {
                 result = this.setResult(Result.SERVER_ERROR);

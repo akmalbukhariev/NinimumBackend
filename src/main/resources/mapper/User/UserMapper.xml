@@ -107,10 +107,13 @@
             parameterType="com.ninimum.api.param.DeleteAccountParam">
         UPDATE users
         SET
-        user_status = 'DELETED',
-        refresh_token = NULL,
-        updated_at = NOW()
-        WHERE user_id = #{userId}
+            status = 'DELETED',
+            is_active = 0,
+            refresh_token = NULL,
+            token_mb = NULL,
+            updated_at = NOW()
+        WHERE id = #{userId}
+          AND is_active = 1
     </update>
 
     <select id="getUserPassword"
@@ -118,16 +121,19 @@
             resultType="java.lang.String">
         SELECT password
         FROM users
-        WHERE user_id = #{userId}
+        WHERE id = #{userId}
+          AND is_active = 1
+        LIMIT 1
     </select>
 
     <update id="changePassword"
             parameterType="com.ninimum.api.param.ChangePasswordParam">
         UPDATE users
         SET
-        password = #{newPassword},
-        updated_at = NOW()
-        WHERE user_id = #{userId}
+            password = #{newPassword},
+            updated_at = NOW()
+        WHERE id = #{userId}
+          AND is_active = 1
     </update>
 
     <update id="forgotPassword" parameterType="com.ninimum.api.param.ForgotPasswordParam">
@@ -142,16 +148,29 @@
             parameterType="com.ninimum.api.param.ChangePhoneNumberParam">
         UPDATE users
         SET
-        phone_number = #{phoneNumber},
-        updated_at = NOW()
-        WHERE user_id = #{userId}
+            phone_number = #{phoneNumber},
+            is_phone_verified = 1,
+            refresh_token = NULL,
+            updated_at = NOW()
+        WHERE id = #{userId}
+          AND is_active = 1
     </update>
+
+    <select id="countOtherUserByPhone"
+            parameterType="com.ninimum.api.param.ChangePhoneNumberParam"
+            resultType="int">
+        SELECT COUNT(*)
+        FROM users
+        WHERE phone_number = #{phoneNumber}
+          AND id != #{userId}
+          AND is_active = 1
+    </select>
 
     <select id="checkPhoneNumber" resultType="int">
         SELECT COUNT(*)
         FROM users
         WHERE phone_number = #{phone_number}
-        AND status != 'DELETED'
+          AND is_active = 1
     </select>
 
     <update id="updateDeviceToken"

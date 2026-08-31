@@ -73,10 +73,16 @@ public class SubscriptionService implements ISubscriptionService {
         activeParam.setUserId(param.getUserId());
 
         SubscriptionDto activeSubscription = subscriptionMapper.getActiveSubscription(activeParam);
-        if (activeSubscription != null && activeSubscription.getSubscriptionId() != null) {
-            throw new Exception("User already has an active tariff");
+        if (activeSubscription != null &&
+                activeSubscription.getSubscriptionId() != null &&
+                activeSubscription.getTariffId() != null &&
+                activeSubscription.getTariffId().equals(param.getTariffId())) {
+            throw new Exception("Selected tariff is already active");
         }
 
+        // An ACTIVE tariff does not block checkout for a different tariff.
+        // The current tariff remains ACTIVE while the user is paying. It is
+        // expired only after Payme confirms the new tariff payment.
         CamelCaseMap tariff = subscriptionMapper.getTariffForCheckout(param.getTariffId());
         if (tariff == null) {
             throw new Exception("Tariff not found or inactive");

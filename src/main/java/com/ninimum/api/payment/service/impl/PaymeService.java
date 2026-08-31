@@ -491,6 +491,12 @@ public class PaymeService implements IPaymeService {
             subscriptionStatusParam.setSubscription_id(subscriptionId);
             subscriptionStatusParam.setSubscription_status("ACTIVE");
 
+            // If this payment is for a plan change, keep the previous tariff
+            // active until this exact point. Once Payme confirms payment, end
+            // any other ACTIVE tariff for the same user and activate the new
+            // one in the same handleRequest transaction.
+            paymeMapper.expireOtherActiveSubscriptions(subscriptionStatusParam);
+
             int activated = paymeMapper.activateSubscription(subscriptionStatusParam);
             if (activated != 1) {
                 throw new Exception("Tariff subscription activation failed. subscriptionId=" + subscriptionId);

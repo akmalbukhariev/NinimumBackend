@@ -24,6 +24,7 @@ public interface UserMapper {
     int changePassword(ChangePasswordParam param) throws Exception;
     int forgotPassword(ForgotPasswordParam param) throws Exception;
     int changePhoneNumber(ChangePhoneNumberParam param) throws Exception;
+    int countOtherUserByPhone(ChangePhoneNumberParam param) throws Exception;
     int checkPhoneNumber(CheckPhoneNumberParam param) throws Exception;
     int updateDeviceToken(UpdateDeviceTokenParam param) throws Exception;
     int updateUserStatusAndToken(UserDto dto) throws Exception;

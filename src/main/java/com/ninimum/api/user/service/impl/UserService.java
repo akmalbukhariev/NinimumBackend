@@ -71,16 +71,31 @@ public class UserService implements IUserService {
 
     @Override
     public int deleteAccount(DeleteAccountParam param) throws Exception {
+        if (param == null || param.getUserId() == null) {
+            throw new Exception("User ID is required");
+        }
+
         return this.mapper.deleteAccount(param);
     }
 
     @Override
     public int changePassword(ChangePasswordParam param) throws Exception {
+        if (param == null || param.getUserId() == null ||
+                param.getCurrentPassword() == null || param.getCurrentPassword().trim().isEmpty() ||
+                param.getNewPassword() == null || param.getNewPassword().trim().isEmpty()) {
+            throw new Exception("User ID, current password and new password are required");
+        }
+
         String savedPassword = this.mapper.getUserPassword(param);
 
-        if(!pwEncoder.matches(param.getNewPassword(), savedPassword)){
+        if (savedPassword == null || !pwEncoder.matches(param.getCurrentPassword(), savedPassword)) {
             return Result.PASSWORD_IS_NOT_MATCHED.getCode();
         }
+
+        if (pwEncoder.matches(param.getNewPassword(), savedPassword)) {
+            throw new Exception("New password must be different from current password");
+        }
+
         param.setNewPassword(pwEncoder.encode(param.getNewPassword()));
         return this.mapper.changePassword(param);
     }
@@ -92,6 +107,17 @@ public class UserService implements IUserService {
 
     @Override
     public int changePhoneNumber(ChangePhoneNumberParam param) throws Exception {
+        if (param == null || param.getUserId() == null ||
+                param.getPhoneNumber() == null || param.getPhoneNumber().trim().isEmpty()) {
+            throw new Exception("User ID and phone number are required");
+        }
+
+        param.setPhoneNumber(param.getPhoneNumber().trim());
+
+        if (this.mapper.countOtherUserByPhone(param) > 0) {
+            throw new Exception("Phone number already exists");
+        }
+
         return this.mapper.changePhoneNumber(param);
     }
 
