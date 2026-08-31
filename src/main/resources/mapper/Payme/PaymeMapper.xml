@@ -122,6 +122,10 @@
         UPDATE orders
         SET
             payment_status = #{payment_status},
+            status = CASE
+                WHEN #{payment_status} = 'PAID' AND status = 'PENDING' THEN 'CONFIRMED'
+                ELSE status
+            END,
             updated_at = NOW()
         WHERE id = #{order_id}
     </update>

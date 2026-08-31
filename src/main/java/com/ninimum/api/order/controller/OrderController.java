@@ -218,4 +218,35 @@ public class OrderController extends BaseController {
 
         return new ResponseEntity<>(result, HttpStatus.OK);
     }
+
+    @Operation(
+            tags = {"Order"},
+            summary = "8. Delete order history",
+            description = "Hides a completed or cancelled order from the user's order history.",
+            hidden = false,
+            responses = { @ApiResponse(responseCode = "200", description = "success") },
+            security = { @SecurityRequirement(name = "bearerAuth") }
+    )
+    @PutMapping(value = "/deleteOrderHistory", headers = { "Content-type=application/json" })
+    public ResponseEntity<Object> deleteOrderHistory(@RequestBody OrderDetailParam param) {
+
+        VersionResponseResult result;
+
+        try {
+            int resultNum = orderService.deleteOrderHistory(param);
+
+            if (resultNum != 0) {
+                result = setResult(Result.SUCCESS);
+            } else {
+                result = setResult(Result.SERVER_ERROR);
+            }
+
+        } catch (Exception ex) {
+            result = setResult(Result.SERVER_ERROR);
+
+            log.error("OrderController => deleteOrderHistory: ", ex);
+        }
+
+        return new ResponseEntity<>(result, HttpStatus.OK);
+    }
 }

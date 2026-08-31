@@ -16,9 +16,10 @@
             COALESCE(SUM(oi.quantity), 0) AS productCount,
             DATE_FORMAT(o.ordered_at, '%Y-%m-%d %H:%i:%s') AS orderedAt
         FROM orders o
-        LEFT JOIN order_items oi
+            LEFT JOIN order_items oi
             ON oi.order_id = o.id
         WHERE o.user_id = #{userId}
+            AND o.is_history_deleted = 0
         GROUP BY
             o.id,
             o.user_id,
@@ -177,9 +178,12 @@
     <select id="getOrderCount"
             parameterType="com.ninimum.api.param.OrderListParam"
             resultType="int">
+
         SELECT COUNT(*)
         FROM orders
         WHERE user_id = #{userId}
+        AND is_history_deleted = 0
+
     </select>
 
     <select id="getOrderPaymentStatus"
@@ -202,6 +206,7 @@
             id AS orderId,
             order_number AS orderNumber,
             status AS status,
+            payment_status AS paymentStatus,
             DATE_FORMAT(ordered_at, '%Y-%m-%d %H:%i:%s') AS orderedAt,
             CASE
                 WHEN delivered_at IS NULL THEN NULL
@@ -213,4 +218,18 @@
         LIMIT 1
     </select>
 
+    <update id="deleteOrderHistory"
+            parameterType="com.ninimum.api.param.OrderDetailParam">
+
+        UPDATE orders
+        SET
+            is_history_deleted = 1,
+            history_deleted_at = NOW(),
+            updated_at = NOW()
+        WHERE id = #{orderId}
+            AND user_id = #{userId}
+            AND is_history_deleted = 0
+            AND status IN ('DELIVERED', 'CANCELLED')
+
+    </update>
 </mapper>

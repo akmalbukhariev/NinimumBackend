@@ -198,4 +198,24 @@ public class OrderService implements IOrderService {
 
         return result;
     }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public int deleteOrderHistory(OrderDetailParam param) throws Exception {
+        if (param == null || param.getOrderId() == null || param.getUserId() == null) {
+            throw new Exception("Order ID and User ID are required");
+        }
+
+        int result = orderMapper.deleteOrderHistory(param);
+
+        if (result != 1) {
+            throw new Exception(
+                    "Order history cannot be deleted. " +
+                            "The order may not belong to this user, may already be deleted, " +
+                            "or may not be completed yet"
+            );
+        }
+
+        return result;
+    }
 }

@@ -7,6 +7,7 @@ public class OrderProcessDto {
     private Long orderId;
     private String orderNumber;
     private String status;
+    private String paymentStatus;
     private String orderedAt;
     private String deliveredAt;
 }

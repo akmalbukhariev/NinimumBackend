@@ -27,4 +27,5 @@ public interface UserMapper {
     int checkPhoneNumber(CheckPhoneNumberParam param) throws Exception;
     int updateDeviceToken(UpdateDeviceTokenParam param) throws Exception;
     int updateUserStatusAndToken(UserDto dto) throws Exception;
+    int changeRegion(ChangeRegionParam param) throws Exception;
 }

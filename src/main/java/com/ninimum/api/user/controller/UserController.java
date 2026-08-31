@@ -389,4 +389,32 @@ public class UserController extends BaseController {
 
         return new ResponseEntity<>(result, HttpStatus.OK);
     }
+
+    @Operation(
+            tags = {"User"},
+            summary = "13. Change region",
+            description = "Changes the user's region.",
+            hidden = false,
+            responses = { @ApiResponse(responseCode = "200", description = "success") },
+            security = { @SecurityRequirement(name = "bearerAuth") }
+    )
+    @PutMapping(value = "/changeRegion", headers = { "Content-type=application/json" })
+    public ResponseEntity<Object> changeRegion(@RequestBody ChangeRegionParam param) {
+        VersionResponseResult result = null;
+
+        try {
+            int resultNum = this.userService.changeRegion(param);
+
+            if (resultNum != 0) {
+                result = this.setResult(Result.SUCCESS);
+            } else {
+                result = this.setResult(Result.SERVER_ERROR);
+            }
+        } catch (Exception ex) {
+            result = this.setResult(Result.SERVER_ERROR);
+            log.error("UserController => changeRegion: ", ex);
+        }
+
+        return new ResponseEntity<>(result, HttpStatus.OK);
+    }
 }

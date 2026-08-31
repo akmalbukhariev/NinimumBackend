@@ -109,4 +109,19 @@ public class UserService implements IUserService {
     public int updateDeviceToken(UpdateDeviceTokenParam param) throws Exception {
         return this.mapper.updateDeviceToken(param);
     }
+
+    @Override
+    public int changeRegion(ChangeRegionParam param) throws Exception {
+        if (param == null || param.getUserId() == null || param.getRegionId() == null) {
+            throw new Exception("User ID and Region ID are required");
+        }
+
+        int result = this.mapper.changeRegion(param);
+
+        if (result != 1) {
+            throw new Exception("Region cannot be changed. User or active region was not found");
+        }
+
+        return result;
+    }
 }

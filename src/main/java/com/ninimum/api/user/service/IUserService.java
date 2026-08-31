@@ -17,4 +17,5 @@ public interface IUserService {
     int changePhoneNumber(ChangePhoneNumberParam param) throws Exception;
     CheckPhoneNumberDto checkPhoneNumber(CheckPhoneNumberParam param) throws Exception;
     int updateDeviceToken(UpdateDeviceTokenParam param) throws Exception;
+    int changeRegion(ChangeRegionParam param) throws Exception;
 }

@@ -20,4 +20,5 @@ public interface IOrderService {
     OrderCountDto getOrderCount(OrderListParam param) throws Exception;
     PaymentStatusDto getOrderPaymentStatus(OrderDetailParam param) throws Exception;
     OrderProcessDto getOrderProcess(OrderDetailParam param) throws Exception;
+    int deleteOrderHistory(OrderDetailParam param) throws Exception;
 }

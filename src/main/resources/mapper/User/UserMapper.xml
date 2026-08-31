@@ -163,4 +163,18 @@
         updated_at = NOW()
         WHERE user_id = #{userId}
     </update>
+
+    <update id="changeRegion"
+            parameterType="com.ninimum.api.param.ChangeRegionParam">
+
+        UPDATE users u
+        INNER JOIN regions r
+            ON r.id = #{regionId}
+            AND r.is_active = 1
+        SET
+            u.region_id = r.id,
+            u.updated_at = NOW()
+        WHERE u.id = #{userId}
+
+    </update>
 </mapper>
