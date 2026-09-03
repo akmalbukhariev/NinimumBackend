@@ -67,4 +67,23 @@ public class FileService implements IFileService {
 
         return "reviews/" + fileName;
     }
+    @Override
+    public void deleteReviewImage(String relativePath) {
+        if (relativePath == null || relativePath.isBlank()) {
+            return;
+        }
+
+        try {
+            Path reviewDir = Path.of(uploadPath, "reviews").toAbsolutePath().normalize();
+            String fileName = Path.of(relativePath).getFileName().toString();
+            Path filePath = reviewDir.resolve(fileName).normalize();
+
+            if (filePath.startsWith(reviewDir)) {
+                Files.deleteIfExists(filePath);
+            }
+        } catch (Exception ignored) {
+            // Do not fail review editing if an old image file is already missing.
+        }
+    }
+
 }

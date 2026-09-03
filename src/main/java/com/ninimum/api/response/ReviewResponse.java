@@ -10,4 +10,6 @@ import java.util.List;
 @Data
 public class ReviewResponse extends ReviewDto {
     private List<ReviewImageDto> images;
+    private String customer_name;
+    private Boolean verified_purchase;
 }

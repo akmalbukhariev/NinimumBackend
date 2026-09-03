@@ -6,10 +6,22 @@
             parameterType="com.ninimum.api.param.ReviewListParam"
             resultType="camelMap">
         SELECT
-            r.*
+            r.*,
+            TRIM(CONCAT(COALESCE(u.first_name, ''), ' ', COALESCE(u.last_name, ''))) AS customer_name,
+            CASE WHEN EXISTS (
+                SELECT 1
+                FROM orders o
+                INNER JOIN order_items oi ON oi.order_id = o.id
+                WHERE o.id = r.order_id
+                  AND o.user_id = r.user_id
+                  AND oi.product_id = r.product_id
+                  AND o.payment_status = 'PAID'
+                  AND o.status = 'DELIVERED'
+            ) THEN 1 ELSE 0 END AS verified_purchase
         FROM reviews r
+        LEFT JOIN users u ON u.id = r.user_id
         WHERE r.product_id = #{product_id}
-            AND r.is_active = 1
+          AND r.is_active = 1
         ORDER BY r.created_at DESC
         LIMIT #{pageSize}
         OFFSET #{offset}
@@ -28,6 +40,74 @@
         ORDER BY id ASC
     </select>
 
+    <select id="getLatestReviewByUserProduct"
+            parameterType="com.ninimum.api.param.AddReviewParam"
+            resultType="camelMap">
+        SELECT
+            r.*,
+            TRIM(CONCAT(COALESCE(u.first_name, ''), ' ', COALESCE(u.last_name, ''))) AS customer_name,
+            1 AS verified_purchase
+        FROM reviews r
+        LEFT JOIN users u ON u.id = r.user_id
+        WHERE r.user_id = #{user_id}
+          AND r.product_id = #{product_id}
+          AND r.is_active = 1
+        ORDER BY COALESCE(r.updated_at, r.created_at) DESC, r.id DESC
+        LIMIT 1
+    </select>
+
+    <select id="getReviewByIdForUser"
+            parameterType="com.ninimum.api.param.UpdateReviewParam"
+            resultType="camelMap">
+        SELECT
+            r.*,
+            TRIM(CONCAT(COALESCE(u.first_name, ''), ' ', COALESCE(u.last_name, ''))) AS customer_name,
+            1 AS verified_purchase
+        FROM reviews r
+        LEFT JOIN users u ON u.id = r.user_id
+        WHERE r.id = #{id}
+          AND r.user_id = #{user_id}
+          AND r.is_active = 1
+        LIMIT 1
+    </select>
+
+    <select id="getEligibleOrderId"
+            parameterType="com.ninimum.api.param.AddReviewParam"
+            resultType="java.lang.Long">
+        SELECT o.id
+        FROM orders o
+        INNER JOIN order_items oi ON oi.order_id = o.id
+        WHERE o.user_id = #{user_id}
+          AND oi.product_id = #{product_id}
+          AND o.payment_status = 'PAID'
+          AND o.status = 'DELIVERED'
+          <if test="order_id != null">
+              AND o.id = #{order_id}
+          </if>
+          AND NOT EXISTS (
+              SELECT 1
+              FROM reviews r
+              WHERE r.user_id = o.user_id
+                AND r.product_id = oi.product_id
+                AND r.order_id = o.id
+                AND r.is_active = 1
+          )
+        ORDER BY o.ordered_at DESC, o.id DESC
+        LIMIT 1
+    </select>
+
+    <select id="hasPurchasedProduct"
+            parameterType="com.ninimum.api.param.AddReviewParam"
+            resultType="int">
+        SELECT COUNT(*)
+        FROM orders o
+        INNER JOIN order_items oi ON oi.order_id = o.id
+        WHERE o.user_id = #{user_id}
+          AND oi.product_id = #{product_id}
+          AND o.payment_status = 'PAID'
+          AND o.status = 'DELIVERED'
+    </select>
+
     <insert id="addReview"
             parameterType="com.ninimum.api.param.AddReviewParam">
         INSERT INTO reviews
@@ -41,8 +121,7 @@
             created_at,
             updated_at
         )
-        VALUES
-        (
+        SELECT
             #{user_id},
             #{product_id},
             #{order_id},
@@ -51,8 +130,27 @@
             1,
             NOW(),
             NOW()
+        FROM DUAL
+        WHERE NOT EXISTS (
+            SELECT 1
+            FROM reviews r
+            WHERE r.user_id = #{user_id}
+              AND r.product_id = #{product_id}
+              AND r.order_id = #{order_id}
+              AND r.is_active = 1
         )
     </insert>
+
+    <update id="updateReview"
+            parameterType="com.ninimum.api.param.UpdateReviewParam">
+        UPDATE reviews
+        SET rating = #{rating},
+            comment = #{comment},
+            updated_at = NOW()
+        WHERE id = #{id}
+          AND user_id = #{user_id}
+          AND is_active = 1
+    </update>
 
     <select id="getLastInsertId" resultType="java.lang.Long">
         SELECT LAST_INSERT_ID()
@@ -76,11 +174,46 @@
         </foreach>
     </insert>
 
+    <insert id="insertUpdatedReviewImages"
+            parameterType="com.ninimum.api.param.UpdateReviewParam">
+        INSERT INTO review_images
+        (
+            review_id,
+            image_url,
+            created_at
+        )
+        VALUES
+        <foreach collection="images" item="image" separator=",">
+            (
+                #{id},
+                #{image.image_url},
+                NOW()
+            )
+        </foreach>
+    </insert>
+
+    <delete id="deleteRemovedReviewImages"
+            parameterType="com.ninimum.api.param.UpdateReviewParam">
+        DELETE FROM review_images
+        WHERE review_id = #{id}
+        <choose>
+            <when test="keep_image_ids != null and keep_image_ids.size() > 0">
+                AND id NOT IN
+                <foreach collection="keep_image_ids" item="imageId" open="(" separator="," close=")">
+                    #{imageId}
+                </foreach>
+            </when>
+            <otherwise>
+                AND 1 = 1
+            </otherwise>
+        </choose>
+    </delete>
+
     <delete id="deleteReview"
             parameterType="com.ninimum.api.param.DeleteReviewParam">
         DELETE FROM reviews
-        WHERE review_id = #{reviewId}
-        AND user_id = #{userId}
+        WHERE id = #{reviewId}
+          AND user_id = #{userId}
     </delete>
 
 </mapper>

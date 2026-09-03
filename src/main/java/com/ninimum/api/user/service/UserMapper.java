@@ -19,6 +19,8 @@ public interface UserMapper {
 
     int logout(LogoutParam param) throws Exception;
 
+    int insertDeleteFeedback(DeleteAccountParam param) throws Exception;
+
     int deleteAccount(DeleteAccountParam param) throws Exception;
     String getUserPassword(ChangePasswordParam param) throws Exception;
     int changePassword(ChangePasswordParam param) throws Exception;

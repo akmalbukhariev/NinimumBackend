@@ -233,18 +233,34 @@ public class UserController extends BaseController {
             security = { @SecurityRequirement(name = "bearerAuth") }
     )
     @DeleteMapping(value = "/deleteAccount", headers = { "Content-type=application/json" })
-    public ResponseEntity<Object> deleteAccount(@RequestBody DeleteAccountParam param) {
+    public ResponseEntity<Object> deleteAccount(
+            @Parameter(hidden = true) @AuthenticationPrincipal UserDetails userDetails,
+            @RequestBody DeleteAccountParam param) {
+
         VersionResponseResult result = null;
 
         try {
-            int resultNum = this.userService.deleteAccount(param);
-
-            if (resultNum != 0) {
-                result = this.setResult(Result.SUCCESS);
+            if (userDetails == null) {
+                result = this.setResult(Result.AUTHENTICATION_ERROR);
             } else {
-                result = this.setResult(Result.SERVER_ERROR);
-            }
+                UserDto userInfo = this.userService.getUserByPhone(userDetails.getUsername());
 
+                if (userInfo == null || userInfo.getId() == null) {
+                    result = this.setResult(Result.USER_NOT_EXIST);
+                } else {
+                    // Never trust a userId supplied by the mobile client.
+                    // Delete only the authenticated user's own account.
+                    param.setUserId(userInfo.getId());
+
+                    int resultNum = this.userService.deleteAccount(param);
+
+                    if (resultNum != 0) {
+                        result = this.setResult(Result.SUCCESS);
+                    } else {
+                        result = this.setResult(Result.SERVER_ERROR);
+                    }
+                }
+            }
         } catch (Exception ex) {
             result = this.setResult(Result.SERVER_ERROR);
             log.error("UserController => deleteAccount: ", ex);

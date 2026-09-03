@@ -10,9 +10,11 @@ import com.ninimum.api.security.jwt.JwtTokenProvider;
 import com.ninimum.api.user.service.IUserService;
 import com.ninimum.api.user.service.UserMapper;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class UserService implements IUserService {
@@ -73,6 +75,25 @@ public class UserService implements IUserService {
     public int deleteAccount(DeleteAccountParam param) throws Exception {
         if (param == null || param.getUserId() == null) {
             throw new Exception("User ID is required");
+        }
+
+        String reasons = param.getReasons();
+        if (reasons != null) {
+            reasons = reasons.trim();
+            if (reasons.length() > 500) {
+                reasons = reasons.substring(0, 500);
+            }
+            param.setReasons(reasons);
+        }
+
+        // Feedback must never prevent account deletion.
+        // If the feedback table has not been deployed yet, deletion still proceeds.
+        if (reasons != null && !reasons.isEmpty()) {
+            try {
+                this.mapper.insertDeleteFeedback(param);
+            } catch (Exception ex) {
+                log.warn("Could not save account delete feedback. userId={}", param.getUserId(), ex);
+            }
         }
 
         return this.mapper.deleteAccount(param);

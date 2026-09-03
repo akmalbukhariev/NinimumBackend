@@ -103,6 +103,22 @@
         WHERE user_id = #{userId}
     </update>
 
+    <insert id="insertDeleteFeedback"
+            parameterType="com.ninimum.api.param.DeleteAccountParam">
+        INSERT INTO user_delete_feedback
+        (
+            user_id,
+            reasons,
+            created_at
+        )
+        VALUES
+        (
+            #{userId},
+            #{reasons},
+            NOW()
+        )
+    </insert>
+
     <update id="deleteAccount"
             parameterType="com.ninimum.api.param.DeleteAccountParam">
         UPDATE users

@@ -5,4 +5,5 @@ import lombok.Data;
 @Data
 public class DeleteAccountParam {
     private Long userId;
+    private String reasons;
 }
