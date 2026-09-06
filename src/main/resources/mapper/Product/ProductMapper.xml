@@ -146,13 +146,27 @@
         CASE
         WHEN f.id IS NOT NULL THEN TRUE
         ELSE FALSE
-        END AS liked
+        END AS liked,
+
+        IFNULL(rs.average_rating, 0) AS average_rating,
+        IFNULL(rs.review_count, 0) AS review_count
 
         FROM products p
 
         LEFT JOIN favorites f
         ON f.product_id = p.id
         AND f.user_id = #{user_id}
+
+        LEFT JOIN (
+            SELECT
+                product_id,
+                ROUND(AVG(rating), 1) AS average_rating,
+                COUNT(*) AS review_count
+            FROM reviews
+            WHERE is_active = 1
+            GROUP BY product_id
+        ) rs
+        ON rs.product_id = p.id
 
         WHERE p.is_active = 1
 
@@ -237,13 +251,27 @@
         CASE
         WHEN f.id IS NOT NULL THEN TRUE
         ELSE FALSE
-        END AS liked
+        END AS liked,
+
+        IFNULL(rs.average_rating, 0) AS average_rating,
+        IFNULL(rs.review_count, 0) AS review_count
 
         FROM products p
 
         LEFT JOIN favorites f
         ON f.product_id = p.id
         AND f.user_id = #{user_id}
+
+        LEFT JOIN (
+            SELECT
+                product_id,
+                ROUND(AVG(rating), 1) AS average_rating,
+                COUNT(*) AS review_count
+            FROM reviews
+            WHERE is_active = 1
+            GROUP BY product_id
+        ) rs
+        ON rs.product_id = p.id
 
         WHERE p.is_active = 1
         AND p.id != #{product_id}
@@ -284,13 +312,27 @@
         CASE
         WHEN f.id IS NOT NULL THEN TRUE
             ELSE FALSE
-            END AS liked
+            END AS liked,
+
+        IFNULL(rs.average_rating, 0) AS average_rating,
+        IFNULL(rs.review_count, 0) AS review_count
 
         FROM products p
 
         LEFT JOIN favorites f
             ON f.product_id = p.id
             AND f.user_id = #{user_id}
+
+        LEFT JOIN (
+            SELECT
+                product_id,
+                ROUND(AVG(rating), 1) AS average_rating,
+                COUNT(*) AS review_count
+            FROM reviews
+            WHERE is_active = 1
+            GROUP BY product_id
+        ) rs
+            ON rs.product_id = p.id
 
         WHERE p.is_active = 1
 

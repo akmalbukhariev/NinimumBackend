@@ -87,9 +87,8 @@
           AND NOT EXISTS (
               SELECT 1
               FROM reviews r
-              WHERE r.user_id = o.user_id
-                AND r.product_id = oi.product_id
-                AND r.order_id = o.id
+              WHERE r.user_id = #{user_id}
+                AND r.product_id = #{product_id}
                 AND r.is_active = 1
           )
         ORDER BY o.ordered_at DESC, o.id DESC
@@ -136,7 +135,6 @@
             FROM reviews r
             WHERE r.user_id = #{user_id}
               AND r.product_id = #{product_id}
-              AND r.order_id = #{order_id}
               AND r.is_active = 1
         )
     </insert>

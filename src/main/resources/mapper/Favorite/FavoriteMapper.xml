@@ -21,10 +21,22 @@
             p.is_active,
             p.is_featured,
             p.created_at,
-            p.updated_at
+            p.updated_at,
+            IFNULL(rs.average_rating, 0) AS average_rating,
+            IFNULL(rs.review_count, 0) AS review_count
         FROM favorites f
         INNER JOIN products p
         ON p.id = f.product_id
+        LEFT JOIN (
+            SELECT
+                product_id,
+                ROUND(AVG(rating), 1) AS average_rating,
+                COUNT(*) AS review_count
+            FROM reviews
+            WHERE is_active = 1
+            GROUP BY product_id
+        ) rs
+        ON rs.product_id = p.id
         WHERE f.user_id = #{user_id}
         AND p.is_active = 1
         ORDER BY f.created_at DESC

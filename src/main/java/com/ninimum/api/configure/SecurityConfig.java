@@ -64,7 +64,8 @@ public class SecurityConfig {
                         "/ninimum/api/v1/product/getProductDetail",
                         "/ninimum/api/v1/product/searchProductList",
                         "/ninimum/api/v1/product/getSimilarProductList",
-                        "/ninimum/api/v1/review/getReviewList"
+                        "/ninimum/api/v1/review/getReviewList",
+                        "/ninimum/api/v1/product-question/getQuestionList"
                 ).permitAll()
 
                 //.antMatchers("/ninimum/api/v1/admin/**").hasAnyAuthority(Constant.ROLE_ADMIN)

@@ -52,7 +52,6 @@ public class ReviewService implements IReviewService {
         checkParam.setUser_id(userId);
         checkParam.setProduct_id(productId);
 
-        Long eligibleOrderId = reviewMapper.getEligibleOrderId(checkParam);
         boolean hasPurchased = reviewMapper.hasPurchasedProduct(checkParam) > 0;
 
         ReviewResponse existingReview = null;
@@ -62,8 +61,12 @@ public class ReviewService implements IReviewService {
             attachImages(existingReview);
         }
 
+        // Ninimum keeps one active review per user/product. Once a review exists,
+        // the available action is edit, even if the user purchased the same product again.
+        Long eligibleOrderId = existingReview == null ? reviewMapper.getEligibleOrderId(checkParam) : null;
+
         ReviewEligibilityResponse response = new ReviewEligibilityResponse();
-        response.setCan_review(eligibleOrderId != null);
+        response.setCan_review(existingReview == null && eligibleOrderId != null);
         response.setHas_purchased(hasPurchased);
         response.setAlready_reviewed(existingReview != null);
         response.setOrder_id(eligibleOrderId);

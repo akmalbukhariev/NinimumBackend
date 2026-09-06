@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ninimum.api.productquestion.service.ProductQuestionMapper">
+
+    <select id="getQuestionList"
+            parameterType="com.ninimum.api.param.ProductQuestionListParam"
+            resultType="com.ninimum.api.dto.ProductQuestionDto">
+        SELECT
+            pq.id,
+            pq.product_id,
+            pq.user_id,
+            TRIM(CONCAT(COALESCE(u.first_name, ''), ' ', COALESCE(u.last_name, ''))) AS customer_name,
+            pq.question,
+            pq.answer,
+            pq.status,
+            pq.is_active,
+            pq.created_at,
+            pq.answered_at,
+            pq.updated_at
+        FROM product_questions pq
+        LEFT JOIN users u ON u.id = pq.user_id
+        WHERE pq.product_id = #{product_id}
+          AND pq.is_active = 1
+        ORDER BY pq.created_at DESC, pq.id DESC
+        LIMIT #{pageSize}
+        OFFSET #{offset}
+    </select>
+
+    <insert id="addQuestion"
+            parameterType="com.ninimum.api.param.AddProductQuestionParam">
+        INSERT INTO product_questions
+        (
+            product_id,
+            user_id,
+            question,
+            status,
+            is_active,
+            created_at,
+            updated_at
+        )
+        VALUES
+        (
+            #{product_id},
+            #{user_id},
+            #{question},
+            'WAITING',
+            1,
+            NOW(),
+            NOW()
+        )
+    </insert>
+
+    <update id="answerQuestion"
+            parameterType="com.ninimum.api.param.AnswerProductQuestionParam">
+        UPDATE product_questions
+        SET answer = #{answer},
+            status = 'ANSWERED',
+            answered_at = NOW(),
+            updated_at = NOW()
+        WHERE id = #{id}
+          AND is_active = 1
+    </update>
+
+</mapper>
