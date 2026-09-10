@@ -149,6 +149,18 @@
           AND NOW() BETWEEN start_date AND end_date
     </select>
 
+    <select id="getActiveTariffSubscriptionId" resultType="long">
+        SELECT id
+        FROM user_tariffs
+        WHERE user_id = #{userId}
+          AND status = 'ACTIVE'
+          AND start_date IS NOT NULL
+          AND end_date IS NOT NULL
+          AND NOW() BETWEEN start_date AND end_date
+        ORDER BY id DESC
+        LIMIT 1
+    </select>
+
     <select id="getProductCheckoutPrice"
             resultType="com.ninimum.api.dto.ProductCheckoutPriceDto">
         SELECT

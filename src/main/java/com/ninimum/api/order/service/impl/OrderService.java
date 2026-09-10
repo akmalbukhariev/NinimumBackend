@@ -68,6 +68,13 @@ public class OrderService implements IOrderService {
             if (!useTariffPrice) {
                 throw new Exception("Tariff subscription is not active for this user");
             }
+        } else {
+            Long activeTariffSubscriptionId = orderMapper.getActiveTariffSubscriptionId(param.getUserId());
+
+            if (activeTariffSubscriptionId != null) {
+                param.setTariffSubscriptionId(activeTariffSubscriptionId);
+                useTariffPrice = true;
+            }
         }
 
         long regularSubtotal = 0;
