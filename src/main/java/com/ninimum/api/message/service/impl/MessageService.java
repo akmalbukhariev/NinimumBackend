@@ -24,7 +24,7 @@ import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Random;
+import java.security.SecureRandom;
 
 @Service
 @RequiredArgsConstructor
@@ -37,8 +37,9 @@ public class MessageService implements IMessageService {
     private final String LOGIN = BASE_URL + "auth/login";
     private final String SEND_MESSAGE = BASE_URL + "message/sms/send";
     private final String REFRESH_TOKEN = BASE_URL + "auth/refresh";
-    private static  final String VERIFICATION_TEXT = "SaleTop platformasidan ro'yxatdan o'tish kodi: ";
+    private static final String VERIFICATION_TEXT = "Ninimum platformasidan ro‘yxatdan o‘tish kodi: ";
     private static final String TEMP_PASSWORD_TEXT = "Ninimum uchun vaqtinchalik parolingiz: ";
+    private static final SecureRandom SECURE_RANDOM = new SecureRandom();
     @Override
     public VerifyPhoneNumberResponse verifyPhoneNumber(VerifyPhoneNumberParam param) throws Exception {
 
@@ -90,7 +91,7 @@ public class MessageService implements IMessageService {
             }
         }
 
-        String code = String.format("%04d", new Random().nextInt(10000));
+        String code = String.format("%04d", SECURE_RANDOM.nextInt(10000));
         EskizMessageRespond respondMsg = sendMessage(param, eskizLoginInfoDto, code);
         if (Constant.WAITING.equals(respondMsg.getStatus())) {
             responseNumber.setCode(code);
@@ -255,18 +256,7 @@ public class MessageService implements IMessageService {
     }
 
     private String generateTemporaryPassword() {
-
-        String chars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789";
-
-        Random random = new Random();
-
-        StringBuilder sb = new StringBuilder();
-
-        for (int i = 0; i < 8; i++) {
-            sb.append(chars.charAt(random.nextInt(chars.length())));
-        }
-
-        return sb.toString();
+        return String.format("%04d", SECURE_RANDOM.nextInt(10000));
     }
 
     private VersionResponseResult createResult(Result result) {

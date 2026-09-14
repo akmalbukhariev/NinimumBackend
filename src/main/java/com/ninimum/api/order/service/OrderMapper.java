@@ -21,6 +21,7 @@ public interface OrderMapper {
     Long getActiveTariffSubscriptionId(@Param("userId") Long userId) throws Exception;
     ProductCheckoutPriceDto getProductCheckoutPrice(@Param("productId") Long productId) throws Exception;
     int cancelOrder(CancelOrderParam param) throws Exception;
+    int cancelUnpaidOrder(CancelOrderParam param) throws Exception;
     int getOrderCount(OrderListParam param) throws Exception;
     PaymentStatusDto getOrderPaymentStatus(OrderDetailParam param) throws Exception;
     OrderProcessDto getOrderProcess(OrderDetailParam param) throws Exception;

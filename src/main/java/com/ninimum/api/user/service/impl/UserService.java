@@ -123,6 +123,17 @@ public class UserService implements IUserService {
 
     @Override
     public int forgotPassword(ForgotPasswordParam param) throws Exception {
+        if (param == null
+                || param.getPhoneNumber() == null
+                || param.getPhoneNumber().trim().isEmpty()
+                || param.getTempPassword() == null
+                || param.getTempPassword().trim().isEmpty()) {
+            throw new Exception("Phone number and temporary password are required");
+        }
+
+        param.setPhoneNumber(param.getPhoneNumber().trim());
+        param.setTempPassword(pwEncoder.encode(param.getTempPassword()));
+
         return this.mapper.forgotPassword(param);
     }
 

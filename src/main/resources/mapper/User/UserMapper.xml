@@ -158,6 +158,7 @@
         password = #{tempPassword},
         updated_at = NOW()
         WHERE phone_number = #{phoneNumber}
+          AND is_active = 1
     </update>
 
     <update id="changePhoneNumber"

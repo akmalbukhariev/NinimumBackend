@@ -164,6 +164,30 @@ public class OrderService implements IOrderService {
     }
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
+    public int cancelUnpaidOrder(CancelOrderParam param) throws Exception {
+        if (param == null || param.getOrderId() == null || param.getUserId() == null) {
+            throw new Exception("Order ID and User ID are required");
+        }
+
+        if (param.getReason() == null || param.getReason().trim().isEmpty()) {
+            throw new Exception("Cancel reason is required");
+        }
+
+        param.setReason(param.getReason().trim());
+
+        int result = orderMapper.cancelUnpaidOrder(param);
+
+        if (result != 1) {
+            throw new Exception(
+                    "Unpaid order cannot be cancelled. It may already be paid, cancelled, or not belong to this user"
+            );
+        }
+
+        return result;
+    }
+
+    @Override
     public OrderCountDto getOrderCount(OrderListParam param) throws Exception {
 
         int count = orderMapper.getOrderCount(param);

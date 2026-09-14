@@ -120,6 +120,7 @@ public class SecurityConfig {
                 "/ninimum/api/v1/user/register",     //it should not be committed
                 //"/ninimum/api/v1/admin/register",     //it should not be committed
                 "/ninimum/api/v1/message/verifyPhoneNumber",     //it should not be committed
+                "/ninimum/api/v1/message/sendTemporaryPassword",
                 "/ninimum/api/v1/payment/payme/callback",     //it should not be committed
                 "/error");
     }

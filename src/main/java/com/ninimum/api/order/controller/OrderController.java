@@ -146,6 +146,32 @@ public class OrderController extends BaseController {
 
     @Operation(
             tags = {"Order"},
+            summary = "Cancel unpaid checkout order",
+            description = "Cancels and hides an unpaid PENDING order when the user leaves checkout.",
+            hidden = false,
+            responses = { @ApiResponse(responseCode = "200", description = "success") },
+            security = { @SecurityRequirement(name = "bearerAuth") }
+    )
+    @PutMapping(value = "/cancelUnpaidOrder", headers = { "Content-type=application/json" })
+    public ResponseEntity<Object> cancelUnpaidOrder(@RequestBody CancelOrderParam param) {
+        VersionResponseResult result;
+
+        try {
+            int resultNum = this.orderService.cancelUnpaidOrder(param);
+
+            result = resultNum != 0
+                    ? this.setResult(Result.SUCCESS)
+                    : this.setResult(Result.SERVER_ERROR);
+        } catch (Exception ex) {
+            result = this.setResult(Result.SERVER_ERROR);
+            log.error("OrderController => cancelUnpaidOrder: ", ex);
+        }
+
+        return new ResponseEntity<>(result, HttpStatus.OK);
+    }
+
+    @Operation(
+            tags = {"Order"},
             summary = "5. Order count",
             description = "Returns order count by user ID.",
             hidden = false,

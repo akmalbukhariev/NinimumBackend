@@ -8,6 +8,7 @@ import com.ninimum.api.message.service.IMessageService;
 import com.ninimum.api.param.ForgotPasswordParam;
 import com.ninimum.api.param.VerifyPhoneNumberParam;
 import com.ninimum.api.response.VerifyPhoneNumberResponse;
+import com.ninimum.api.dto.UserDto;
 import com.ninimum.api.user.service.IUserService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -75,20 +76,33 @@ public class MessageController extends BaseController {
         VersionResponseResult result;
 
         try {
+            if (param == null || param.getPhone_number() == null || param.getPhone_number().trim().isEmpty()) {
+                result = this.setResult(Result.SEND_TEMP_PASSWORD_FAILED);
+                return new ResponseEntity<>(result, HttpStatus.OK);
+            }
 
-            String tempPassword = service.sendTemporaryPassword(param.getPhone_number());
+            String phoneNumber = param.getPhone_number().trim();
+            UserDto user = userService.getUserByPhone(phoneNumber);
+
+            if (user == null) {
+                result = this.setResult(Result.USER_NOT_EXIST);
+                return new ResponseEntity<>(result, HttpStatus.OK);
+            }
+
+            String tempPassword = service.sendTemporaryPassword(phoneNumber);
 
             if (tempPassword == null) {
                 result = this.setResult(Result.SEND_TEMP_PASSWORD_FAILED);
             } else {
-
                 ForgotPasswordParam forgotParam = new ForgotPasswordParam();
-                forgotParam.setPhoneNumber(param.getPhone_number());
+                forgotParam.setPhoneNumber(phoneNumber);
                 forgotParam.setTempPassword(tempPassword);
 
-                userService.forgotPassword(forgotParam);
+                int updated = userService.forgotPassword(forgotParam);
 
-                result = this.setResult(Result.SUCCESS);
+                result = updated == 1
+                        ? this.setResult(Result.SUCCESS)
+                        : this.setResult(Result.SEND_TEMP_PASSWORD_FAILED);
             }
 
         } catch (Exception e) {

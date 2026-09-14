@@ -187,6 +187,23 @@
             AND status IN ('PENDING', 'CONFIRMED')
     </update>
 
+    <update id="cancelUnpaidOrder"
+            parameterType="com.ninimum.api.param.CancelOrderParam">
+        UPDATE orders
+        SET
+            status = 'CANCELLED',
+            payment_status = 'CANCELLED',
+            cancel_reason = #{reason},
+            cancelled_at = NOW(),
+            is_history_deleted = 1,
+            history_deleted_at = NOW(),
+            updated_at = NOW()
+        WHERE id = #{orderId}
+          AND user_id = #{userId}
+          AND status = 'PENDING'
+          AND payment_status = 'PENDING'
+    </update>
+
     <select id="getOrderCount"
             parameterType="com.ninimum.api.param.OrderListParam"
             resultType="int">
