@@ -147,7 +147,7 @@ public class OrderController extends BaseController {
     @Operation(
             tags = {"Order"},
             summary = "Cancel unpaid checkout order",
-            description = "Cancels and hides an unpaid PENDING order when the user leaves checkout.",
+            description = "Permanently deletes an unpaid PENDING order when the user leaves checkout, provided no Payme transaction exists.",
             hidden = false,
             responses = { @ApiResponse(responseCode = "200", description = "success") },
             security = { @SecurityRequirement(name = "bearerAuth") }

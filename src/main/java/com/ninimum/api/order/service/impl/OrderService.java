@@ -180,7 +180,7 @@ public class OrderService implements IOrderService {
 
         if (result != 1) {
             throw new Exception(
-                    "Unpaid order cannot be cancelled. It may already be paid, cancelled, or not belong to this user"
+                    "Unpaid order cannot be deleted. It may already have a Payme transaction, be paid, cancelled, or not belong to this user"
             );
         }
 

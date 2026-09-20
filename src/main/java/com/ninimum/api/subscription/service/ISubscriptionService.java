@@ -3,6 +3,7 @@ package com.ninimum.api.subscription.service;
 import com.ninimum.api.dto.SubscriptionDto;
 import com.ninimum.api.dto.TariffPaymentStatusDto;
 import com.ninimum.api.param.ActiveSubscriptionParam;
+import com.ninimum.api.param.CancelSubscriptionParam;
 import com.ninimum.api.param.CreateSubscriptionParam;
 import com.ninimum.api.param.CreateTariffCheckoutParam;
 import com.ninimum.api.param.SubscriptionListParam;
@@ -21,4 +22,6 @@ public interface ISubscriptionService {
     CreateTariffCheckoutUrlResponse createCheckoutUrl(CreateTariffCheckoutParam param) throws Exception;
 
     TariffPaymentStatusDto getPaymentStatus(TariffPaymentStatusParam param) throws Exception;
+
+    int cancelSubscription(CancelSubscriptionParam param) throws Exception;
 }

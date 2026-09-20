@@ -7,6 +7,7 @@ import com.ninimum.api.constants.Constant;
 import com.ninimum.api.dto.SubscriptionDto;
 import com.ninimum.api.dto.TariffPaymentStatusDto;
 import com.ninimum.api.param.ActiveSubscriptionParam;
+import com.ninimum.api.param.CancelSubscriptionParam;
 import com.ninimum.api.param.CreateSubscriptionParam;
 import com.ninimum.api.param.CreateTariffCheckoutParam;
 import com.ninimum.api.param.SubscriptionListParam;
@@ -138,7 +139,31 @@ public class SubscriptionController extends BaseController {
 
     @Operation(
             tags = {"Subscription"},
-            summary = "5. Tariff payment status",
+            summary = "5. Cancel active tariff",
+            description = "Cancels the user's ACTIVE tariff immediately. This stops tariff benefits but does not automatically refund the Payme payment.",
+            responses = { @ApiResponse(responseCode = "200", description = "success") },
+            security = { @SecurityRequirement(name = "bearerAuth") }
+    )
+    @PutMapping(value = "/cancelSubscription", headers = { "Content-type=application/json" })
+    public ResponseEntity<Object> cancelSubscription(@RequestBody CancelSubscriptionParam param) {
+        VersionResponseResult result;
+
+        try {
+            int resultNum = subscriptionService.cancelSubscription(param);
+            result = resultNum != 0
+                    ? this.setResult(Result.SUCCESS)
+                    : this.setResult(Result.SERVER_ERROR);
+        } catch (Exception ex) {
+            result = this.setResult(Result.SERVER_ERROR);
+            log.error("SubscriptionController => cancelSubscription: ", ex);
+        }
+
+        return new ResponseEntity<>(result, HttpStatus.OK);
+    }
+
+    @Operation(
+            tags = {"Subscription"},
+            summary = "6. Tariff payment status",
             description = "Returns Payme payment status and subscription status.",
             responses = { @ApiResponse(responseCode = "200", description = "success") },
             security = { @SecurityRequirement(name = "bearerAuth") }

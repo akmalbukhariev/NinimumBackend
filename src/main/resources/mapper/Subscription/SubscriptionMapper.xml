@@ -134,6 +134,20 @@
         )
     </insert>
 
+    <update id="cancelActiveSubscription"
+            parameterType="com.ninimum.api.param.CancelSubscriptionParam">
+        UPDATE user_tariffs
+        SET
+            status = 'CANCELLED',
+            end_date = NOW(),
+            cancelled_at = NOW(),
+            updated_at = NOW()
+        WHERE id = #{subscriptionId}
+          AND user_id = #{userId}
+          AND status = 'ACTIVE'
+          AND start_date IS NOT NULL
+    </update>
+
     <select id="getPaymentStatus"
             parameterType="com.ninimum.api.param.TariffPaymentStatusParam"
             resultType="com.ninimum.api.dto.TariffPaymentStatusDto">

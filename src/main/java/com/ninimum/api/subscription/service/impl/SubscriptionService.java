@@ -4,6 +4,7 @@ import com.ninimum.api.camelcase.CamelCaseMap;
 import com.ninimum.api.dto.SubscriptionDto;
 import com.ninimum.api.dto.TariffPaymentStatusDto;
 import com.ninimum.api.param.ActiveSubscriptionParam;
+import com.ninimum.api.param.CancelSubscriptionParam;
 import com.ninimum.api.param.CreateSubscriptionParam;
 import com.ninimum.api.param.CreateTariffCheckoutParam;
 import com.ninimum.api.param.SubscriptionListParam;
@@ -126,6 +127,28 @@ public class SubscriptionService implements ISubscriptionService {
         String paymentUrl = paymeCheckoutUrl + encoded;
 
         return new CreateTariffCheckoutUrlResponse(createParam.getSubscriptionId(), paymentUrl);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public int cancelSubscription(CancelSubscriptionParam param) throws Exception {
+        validateUserId(param == null ? null : param.getUserId());
+
+        if (param.getSubscriptionId() == null || param.getSubscriptionId() <= 0) {
+            throw new Exception("subscriptionId is required");
+        }
+
+        // This is a service cancellation only. It stops tariff benefits immediately
+        // but does NOT refund the Payme payment. Refunds are handled separately by
+        // Payme Business through Merchant API CancelTransaction.
+        subscriptionMapper.expireSubscriptions(param.getUserId());
+
+        int updated = subscriptionMapper.cancelActiveSubscription(param);
+        if (updated != 1) {
+            throw new Exception("Active tariff could not be cancelled. It may already be expired/cancelled or not belong to this user");
+        }
+
+        return updated;
     }
 
     @Override

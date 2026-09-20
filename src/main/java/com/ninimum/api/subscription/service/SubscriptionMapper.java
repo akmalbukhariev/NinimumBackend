@@ -4,6 +4,7 @@ import com.ninimum.api.camelcase.CamelCaseMap;
 import com.ninimum.api.dto.SubscriptionDto;
 import com.ninimum.api.dto.TariffPaymentStatusDto;
 import com.ninimum.api.param.ActiveSubscriptionParam;
+import com.ninimum.api.param.CancelSubscriptionParam;
 import com.ninimum.api.param.CreateSubscriptionParam;
 import com.ninimum.api.param.SubscriptionListParam;
 import com.ninimum.api.param.TariffPaymentStatusParam;
@@ -29,4 +30,6 @@ public interface SubscriptionMapper {
     int createPendingSubscription(CreateSubscriptionParam param) throws Exception;
 
     TariffPaymentStatusDto getPaymentStatus(TariffPaymentStatusParam param) throws Exception;
+
+    int cancelActiveSubscription(CancelSubscriptionParam param) throws Exception;
 }
