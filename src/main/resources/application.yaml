@@ -7,8 +7,9 @@ spring:
       connection-timeout: 30000
       idle-timeout: 600000
       max-lifetime: 1800000
-    #url: jdbc:mariadb://127.0.0.1:3306/ninimum
-    url: jdbc:mariadb://95.182.118.233:3306/ninimum
+    #url: jdbc:mariadb://127.0.0.1:3307/ninimum
+    url: ${DB_URL:jdbc:mariadb://127.0.0.1:3307/ninimum}
+    #url: jdbc:mariadb://95.182.118.233:3306/ninimum
     username: adminuser
     password: adminuser
 
