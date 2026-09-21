@@ -69,7 +69,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter{
 				String role = claims.get("auth", String.class);
 				String loginId = claims.get("sub", String.class);
 
-				if (Constant.ROLE_ADMIN.equals(role)) {
+				if (Constant.ROLE_ADMIN.equals(role) || Constant.ROLE_DELIVERY.equals(role)) {
 					Authentication authentication = jwtTokenProvider.getAuthentication(token);
 
 					SecurityContextHolder.getContext().setAuthentication(authentication);
@@ -112,7 +112,6 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter{
     private String resolveToken(HttpServletRequest request) {
         String bearerToken = request.getHeader(Constant.HEADER_AUTH);
         
-        log.info("bearerToken==> {}", bearerToken);
         if (StringUtils.hasText(bearerToken) && bearerToken.startsWith(Constant.HEADER_BEARER)) {
             return bearerToken.substring(7);
         }

@@ -33,8 +33,6 @@ public class UserAuthenticationProvider implements AuthenticationProvider{
 		userId = authentication.getName();
 		String passwd 	= (String)authentication.getCredentials();
 
-		log.info("userId => {}", userId);
-		log.info("passwd => {}", passwd);
 
 		CommUserDetails user = null;
 		try {

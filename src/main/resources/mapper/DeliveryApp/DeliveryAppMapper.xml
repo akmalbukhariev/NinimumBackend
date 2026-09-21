@@ -1,0 +1,173 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ninimum.api.deliveryapp.service.DeliveryAppMapper">
+
+    <select id="getWorkerAuthByWorkerId" resultType="com.ninimum.api.dto.DeliveryAppWorkerAuthDto">
+        SELECT id, worker_code AS workerId, full_name AS fullName, phone_number AS phoneNumber, password_hash AS passwordHash,
+               status, is_online AS online, vehicle_type AS vehicleType, vehicle_number AS vehicleNumber
+        FROM delivery_app_workers
+        WHERE worker_code = #{workerId}
+        LIMIT 1
+    </select>
+
+    <select id="getWorkerByWorkerId" resultType="com.ninimum.api.dto.DeliveryAppWorkerDto">
+        SELECT id, worker_code AS workerId, full_name AS fullName, phone_number AS phoneNumber, status,
+               is_online AS online, vehicle_type AS vehicleType, vehicle_number AS vehicleNumber
+        FROM delivery_app_workers
+        WHERE worker_code = #{workerId}
+        LIMIT 1
+    </select>
+
+    <insert id="createWorker" parameterType="com.ninimum.api.param.CreateDeliveryAppWorkerParam">
+        INSERT INTO delivery_app_workers(worker_code, full_name, phone_number, password_hash, status, is_online,
+                                         vehicle_type, vehicle_number, created_at, updated_at)
+        VALUES(#{workerId}, #{fullName}, #{phoneNumber}, #{password}, 'ACTIVE', 0,
+               #{vehicleType}, #{vehicleNumber}, NOW(), NOW())
+    </insert>
+
+    <select id="getWorkers" resultType="com.ninimum.api.dto.DeliveryAppWorkerDto">
+        SELECT id, worker_code AS workerId, full_name AS fullName, phone_number AS phoneNumber, status,
+               is_online AS online, vehicle_type AS vehicleType, vehicle_number AS vehicleNumber
+        FROM delivery_app_workers
+        ORDER BY id DESC
+    </select>
+
+    <update id="setWorkerOnline">
+        UPDATE delivery_app_workers SET is_online = #{online}, updated_at = NOW() WHERE id = #{workerId}
+    </update>
+
+    <insert id="syncPaidOrders">
+        INSERT IGNORE INTO delivery_jobs
+        (order_id, customer_name, customer_phone, delivery_address, status, created_at, updated_at)
+        SELECT
+            o.id,
+            COALESCE(NULLIF(TRIM(CONCAT_WS(' ', u.first_name, u.last_name)), ''), 'Mijoz'),
+            COALESCE(NULLIF(u.phone_number, ''), ''),
+            COALESCE(NULLIF(u.address, ''), 'Manzil ko''rsatilmagan'),
+            'WAITING_ASSIGNMENT', NOW(), NOW()
+        FROM orders o
+        JOIN users u ON u.id=o.user_id
+        WHERE o.payment_status='PAID' AND o.status IN ('CONFIRMED','PREPARING','ON_THE_WAY')
+    </insert>
+
+    <select id="getDashboard" resultType="com.ninimum.api.dto.DeliveryAppDashboardDto">
+        SELECT
+          (SELECT COUNT(*) FROM delivery_jobs dj JOIN orders o ON o.id=dj.order_id
+             WHERE dj.delivery_worker_id IS NULL AND dj.status='WAITING_ASSIGNMENT'
+               AND o.payment_status='PAID' AND o.status NOT IN ('CANCELLED','DELIVERED')) AS availableCount,
+          (SELECT COUNT(*) FROM delivery_jobs
+             WHERE delivery_worker_id=#{workerId} AND status IN ('ACCEPTED','ON_THE_WAY')) AS activeCount,
+          (SELECT COUNT(*) FROM delivery_jobs
+             WHERE delivery_worker_id=#{workerId} AND status='DELIVERED' AND DATE(delivered_at)=CURRENT_DATE()) AS completedTodayCount
+    </select>
+
+    <select id="getAvailableJobs" resultType="com.ninimum.api.dto.DeliveryAppJobDto">
+        SELECT dj.id AS jobId, o.id AS orderId, o.order_number AS orderNumber,
+               dj.customer_name AS customerName, NULL AS customerPhone, dj.delivery_address AS deliveryAddress,
+               dj.status AS jobStatus, o.status AS orderStatus, o.payment_status AS paymentStatus,
+               o.total_price AS totalPrice, COALESCE(SUM(oi.quantity),0) AS productCount,
+               DATE_FORMAT(dj.created_at,'%Y-%m-%d %H:%i:%s') AS createdAt
+        FROM delivery_jobs dj
+        JOIN orders o ON o.id=dj.order_id
+        LEFT JOIN order_items oi ON oi.order_id=o.id
+        WHERE dj.delivery_worker_id IS NULL AND dj.status='WAITING_ASSIGNMENT'
+          AND o.payment_status='PAID' AND o.status NOT IN ('CANCELLED','DELIVERED')
+        GROUP BY dj.id,o.id,o.order_number,dj.customer_name,dj.delivery_address,dj.status,o.status,o.payment_status,o.total_price,dj.created_at
+        ORDER BY dj.created_at ASC
+    </select>
+
+    <select id="getActiveJobs" resultType="com.ninimum.api.dto.DeliveryAppJobDto">
+        SELECT dj.id AS jobId, o.id AS orderId, o.order_number AS orderNumber,
+               dj.customer_name AS customerName, dj.customer_phone AS customerPhone, dj.delivery_address AS deliveryAddress,
+               dj.status AS jobStatus, o.status AS orderStatus, o.payment_status AS paymentStatus,
+               o.total_price AS totalPrice, COALESCE(SUM(oi.quantity),0) AS productCount,
+               DATE_FORMAT(dj.created_at,'%Y-%m-%d %H:%i:%s') AS createdAt,
+               DATE_FORMAT(dj.accepted_at,'%Y-%m-%d %H:%i:%s') AS acceptedAt,
+               DATE_FORMAT(dj.on_the_way_at,'%Y-%m-%d %H:%i:%s') AS onTheWayAt
+        FROM delivery_jobs dj
+        JOIN orders o ON o.id=dj.order_id
+        LEFT JOIN order_items oi ON oi.order_id=o.id
+        WHERE dj.delivery_worker_id=#{workerId} AND dj.status IN ('ACCEPTED','ON_THE_WAY')
+          AND o.status &lt;&gt; 'CANCELLED'
+        GROUP BY dj.id,o.id,o.order_number,dj.customer_name,dj.customer_phone,dj.delivery_address,dj.status,o.status,o.payment_status,o.total_price,dj.created_at,dj.accepted_at,dj.on_the_way_at
+        ORDER BY dj.updated_at DESC
+    </select>
+
+    <select id="getHistoryJobs" resultType="com.ninimum.api.dto.DeliveryAppJobDto">
+        SELECT dj.id AS jobId, o.id AS orderId, o.order_number AS orderNumber,
+               dj.customer_name AS customerName, dj.customer_phone AS customerPhone, dj.delivery_address AS deliveryAddress,
+               dj.status AS jobStatus, o.status AS orderStatus, o.payment_status AS paymentStatus,
+               o.total_price AS totalPrice, COALESCE(SUM(oi.quantity),0) AS productCount,
+               DATE_FORMAT(dj.created_at,'%Y-%m-%d %H:%i:%s') AS createdAt,
+               DATE_FORMAT(dj.delivered_at,'%Y-%m-%d %H:%i:%s') AS deliveredAt,
+               dj.note
+        FROM delivery_jobs dj
+        JOIN orders o ON o.id=dj.order_id
+        LEFT JOIN order_items oi ON oi.order_id=o.id
+        WHERE dj.delivery_worker_id=#{workerId} AND dj.status IN ('DELIVERED','FAILED','CANCELLED')
+        GROUP BY dj.id,o.id,o.order_number,dj.customer_name,dj.customer_phone,dj.delivery_address,dj.status,o.status,o.payment_status,o.total_price,dj.created_at,dj.delivered_at,dj.note
+        ORDER BY dj.updated_at DESC
+        LIMIT 100
+    </select>
+
+    <select id="getJobDetail" resultType="com.ninimum.api.dto.DeliveryAppJobDto">
+        SELECT dj.id AS jobId, o.id AS orderId, o.order_number AS orderNumber,
+               dj.customer_name AS customerName,
+               CASE WHEN dj.delivery_worker_id=#{workerId} THEN dj.customer_phone ELSE NULL END AS customerPhone,
+               dj.delivery_address AS deliveryAddress,
+               CASE WHEN dj.delivery_worker_id=#{workerId} THEN u.location_latitude ELSE NULL END AS locationLatitude,
+               CASE WHEN dj.delivery_worker_id=#{workerId} THEN u.location_longitude ELSE NULL END AS locationLongitude,
+               dj.status AS jobStatus,
+               o.status AS orderStatus, o.payment_status AS paymentStatus, o.total_price AS totalPrice,
+               (SELECT COALESCE(SUM(quantity),0) FROM order_items WHERE order_id=o.id) AS productCount,
+               DATE_FORMAT(dj.created_at,'%Y-%m-%d %H:%i:%s') AS createdAt,
+               DATE_FORMAT(dj.accepted_at,'%Y-%m-%d %H:%i:%s') AS acceptedAt,
+               DATE_FORMAT(dj.on_the_way_at,'%Y-%m-%d %H:%i:%s') AS onTheWayAt,
+               DATE_FORMAT(dj.delivered_at,'%Y-%m-%d %H:%i:%s') AS deliveredAt,
+               dj.note
+        FROM delivery_jobs dj
+        JOIN orders o ON o.id=dj.order_id
+        JOIN users u ON u.id=o.user_id
+        WHERE dj.id=#{jobId} AND (dj.delivery_worker_id IS NULL OR dj.delivery_worker_id=#{workerId})
+        LIMIT 1
+    </select>
+
+    <select id="getJobProducts" resultType="com.ninimum.api.dto.DeliveryAppJobProductDto">
+        SELECT oi.product_id AS productId, oi.product_name AS productName, oi.product_image_url AS productImageUrl,
+               oi.unit_price AS unitPrice, oi.quantity, oi.total_price AS totalPrice
+        FROM delivery_jobs dj JOIN order_items oi ON oi.order_id=dj.order_id
+        WHERE dj.id=#{jobId}
+        ORDER BY oi.id
+    </select>
+
+    <update id="claimJob">
+        UPDATE delivery_jobs SET delivery_worker_id=#{workerId}, status='ACCEPTED', accepted_at=NOW(), updated_at=NOW()
+        WHERE id=#{jobId} AND delivery_worker_id IS NULL AND status='WAITING_ASSIGNMENT'
+    </update>
+
+    <select id="getOwnedJobStatus" resultType="string">
+        SELECT status FROM delivery_jobs WHERE id=#{jobId} AND delivery_worker_id=#{workerId} LIMIT 1
+    </select>
+
+    <update id="updateJobStatus">
+        UPDATE delivery_jobs
+        SET status=#{status}, note=#{note},
+            on_the_way_at=CASE WHEN #{status}='ON_THE_WAY' THEN NOW() ELSE on_the_way_at END,
+            delivered_at=CASE WHEN #{status}='DELIVERED' THEN NOW() ELSE delivered_at END,
+            updated_at=NOW()
+        WHERE id=#{jobId} AND delivery_worker_id=#{workerId}
+    </update>
+
+    <update id="updateOrderStatusForJob">
+        UPDATE orders o JOIN delivery_jobs dj ON dj.order_id=o.id
+        SET o.status=#{orderStatus},
+            o.delivered_at=CASE WHEN #{orderStatus}='DELIVERED' THEN NOW() ELSE o.delivered_at END,
+            o.updated_at=NOW()
+        WHERE dj.id=#{jobId}
+    </update>
+
+    <insert id="addTracking">
+        INSERT INTO delivery_job_tracking(delivery_job_id, delivery_worker_id, status, message, created_at)
+        VALUES(#{jobId}, #{workerId}, #{status}, #{message}, NOW())
+    </insert>
+</mapper>
