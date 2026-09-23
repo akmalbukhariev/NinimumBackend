@@ -12,6 +12,7 @@ import com.ninimum.api.security.provider.AdminAuthenticationProvider;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.authentication.DisabledException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
@@ -30,28 +31,20 @@ public class AdminAuthenticationFilter extends UsernamePasswordAuthenticationFil
     private final JwtTokenProvider jwtTokenProvider;
     private final AdminAuthenticationProvider adminAuthenticationProvider;
 
-    private AdminLoginInfoParam admin = null;
-
     @Override
     public Authentication attemptAuthentication(HttpServletRequest request, HttpServletResponse response)
             throws AuthenticationException {
-
         try {
-            admin = new ObjectMapper().readValue(request.getInputStream(), AdminLoginInfoParam.class);
-
-            UsernamePasswordAuthenticationToken authToken =
-                    new UsernamePasswordAuthenticationToken(
-                            admin.getLogin_id(),
-                            admin.getPassword()
-                    );
-
+            AdminLoginInfoParam admin = new ObjectMapper().readValue(request.getInputStream(), AdminLoginInfoParam.class);
+            UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
+                    admin.getLogin_id(),
+                    admin.getPassword()
+            );
             return adminAuthenticationProvider.authenticate(authToken);
-
         } catch (IOException e) {
             log.error("Failed to parse admin login information", e);
             sendErrorResponse(response, Result.LOGIN_INVALID_TOKEN);
         }
-
         return null;
     }
 
@@ -62,25 +55,29 @@ public class AdminAuthenticationFilter extends UsernamePasswordAuthenticationFil
             FilterChain chain,
             Authentication authResult
     ) throws IOException {
-
-        CamelCaseMap map = (CamelCaseMap) authResult.getDetails();
-
+        CamelCaseMap adminMap = (CamelCaseMap) authResult.getDetails();
         TokenDto tokenInfo = jwtTokenProvider.generateToken(authResult);
 
         VersionResponseResult result = new VersionResponseResult();
+        result.setApiVersion(Constant.api_version);
         response.setContentType("application/json");
 
         if (tokenInfo != null) {
-            map.put("password", "");
+            CamelCaseMap responseData = new CamelCaseMap();
+            responseData.putAll(adminMap);
+            responseData.remove("password");
+            responseData.put("access_token", tokenInfo.getAccessToken());
+            responseData.put("refresh_token", tokenInfo.getRefreshToken());
 
+            String role = adminMap.get("role") == null ? Constant.ROLE_ADMIN : String.valueOf(adminMap.get("role"));
             response.setHeader(Constant.HEADER_ACCESS_TOKEN, tokenInfo.getAccessToken());
             response.setHeader(Constant.HEADER_REFRESH_TOKEN, tokenInfo.getRefreshToken());
-            response.setHeader(Constant.HEADER_ROLE, Constant.ROLE_ADMIN);
-            response.setHeader(Constant.HEADER_USER_NAME, admin.getLogin_id());
+            response.setHeader(Constant.HEADER_ROLE, role);
+            response.setHeader(Constant.HEADER_USER_NAME, authResult.getName());
 
             result.setResultCode(Result.SUCCESS.getCodeToString());
             result.setResultMsg(Result.SUCCESS.getMessage());
-            result.setResultData(map);
+            result.setResultData(responseData);
         } else {
             result.setResultCode(Result.LOGIN_INVALID_TOKEN.getCodeToString());
             result.setResultMsg(Result.LOGIN_INVALID_TOKEN.getMessage());
@@ -95,13 +92,16 @@ public class AdminAuthenticationFilter extends UsernamePasswordAuthenticationFil
             HttpServletResponse response,
             AuthenticationException failed
     ) throws IOException {
-
         Result result;
 
-        if (failed instanceof BadCredentialsException) {
-            result = Result.PASSWORD_IS_NOT_MATCHED;
+        if (failed instanceof DisabledException) {
+            result = Result.LOGIN_INACTIVE;
         } else if (failed instanceof UsernameNotFoundException) {
             result = Result.USER_NOT_EXIST;
+        } else if (failed instanceof BadCredentialsException && Result.ROLE_INVALID.getMessage().equals(failed.getMessage())) {
+            result = Result.ROLE_INVALID;
+        } else if (failed instanceof BadCredentialsException) {
+            result = Result.PASSWORD_IS_NOT_MATCHED;
         } else {
             result = Result.LOGIN_INVALID_TOKEN;
         }
@@ -118,6 +118,7 @@ public class AdminAuthenticationFilter extends UsernamePasswordAuthenticationFil
             response.setContentType("application/json");
 
             VersionResponseResult resResult = new VersionResponseResult();
+            resResult.setApiVersion(Constant.api_version);
             resResult.setResultCode(result.getCodeToString());
             resResult.setResultMsg(result.getMessage());
 

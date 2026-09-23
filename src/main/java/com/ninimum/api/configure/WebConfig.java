@@ -1,5 +1,6 @@
 package com.ninimum.api.configure;
 
+import com.ninimum.api.constants.Constant;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.MessageSource;
 import org.springframework.context.annotation.Bean;
@@ -21,6 +22,12 @@ public class WebConfig implements WebMvcConfigurer {
                 //.allowedOrigins("http://localhost:8083", "http://127.0.0.1:8083") // Allow multiple origins
                 .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
                 .allowedHeaders("*")
+                .exposedHeaders(
+                        Constant.HEADER_ACCESS_TOKEN,
+                        Constant.HEADER_REFRESH_TOKEN,
+                        Constant.HEADER_ROLE,
+                        Constant.HEADER_USER_NAME
+                )
                 .allowCredentials(true);
     }
 

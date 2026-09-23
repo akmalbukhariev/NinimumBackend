@@ -14,7 +14,6 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.util.StringUtils;
 import org.springframework.web.filter.OncePerRequestFilter;
 
@@ -27,134 +26,145 @@ import java.time.format.DateTimeFormatter;
 
 @Slf4j
 @RequiredArgsConstructor
-public class JwtAuthenticationFilter extends OncePerRequestFilter{
-	private final JwtTokenProvider jwtTokenProvider;
-	private final UserAuthenticationProvider userAuthenticationProvider;
-	private final AdminAuthenticationProvider adminAuthenticationProvider;
+public class JwtAuthenticationFilter extends OncePerRequestFilter {
+    private final JwtTokenProvider jwtTokenProvider;
+    private final UserAuthenticationProvider userAuthenticationProvider;
+    private final AdminAuthenticationProvider adminAuthenticationProvider;
 
-	@Override
-	protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws IOException, ServletException {
+    @Override
+    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
+            throws IOException, ServletException {
 
-		String path = request.getServletPath();
-		//log.info("############## {} ###############", path);
+        String path = request.getServletPath();
 
-		if (path.equals("/ninimum/api/v1/user/login") || path.equals("/ninimum/api/v1/admin/login")) {
-			filterChain.doFilter(request, response);
-			return;
-		}
+        if (path.equals("/ninimum/api/v1/user/login") || path.equals("/ninimum/api/v1/admin/login")) {
+            filterChain.doFilter(request, response);
+            return;
+        }
 
-		// 1. Extract JWT token from Request Header
-		String token = resolveToken(request);
-		//userAuthenticationProvider.headerToken = token;
-		//log.info("======== token: {}", token);
+        String token = resolveToken(request);
 
-		// 2. Validate token with validateToken
-		if (token != null) {
-			Result result = jwtTokenProvider.validateToken(token);
-			//Claims map = jwtTokenProvider.parseClaims(token);
-			//String phone_number = (String) map.get("sub");
+        if (token == null) {
+            // Public endpoints configured with permitAll() can continue without a JWT.
+            // Protected endpoints will be rejected by Spring Security.
+            filterChain.doFilter(request, response);
+            return;
+        }
 
-			if (result == Result.TOKEN_INVALID) {
-				sendErrorResponse(response, Result.TOKEN_INVALID);
-				return;
-			}
-			else if(result == Result.TOKEN_EXPIRED_TIME){
-				sendErrorResponse(response, Result.TOKEN_EXPIRED_TIME);
-				return;
-			}
+        Result tokenResult = jwtTokenProvider.validateToken(token);
+        if (tokenResult != Result.SUCCESS) {
+            sendErrorResponse(response, tokenResult);
+            return;
+        }
 
-			try {
-				Claims claims = jwtTokenProvider.parseClaims(token);
+        try {
+            Claims claims = jwtTokenProvider.parseClaims(token);
+            String role = claims.get("auth", String.class);
+            String loginId = claims.getSubject();
 
-				String role = claims.get("auth", String.class);
-				String loginId = claims.get("sub", String.class);
+            if (Constant.ROLE_ADMIN.equals(role)) {
+                CamelCaseMap admin = adminAuthenticationProvider.getAdminByLoginId(loginId);
 
-				if (Constant.ROLE_ADMIN.equals(role) || Constant.ROLE_DELIVERY.equals(role)) {
-					Authentication authentication = jwtTokenProvider.getAuthentication(token);
+                if (admin == null) {
+                    sendErrorResponse(response, Result.USER_NOT_EXIST);
+                    return;
+                }
 
-					SecurityContextHolder.getContext().setAuthentication(authentication);
-					filterChain.doFilter(request, response);
-					return;
-				}
+                String currentStatus = String.valueOf(admin.get("status"));
+                String currentRole = String.valueOf(admin.get("role"));
 
-				// 3) For user role
-				CamelCaseMap found = userAuthenticationProvider.getUserByPhoneNumber(loginId);
-				UserDto dto = found == null ? null : found.toObject(UserDto.class);
+                if (!"ACTIVE".equalsIgnoreCase(currentStatus)) {
+                    sendErrorResponse(response, Result.LOGIN_INACTIVE);
+                    return;
+                }
 
-				if(result == Result.SUCCESS){
-					if (dto != null && dto.getStatus() == UserStatus.DELETED){
-						sendErrorResponse(response, HttpServletResponse.SC_FORBIDDEN, Result.DELETE_USER.getCodeToString(), Result.DELETE_USER.getMessage(), dto);
-					}
-					else if (dto != null && dto.getStatus() == UserStatus.BANNED){
-						sendErrorResponse(response, HttpServletResponse.SC_FORBIDDEN, Result.BLOCK_USER.getCodeToString(), Result.BLOCK_USER.getMessage(), dto);
-					}
-					else{
-						Authentication authentication = jwtTokenProvider.getAuthentication(token);
-						SecurityContextHolder.getContext().setAuthentication(authentication);
+                if (!Constant.ROLE_ADMIN.equals(currentRole)) {
+                    sendErrorResponse(response, Result.ROLE_INVALID);
+                    return;
+                }
 
-						filterChain.doFilter(request, response);
-					}
-				}
-			} catch (Exception ex) {
-				log.error("JwtAuthenticationFilter => doFilterInternal", ex);
-			}
-		} else {
-			// No JWT: continue the chain. Public endpoints configured with permitAll()
-			// can be used by guests; protected endpoints are still rejected by
-			// Spring Security because no Authentication is present.
-			filterChain.doFilter(request, response);
-		}
-	}
+                Authentication authentication = jwtTokenProvider.getAuthentication(token);
+                SecurityContextHolder.getContext().setAuthentication(authentication);
+                filterChain.doFilter(request, response);
+                return;
+            }
 
-	/**
-	 * Extracts the JWT token from the Authorization header.
-	 */
+            if (Constant.ROLE_DELIVERY.equals(role)) {
+                Authentication authentication = jwtTokenProvider.getAuthentication(token);
+                SecurityContextHolder.getContext().setAuthentication(authentication);
+                filterChain.doFilter(request, response);
+                return;
+            }
+
+            CamelCaseMap found = userAuthenticationProvider.getUserByPhoneNumber(loginId);
+            UserDto dto = found == null ? null : found.toObject(UserDto.class);
+
+            if (dto != null && dto.getStatus() == UserStatus.DELETED) {
+                sendErrorResponse(response, HttpServletResponse.SC_FORBIDDEN,
+                        Result.DELETE_USER.getCodeToString(), Result.DELETE_USER.getMessage(), dto);
+                return;
+            }
+
+            if (dto != null && dto.getStatus() == UserStatus.BANNED) {
+                sendErrorResponse(response, HttpServletResponse.SC_FORBIDDEN,
+                        Result.BLOCK_USER.getCodeToString(), Result.BLOCK_USER.getMessage(), dto);
+                return;
+            }
+
+            Authentication authentication = jwtTokenProvider.getAuthentication(token);
+            SecurityContextHolder.getContext().setAuthentication(authentication);
+            filterChain.doFilter(request, response);
+
+        } catch (Exception ex) {
+            log.error("JwtAuthenticationFilter => doFilterInternal", ex);
+            if (!response.isCommitted()) {
+                sendErrorResponse(response, Result.AUTHENTICATION_ERROR);
+            }
+        }
+    }
+
     private String resolveToken(HttpServletRequest request) {
         String bearerToken = request.getHeader(Constant.HEADER_AUTH);
-        
         if (StringUtils.hasText(bearerToken) && bearerToken.startsWith(Constant.HEADER_BEARER)) {
             return bearerToken.substring(7);
         }
         return null;
     }
 
-	/**
-	 * Sends a JSON error response.
-	 */
-	private void sendErrorResponse(HttpServletResponse response, int status, String resultCode, String resultMsg, UserDto dto) throws IOException {
-		response.setStatus(status);
-		response.setContentType("application/json");
+    private void sendErrorResponse(HttpServletResponse response, int status, String resultCode, String resultMsg, UserDto dto)
+            throws IOException {
+        response.setStatus(status);
+        response.setContentType("application/json");
 
-		VersionResponseResult resResult = new VersionResponseResult();
-		resResult.setResultCode(resultCode);
-		if (dto != null && dto.getBlocked_until() != null) {
-			DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
-			resResult.setResultMsg(dto.getBlocked_until().format(formatter));
-		} else {
-			resResult.setResultMsg(resultMsg);
-		}
+        VersionResponseResult resResult = new VersionResponseResult();
+        resResult.setApiVersion(Constant.api_version);
+        resResult.setResultCode(resultCode);
+        if (dto != null && dto.getBlocked_until() != null) {
+            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+            resResult.setResultMsg(dto.getBlocked_until().format(formatter));
+        } else {
+            resResult.setResultMsg(resultMsg);
+        }
 
-		new ObjectMapper().writeValue(response.getOutputStream(), resResult);
-	}
+        new ObjectMapper().writeValue(response.getOutputStream(), resResult);
+    }
 
-	/**
-	 * Send an error response to the client.
-	 */
-	private void sendErrorResponse(HttpServletResponse response, Result result) {
-		try {
-			response.setHeader(Constant.HEADER_ACCESS_TOKEN, "");
-			response.setHeader(Constant.HEADER_REFRESH_TOKEN, "");
-			response.setHeader(Constant.HEADER_ROLE, "");
-			response.setHeader(Constant.HEADER_USER_NAME, "");
-			response.setContentType("application/json");
+    private void sendErrorResponse(HttpServletResponse response, Result result) {
+        try {
+            response.setHeader(Constant.HEADER_ACCESS_TOKEN, "");
+            response.setHeader(Constant.HEADER_REFRESH_TOKEN, "");
+            response.setHeader(Constant.HEADER_ROLE, "");
+            response.setHeader(Constant.HEADER_USER_NAME, "");
+            response.setContentType("application/json");
 
-			VersionResponseResult resResult = new VersionResponseResult();
-			resResult.setResultCode(result.getCodeToString());
-			resResult.setResultMsg(result.getMessage());
+            VersionResponseResult resResult = new VersionResponseResult();
+            resResult.setApiVersion(Constant.api_version);
+            resResult.setResultCode(result.getCodeToString());
+            resResult.setResultMsg(result.getMessage());
 
-			new ObjectMapper().writeValue(response.getOutputStream(), resResult);
-		} catch (IOException e) {
-			log.error("Failed to send error response", e);
-		}
-	}
+            new ObjectMapper().writeValue(response.getOutputStream(), resResult);
+        } catch (IOException e) {
+            log.error("Failed to send error response", e);
+        }
+    }
 }

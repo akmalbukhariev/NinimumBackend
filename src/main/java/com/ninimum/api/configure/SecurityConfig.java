@@ -54,6 +54,7 @@ public class SecurityConfig {
                 .antMatchers("/ninimum/api/v1/user/login").permitAll()
                 .antMatchers("/ninimum/api/v1/payment/payme/callback").permitAll()
                 .antMatchers("/ninimum/api/v1/delivery-app/login").permitAll()
+                .antMatchers("/ninimum/api/v1/admin/**").hasAuthority(Constant.ROLE_ADMIN)
                 .antMatchers("/ninimum/api/v1/delivery-app/admin/**").hasAuthority(Constant.ROLE_ADMIN)
                 .antMatchers("/ninimum/api/v1/delivery-app/**").hasAuthority(Constant.ROLE_DELIVERY)
 

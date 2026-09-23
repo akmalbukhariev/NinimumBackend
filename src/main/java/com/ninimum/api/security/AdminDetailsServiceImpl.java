@@ -18,22 +18,22 @@ public class AdminDetailsServiceImpl implements UserDetailsService {
 
     @Override
     public UserDetails loadUserByUsername(String loginId) throws UsernameNotFoundException {
-
         CamelCaseMap admin = adminMapper.getAdminByLoginId(loginId);
-
         if (admin == null) {
             throw new UsernameNotFoundException("Admin not found");
         }
-
         return createUserDetails(admin);
     }
 
     private UserDetails createUserDetails(CamelCaseMap map) {
+        String role = map.get("role") == null ? Constant.ROLE_ADMIN : String.valueOf(map.get("role"));
+        boolean active = "ACTIVE".equalsIgnoreCase(String.valueOf(map.get("status")));
 
         UserDetails user = org.springframework.security.core.userdetails.User.builder()
-                .username((String) map.get("login_id"))
-                .password((String) map.get("password"))
-                .authorities(new SimpleGrantedAuthority(Constant.ROLE_ADMIN))
+                .username(String.valueOf(map.get("login_id")))
+                .password(String.valueOf(map.get("password")))
+                .authorities(new SimpleGrantedAuthority(role))
+                .disabled(!active)
                 .build();
 
         return new CommUserDetails(user, map);
