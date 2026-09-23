@@ -28,6 +28,7 @@ public interface DeliveryAppMapper {
     int updateJobStatus(@Param("jobId") Long jobId, @Param("workerId") Long workerId,
                         @Param("status") String status, @Param("note") String note);
     int updateOrderStatusForJob(@Param("jobId") Long jobId, @Param("orderStatus") String orderStatus);
+    int syncOrderStatusFromJob(@Param("jobId") Long jobId);
     int addTracking(@Param("jobId") Long jobId, @Param("workerId") Long workerId,
                     @Param("status") String status, @Param("message") String message);
 }

@@ -123,6 +123,13 @@ public class DeliveryAppService implements IDeliveryAppService {
     public DeliveryAppJobDto getJobDetail(String workerId, Long jobId) throws Exception {
         if (jobId == null) throw new Exception("jobId is required");
         DeliveryAppWorkerDto worker = getWorker(workerId);
+
+        // Self-heal customer order status from the courier job. This is important
+        // for jobs that were already ACCEPTED before the synchronization change
+        // was deployed. Opening the delivery detail immediately brings Ninimum
+        // to the correct step: ACCEPTED -> PREPARING, ON_THE_WAY -> ON_THE_WAY.
+        mapper.syncOrderStatusFromJob(jobId);
+
         DeliveryAppJobDto job = mapper.getJobDetail(jobId, worker.getId());
         if (job == null) throw new Exception("Delivery job not found");
 
@@ -146,6 +153,11 @@ public class DeliveryAppService implements IDeliveryAppService {
         DeliveryAppWorkerDto worker = getWorker(workerId);
         int updated = mapper.claimJob(jobId, worker.getId());
         if (updated == 0) throw new Exception("This delivery was already taken by another courier");
+
+        // ACCEPTED maps to PREPARING in the customer order, which Ninimum
+        // displays as the third step: "Yetkazishga tayyor".
+        mapper.syncOrderStatusFromJob(jobId);
+
         mapper.addTracking(jobId, worker.getId(), "ACCEPTED", "Delivery accepted by courier");
         return updated;
     }

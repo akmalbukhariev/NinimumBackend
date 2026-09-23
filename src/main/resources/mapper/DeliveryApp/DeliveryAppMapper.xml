@@ -166,6 +166,29 @@
         WHERE dj.id=#{jobId}
     </update>
 
+    <!--
+      Keep the customer order status aligned with the courier job status.
+      This also repairs deliveries that were accepted before the status-sync
+      backend change was deployed.
+    -->
+    <update id="syncOrderStatusFromJob">
+        UPDATE orders o
+        JOIN delivery_jobs dj ON dj.order_id=o.id
+        SET o.status = CASE
+                WHEN dj.status='ACCEPTED' THEN 'PREPARING'
+                WHEN dj.status='ON_THE_WAY' THEN 'ON_THE_WAY'
+                WHEN dj.status='DELIVERED' THEN 'DELIVERED'
+                ELSE o.status
+            END,
+            o.delivered_at = CASE
+                WHEN dj.status='DELIVERED' AND o.delivered_at IS NULL THEN NOW()
+                ELSE o.delivered_at
+            END,
+            o.updated_at=NOW()
+        WHERE dj.id=#{jobId}
+          AND dj.status IN ('ACCEPTED','ON_THE_WAY','DELIVERED')
+    </update>
+
     <insert id="addTracking">
         INSERT INTO delivery_job_tracking(delivery_job_id, delivery_worker_id, status, message, created_at)
         VALUES(#{jobId}, #{workerId}, #{status}, #{message}, NOW())

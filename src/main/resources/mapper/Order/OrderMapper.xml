@@ -10,7 +10,12 @@
             o.id AS orderId,
             o.user_id AS userId,
             o.order_number AS orderNumber,
-            o.status AS status,
+            CASE
+                WHEN dj.status = 'DELIVERED' THEN 'DELIVERED'
+                WHEN dj.status = 'ON_THE_WAY' THEN 'ON_THE_WAY'
+                WHEN dj.status = 'ACCEPTED' THEN 'PREPARING'
+                ELSE o.status
+            END AS status,
             o.payment_status AS paymentStatus,
             o.total_price AS totalPrice,
             COALESCE(SUM(oi.quantity), 0) AS productCount,
@@ -18,6 +23,8 @@
         FROM orders o
             LEFT JOIN order_items oi
             ON oi.order_id = o.id
+            LEFT JOIN delivery_jobs dj
+            ON dj.order_id = o.id
         WHERE o.user_id = #{userId}
             AND o.is_history_deleted = 0
         GROUP BY
@@ -25,6 +32,7 @@
             o.user_id,
             o.order_number,
             o.status,
+            dj.status,
             o.payment_status,
             o.total_price,
             o.ordered_at
@@ -229,18 +237,24 @@
             parameterType="com.ninimum.api.param.OrderDetailParam"
             resultType="com.ninimum.api.dto.OrderProcessDto">
         SELECT
-            id AS orderId,
-            order_number AS orderNumber,
-            status AS status,
-            payment_status AS paymentStatus,
-            DATE_FORMAT(ordered_at, '%Y-%m-%d %H:%i:%s') AS orderedAt,
+            o.id AS orderId,
+            o.order_number AS orderNumber,
             CASE
-                WHEN delivered_at IS NULL THEN NULL
-                ELSE DATE_FORMAT(delivered_at, '%Y-%m-%d %H:%i:%s')
+                WHEN dj.status = 'DELIVERED' THEN 'DELIVERED'
+                WHEN dj.status = 'ON_THE_WAY' THEN 'ON_THE_WAY'
+                WHEN dj.status = 'ACCEPTED' THEN 'PREPARING'
+                ELSE o.status
+            END AS status,
+            o.payment_status AS paymentStatus,
+            DATE_FORMAT(o.ordered_at, '%Y-%m-%d %H:%i:%s') AS orderedAt,
+            CASE
+                WHEN o.delivered_at IS NULL THEN NULL
+                ELSE DATE_FORMAT(o.delivered_at, '%Y-%m-%d %H:%i:%s')
             END AS deliveredAt
-        FROM orders
-        WHERE id = #{orderId}
-          AND user_id = #{userId}
+        FROM orders o
+        LEFT JOIN delivery_jobs dj ON dj.order_id = o.id
+        WHERE o.id = #{orderId}
+          AND o.user_id = #{userId}
         LIMIT 1
     </select>
 
