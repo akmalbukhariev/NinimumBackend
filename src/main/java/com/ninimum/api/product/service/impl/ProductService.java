@@ -100,6 +100,32 @@ public class ProductService implements IProductService {
     }
 
     @Override
+    public List<CamelCaseMap> getFiscalMxikList(FiscalMxikPackageListParam param) throws Exception {
+
+        if (param == null) {
+            param = new FiscalMxikPackageListParam();
+        }
+
+        if (param.getPageSize() <= 0) {
+            param.setPageSize(50);
+        }
+
+        if (param.getPageSize() > 100) {
+            param.setPageSize(100);
+        }
+
+        if (param.getOffset() < 0) {
+            param.setOffset(0);
+        }
+
+        if (param.getKeyword() != null) {
+            param.setKeyword(param.getKeyword().trim());
+        }
+
+        return productMapper.getFiscalMxikList(param);
+    }
+
+    @Override
     public List<CamelCaseMap> getFiscalMxikPackageList(FiscalMxikPackageListParam param) throws Exception {
 
         if (param == null) {

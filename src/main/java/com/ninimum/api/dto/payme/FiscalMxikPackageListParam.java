@@ -7,4 +7,5 @@ import lombok.Data;
 public class FiscalMxikPackageListParam extends PageSizeParam {
 
     private String keyword;
+    private Long mxikId;
 }

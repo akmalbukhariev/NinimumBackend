@@ -15,7 +15,10 @@ public interface IAdminManagementService {
     Map<String, Object> getProduct(long id);
     int updateProduct(long id, Map<String, Object> body);
     int addProductImages(long id, List<MultipartFile> images) throws Exception;
+    int addProductImageData(long id, Map<String, Object> body) throws Exception;
+    int addProductImageBytes(long id, byte[] bytes, String fileName, String contentType) throws Exception;
     int deleteProductImage(long productId, long imageId);
+    int deleteProduct(long id);
 
     List<CamelCaseMap> getCategories();
     int createCategory(Map<String, Object> body);

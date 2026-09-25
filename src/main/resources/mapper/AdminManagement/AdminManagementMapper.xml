@@ -62,7 +62,17 @@
     <include refid="productWhere"/> ORDER BY p.id DESC LIMIT #{pageSize} OFFSET #{offset}
   </select>
   <select id="countProducts" resultType="int">SELECT COUNT(*) FROM products p <include refid="productWhere"/></select>
-  <select id="getProduct" resultType="camelMap">SELECT p.*, c.name category_name FROM products p LEFT JOIN categories c ON c.id=p.category_id WHERE p.id=#{id} LIMIT 1</select>
+  <select id="getProduct" resultType="camelMap">
+    SELECT p.*, c.name category_name,
+           fmp.mxik_id, fmp.package_code, fmp.package_name,
+           fm.mxik_code, fm.mxik_name
+    FROM products p
+    LEFT JOIN categories c ON c.id=p.category_id
+    LEFT JOIN fiscal_mxik_package fmp ON fmp.id=p.fiscal_mxik_package_id
+    LEFT JOIN fiscal_mxik fm ON fm.id=fmp.mxik_id
+    WHERE p.id=#{id}
+    LIMIT 1
+  </select>
   <select id="getProductImages" resultType="camelMap">SELECT * FROM product_images WHERE product_id=#{id} ORDER BY sort_order,id</select>
   <select id="getMaxProductImageSortOrder" resultType="int">SELECT COALESCE(MAX(sort_order),0) FROM product_images WHERE product_id=#{productId}</select>
   <insert id="insertProductImage">
@@ -70,6 +80,15 @@
   </insert>
   <select id="getProductImage" resultType="camelMap">SELECT id,product_id,image_url,sort_order FROM product_images WHERE product_id=#{productId} AND id=#{imageId} LIMIT 1</select>
   <delete id="deleteProductImage">DELETE FROM product_images WHERE product_id=#{productId} AND id=#{imageId}</delete>
+  <select id="countProductOrderReferences" resultType="int">SELECT COUNT(*) FROM order_items WHERE product_id=#{productId}</select>
+  <select id="countProductReviewReferences" resultType="int">SELECT COUNT(*) FROM reviews WHERE product_id=#{productId}</select>
+  <select id="countProductQuestionReferences" resultType="int">SELECT COUNT(*) FROM product_questions WHERE product_id=#{productId}</select>
+  <delete id="deleteProductCartItems">DELETE FROM cart_items WHERE product_id=#{productId}</delete>
+  <delete id="deleteProductFavorites">DELETE FROM favorites WHERE product_id=#{productId}</delete>
+  <delete id="deleteProductRecentlyViewed">DELETE FROM recently_viewed_products WHERE product_id=#{productId}</delete>
+  <delete id="deleteProductBanners">DELETE FROM banners WHERE product_id=#{productId}</delete>
+  <delete id="deleteProductImages">DELETE FROM product_images WHERE product_id=#{productId}</delete>
+  <delete id="deleteProduct">DELETE FROM products WHERE id=#{productId}</delete>
   <update id="updateProduct" parameterType="map">
     UPDATE products <set>
       <if test="category_id != null">category_id=#{category_id},</if>

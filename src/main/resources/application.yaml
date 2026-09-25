@@ -24,6 +24,11 @@ spring:
     basename: i18n/exception
     encoding: UTF-8
 
+  servlet:
+    multipart:
+      max-file-size: 20MB
+      max-request-size: 50MB
+
 springdoc:
   swagger-ui:
     path: /swagger-ui.html
@@ -58,6 +63,8 @@ payme:
 server:
   address: 0.0.0.0
   port: 8083
+  tomcat:
+    max-swallow-size: 50MB
 
 jasypt:
   encryptor:

@@ -15,6 +15,7 @@ import java.util.List;
 public interface ProductMapper {
     int insertProduct(AddProductParam param) throws Exception;
     int countFiscalMxikPackageById(@Param("fiscal_mxik_package_id") Long fiscalMxikPackageId) throws Exception;
+    List<CamelCaseMap> getFiscalMxikList(FiscalMxikPackageListParam param) throws Exception;
     List<CamelCaseMap> getFiscalMxikPackageList(FiscalMxikPackageListParam param) throws Exception;
     Long getLastInsertId() throws Exception;
     List<CamelCaseMap> getProductImages(Long productId) throws Exception;

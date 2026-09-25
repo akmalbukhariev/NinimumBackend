@@ -63,6 +63,30 @@ public class FileService implements IFileService {
     }
 
     @Override
+    public String saveProductImage(byte[] bytes, String originalName) throws Exception {
+        if (bytes == null || bytes.length == 0) {
+            throw new IllegalArgumentException("Product image is empty.");
+        }
+        if (bytes.length > 20L * 1024L * 1024L) {
+            throw new IllegalArgumentException("Product image is too large. Maximum size is 20 MB.");
+        }
+
+        String safeName = originalName == null ? "image" : Path.of(originalName).getFileName().toString();
+        String extension = "";
+        int dot = safeName.lastIndexOf('.');
+        if (dot >= 0 && dot < safeName.length() - 1) {
+            extension = safeName.substring(dot);
+        }
+
+        String fileName = UUID.randomUUID() + extension;
+        Path productDir = Path.of(uploadPath, "products");
+        Files.createDirectories(productDir);
+        Path savePath = productDir.resolve(fileName);
+        Files.write(savePath, bytes);
+        return "products/" + fileName;
+    }
+
+    @Override
     public String saveReviewImage(MultipartFile file) throws Exception {
         validateReviewImage(file);
 

@@ -47,6 +47,30 @@
         WHERE id = #{fiscal_mxik_package_id}
     </select>
 
+    <select id="getFiscalMxikList"
+            parameterType="com.ninimum.api.dto.payme.FiscalMxikPackageListParam"
+            resultType="camelMap">
+
+        SELECT
+        fm.id AS mxik_id,
+        fm.mxik_code,
+        fm.mxik_name
+        FROM fiscal_mxik fm
+
+        <where>
+            <if test="keyword != null and keyword != ''">
+                fm.mxik_code LIKE CONCAT(#{keyword}, '%')
+                OR fm.mxik_name LIKE CONCAT('%', #{keyword}, '%')
+            </if>
+        </where>
+
+        ORDER BY fm.id ASC
+
+        LIMIT #{pageSize}
+        OFFSET #{offset}
+
+    </select>
+
     <select id="getFiscalMxikPackageList"
             parameterType="com.ninimum.api.dto.payme.FiscalMxikPackageListParam"
             resultType="camelMap">
@@ -62,11 +86,16 @@
         ON fm.id = fmp.mxik_id
 
         <where>
+            <if test="mxikId != null">
+                fmp.mxik_id = #{mxikId}
+            </if>
             <if test="keyword != null and keyword != ''">
+                AND (
                 fm.mxik_code LIKE CONCAT(#{keyword}, '%')
                 OR fmp.package_code LIKE CONCAT(#{keyword}, '%')
                 OR fm.mxik_name LIKE CONCAT('%', #{keyword}, '%')
                 OR fmp.package_name LIKE CONCAT('%', #{keyword}, '%')
+                )
             </if>
         </where>
 

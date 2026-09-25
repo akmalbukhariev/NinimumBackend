@@ -25,6 +25,15 @@ public interface AdminManagementMapper {
     int insertProductImage(@Param("productId") long productId, @Param("imageUrl") String imageUrl, @Param("sortOrder") int sortOrder);
     CamelCaseMap getProductImage(@Param("productId") long productId, @Param("imageId") long imageId);
     int deleteProductImage(@Param("productId") long productId, @Param("imageId") long imageId);
+    int countProductOrderReferences(@Param("productId") long productId);
+    int countProductReviewReferences(@Param("productId") long productId);
+    int countProductQuestionReferences(@Param("productId") long productId);
+    int deleteProductCartItems(@Param("productId") long productId);
+    int deleteProductFavorites(@Param("productId") long productId);
+    int deleteProductRecentlyViewed(@Param("productId") long productId);
+    int deleteProductBanners(@Param("productId") long productId);
+    int deleteProductImages(@Param("productId") long productId);
+    int deleteProduct(@Param("productId") long productId);
 
     List<CamelCaseMap> getCategories();
     int insertCategory(Map<String, Object> data);

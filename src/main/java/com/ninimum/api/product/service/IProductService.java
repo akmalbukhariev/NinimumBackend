@@ -12,6 +12,7 @@ import java.util.List;
 
 public interface IProductService {
     int createProduct(AddProductParam param, List<MultipartFile> images) throws Exception;
+    List<CamelCaseMap> getFiscalMxikList(FiscalMxikPackageListParam param) throws Exception;
     List<CamelCaseMap> getFiscalMxikPackageList(FiscalMxikPackageListParam param) throws Exception;
     List<ProductCategoryDto> getProductCategoryList() throws Exception;
     List<ProductResponse> getProductList(ProductListParam param) throws Exception;

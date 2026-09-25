@@ -23,6 +23,8 @@ import org.springframework.web.multipart.MultipartFile;
 
 import javax.annotation.PostConstruct;
 import java.util.List;
+import java.util.Map;
+import java.util.LinkedHashMap;
 
 @Slf4j
 @RestController
@@ -67,7 +69,64 @@ public class AdminProductController extends BaseController {
 
         } catch (Exception ex) {
             result = this.setResult(Result.SERVER_ERROR);
+            if (ex.getMessage() != null && !ex.getMessage().isBlank()) {
+                result.setResultMsg(ex.getMessage());
+            }
             log.error("AdminProductController => createProduct: ", ex);
+        }
+
+        return new ResponseEntity<>(result, HttpStatus.OK);
+    }
+
+
+    @Operation(
+            tags = {"Admin Product"},
+            summary = "Create product JSON",
+            description = "Creates product data without multipart upload. Images are uploaded separately.",
+            hidden = false,
+            responses = { @ApiResponse(responseCode = "200", description = "success") },
+            security = { @SecurityRequirement(name = "bearerAuth") }
+    )
+    @PostMapping(value = "/createProductJson", consumes = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<Object> createProductJson(@RequestBody AddProductParam param) {
+        VersionResponseResult result;
+        try {
+            int resultNum = this.productService.createProduct(param, null);
+            if (resultNum != 0 && param.getId() != null) {
+                Map<String, Object> data = new LinkedHashMap<>();
+                data.put("product_id", param.getId());
+                result = this.setResult(Result.SUCCESS, data);
+            } else {
+                result = this.setResult(Result.SERVER_ERROR);
+            }
+        } catch (Exception ex) {
+            result = this.setResult(Result.SERVER_ERROR);
+            if (ex.getMessage() != null && !ex.getMessage().isBlank()) {
+                result.setResultMsg(ex.getMessage());
+            }
+            log.error("AdminProductController => createProductJson: ", ex);
+        }
+        return new ResponseEntity<>(result, HttpStatus.OK);
+    }
+
+    @Operation(
+            tags = {"Admin Product"},
+            summary = "2. Fiscal MXIK list",
+            description = "Searches fiscal MXIK entries by code or name.",
+            hidden = false,
+            responses = {@ApiResponse(responseCode = "200",description = "success")},
+            security = {@SecurityRequirement(name = "bearerAuth")}
+    )
+    @PostMapping(value = "/getFiscalMxikList",headers = {"Content-type=application/json"})
+    public ResponseEntity<Object> getFiscalMxikList(@RequestBody FiscalMxikPackageListParam param) {
+        VersionResponseResult result;
+
+        try {
+            List<CamelCaseMap> fiscalMxik = productService.getFiscalMxikList(param);
+            result = setResult(Result.SUCCESS, fiscalMxik);
+        } catch (Exception ex) {
+            result = setResult(Result.SERVER_ERROR);
+            log.error("AdminProductController => getFiscalMxikList: ", ex);
         }
 
         return new ResponseEntity<>(result, HttpStatus.OK);
@@ -75,7 +134,7 @@ public class AdminProductController extends BaseController {
 
     @Operation(
             tags = {"Admin Product"},
-            summary = "2. Fiscal MXIK package list",
+            summary = "3. Fiscal MXIK package list",
             description = "Searches MXIK and package combinations.",
             hidden = false,
             responses = {@ApiResponse(responseCode = "200",description = "success")},

@@ -104,6 +104,20 @@ public class AdminManagementController extends BaseController {
         }
     }
 
+    @DeleteMapping("/products/{id}")
+    public ResponseEntity<Object> deleteProduct(@PathVariable long id) {
+        try {
+            return changed(service.deleteProduct(id));
+        } catch (IllegalStateException ex) {
+            log.warn("AdminManagementController => deleteProduct: {}", ex.getMessage());
+            com.ninimum.api.common.VersionResponseResult result = setResult(Result.SERVER_ERROR);
+            if (ex.getMessage() != null && !ex.getMessage().isBlank()) result.setResultMsg(ex.getMessage());
+            return new ResponseEntity<>(result, HttpStatus.OK);
+        } catch (Exception ex) {
+            return fail(ex, "deleteProduct");
+        }
+    }
+
     @PostMapping(value = "/products/{id}/images", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<Object> addProductImages(
             @PathVariable long id,
@@ -112,6 +126,34 @@ public class AdminManagementController extends BaseController {
             return changed(service.addProductImages(id, images));
         } catch (Exception ex) {
             return fail(ex, "addProductImages");
+        }
+    }
+
+    @PostMapping(value = "/products/{id}/image-data", consumes = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<Object> addProductImageData(@PathVariable long id, @RequestBody Map<String, Object> body) {
+        try {
+            return changed(service.addProductImageData(id, body));
+        } catch (Exception ex) {
+            log.error("AdminManagementController => addProductImageData", ex);
+            com.ninimum.api.common.VersionResponseResult result = setResult(Result.SERVER_ERROR);
+            if (ex.getMessage() != null && !ex.getMessage().isBlank()) result.setResultMsg(ex.getMessage());
+            return new ResponseEntity<>(result, HttpStatus.OK);
+        }
+    }
+
+    @PostMapping(value = "/products/{id}/image-bytes")
+    public ResponseEntity<Object> addProductImageBytes(
+            @PathVariable long id,
+            @RequestParam("fileName") String fileName,
+            @RequestHeader(value = "Content-Type", required = false) String contentType,
+            @RequestBody byte[] bytes) {
+        try {
+            return changed(service.addProductImageBytes(id, bytes, fileName, contentType));
+        } catch (Exception ex) {
+            log.error("AdminManagementController => addProductImageBytes", ex);
+            com.ninimum.api.common.VersionResponseResult result = setResult(Result.SERVER_ERROR);
+            if (ex.getMessage() != null && !ex.getMessage().isBlank()) result.setResultMsg(ex.getMessage());
+            return new ResponseEntity<>(result, HttpStatus.OK);
         }
     }
 

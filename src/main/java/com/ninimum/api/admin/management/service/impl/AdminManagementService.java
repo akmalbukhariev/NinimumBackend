@@ -5,14 +5,17 @@ import com.ninimum.api.admin.management.service.IAdminManagementService;
 import com.ninimum.api.camelcase.CamelCaseMap;
 import com.ninimum.api.file.service.impl.FileService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.util.Base64;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class AdminManagementService implements IAdminManagementService {
@@ -122,6 +125,46 @@ public class AdminManagementService implements IAdminManagementService {
 
     @Override
     @Transactional
+    public int addProductImageData(long id, Map<String, Object> body) throws Exception {
+        if (body == null) throw new IllegalArgumentException("Image data is required.");
+        String fileName = body.get("file_name") == null ? "image" : String.valueOf(body.get("file_name"));
+        String contentType = body.get("content_type") == null ? "" : String.valueOf(body.get("content_type"));
+        String base64 = body.get("base64") == null ? null : String.valueOf(body.get("base64"));
+        if (base64 == null || base64.isBlank()) throw new IllegalArgumentException("Image data is required.");
+        if (!contentType.isBlank() && !contentType.toLowerCase().startsWith("image/")) {
+            throw new IllegalArgumentException("Only image files can be uploaded.");
+        }
+        byte[] bytes;
+        try {
+            bytes = Base64.getDecoder().decode(base64);
+        } catch (IllegalArgumentException ex) {
+            throw new IllegalArgumentException("Invalid image data.");
+        }
+        String path = fileService.saveProductImage(bytes, fileName);
+        int sortOrder = mapper.getMaxProductImageSortOrder(id) + 1;
+        return mapper.insertProductImage(id, path, sortOrder);
+    }
+
+    @Override
+    @Transactional
+    public int addProductImageBytes(long id, byte[] bytes, String fileName, String contentType) throws Exception {
+        if (bytes == null || bytes.length == 0) {
+            throw new IllegalArgumentException("Product image is empty.");
+        }
+        if (contentType != null && !contentType.isBlank()
+                && !contentType.toLowerCase().startsWith("image/")
+                && !"application/octet-stream".equalsIgnoreCase(contentType)) {
+            throw new IllegalArgumentException("Only image files can be uploaded.");
+        }
+
+        String normalizedName = (fileName == null || fileName.isBlank()) ? "product-image" : fileName;
+        String path = fileService.saveProductImage(bytes, normalizedName);
+        int sortOrder = mapper.getMaxProductImageSortOrder(id) + 1;
+        return mapper.insertProductImage(id, path, sortOrder);
+    }
+
+    @Override
+    @Transactional
     public int deleteProductImage(long productId, long imageId) {
         CamelCaseMap image = mapper.getProductImage(productId, imageId);
         if (image == null) return 0;
@@ -132,6 +175,58 @@ public class AdminManagementService implements IAdminManagementService {
             fileService.deleteProductImage(String.valueOf(value));
         }
         return changed;
+    }
+
+
+    @Override
+    @Transactional
+    public int deleteProduct(long id) {
+        CamelCaseMap product = mapper.getProduct(id);
+        if (product == null || product.isEmpty()) {
+            return 0;
+        }
+
+        List<CamelCaseMap> images = mapper.getProductImages(id);
+
+        // Catalog/customer convenience relations must not make product deletion fragile.
+        // Some deployed databases may not contain every optional table, so clean each
+        // relation independently and let the final DELETE decide whether real history
+        // still references this product.
+        deleteProductRelationQuietly(() -> mapper.deleteProductBanners(id), "banners", id);
+        deleteProductRelationQuietly(() -> mapper.deleteProductCartItems(id), "cart_items", id);
+        deleteProductRelationQuietly(() -> mapper.deleteProductFavorites(id), "favorites", id);
+        deleteProductRelationQuietly(() -> mapper.deleteProductRecentlyViewed(id), "recently_viewed_products", id);
+
+        // product_images is part of the product itself. Keep this inside the same
+        // transaction so it is restored automatically if the product DELETE is blocked.
+        mapper.deleteProductImages(id);
+
+        final int changed;
+        try {
+            changed = mapper.deleteProduct(id);
+        } catch (RuntimeException ex) {
+            // Orders, reviews, questions, or any other FK/reference must protect
+            // historical data. Do not expose a generic SQL/server error to Admin.
+            throw new IllegalStateException("PRODUCT_IS_IN_USE", ex);
+        }
+
+        if (changed > 0 && images != null) {
+            for (CamelCaseMap image : images) {
+                Object imageUrl = image.get("imageUrl");
+                if (imageUrl == null) imageUrl = image.get("image_url");
+                if (imageUrl != null) fileService.deleteProductImage(String.valueOf(imageUrl));
+            }
+        }
+        return changed;
+    }
+
+    private void deleteProductRelationQuietly(Runnable action, String relation, long productId) {
+        try {
+            action.run();
+        } catch (RuntimeException ex) {
+            log.warn("AdminManagementService => deleteProduct: could not clean {} for product {}: {}",
+                    relation, productId, ex.getMessage());
+        }
     }
 
     @Override
