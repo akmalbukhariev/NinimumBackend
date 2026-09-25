@@ -24,7 +24,7 @@ import java.util.List;
 @RestController
 @RequiredArgsConstructor
 @Tag(name = "Admin Category", description = "Admin category management APIs.")
-@RequestMapping(value={"/samokat/api/v1/admin/category"})
+@RequestMapping(value={"/ninimum/api/v1/admin/category"})
 public class AdminCategoryController extends BaseController {
 
     private final ICategoryService categoryService;

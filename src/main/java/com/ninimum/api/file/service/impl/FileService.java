@@ -155,6 +155,26 @@ public class FileService implements IFileService {
         }
     }
 
+
+    @Override
+    public void deleteProductImage(String relativePath) {
+        if (relativePath == null || relativePath.isBlank()) {
+            return;
+        }
+
+        try {
+            Path productDir = Path.of(uploadPath, "products").toAbsolutePath().normalize();
+            String fileName = Path.of(relativePath).getFileName().toString();
+            Path filePath = productDir.resolve(fileName).normalize();
+
+            if (filePath.startsWith(productDir)) {
+                Files.deleteIfExists(filePath);
+            }
+        } catch (Exception ignored) {
+            // Do not fail product editing if an old image file is already missing.
+        }
+    }
+
     @Override
     public void deleteReviewImage(String relativePath) {
         if (relativePath == null || relativePath.isBlank()) {

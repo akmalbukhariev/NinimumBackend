@@ -8,4 +8,5 @@ public interface IFileService {
     String saveProductImage(MultipartFile file) throws Exception;
     String saveReviewImage(MultipartFile file) throws Exception;
     void deleteReviewImage(String relativePath);
+    void deleteProductImage(String relativePath);
 }

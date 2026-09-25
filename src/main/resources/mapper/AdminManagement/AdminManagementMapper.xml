@@ -1,0 +1,245 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ninimum.api.admin.management.service.AdminManagementMapper">
+
+  <sql id="orderWhere">
+    <where>
+      <if test="search != null">
+        AND (o.order_number LIKE CONCAT('%',#{search},'%') OR u.phone_number LIKE CONCAT('%',#{search},'%') OR CONCAT_WS(' ',u.first_name,u.last_name) LIKE CONCAT('%',#{search},'%'))
+      </if>
+      <if test="status != null">AND o.status = #{status}</if>
+    </where>
+  </sql>
+  <select id="getOrders" resultType="camelMap">
+    SELECT o.id, o.order_number, o.user_id, CONCAT_WS(' ',u.first_name,u.last_name) customer_name, u.phone_number,
+           o.status, o.payment_status, o.subtotal_price, o.delivery_price, o.discount_price, o.total_price,
+           DATE_FORMAT(o.ordered_at,'%Y-%m-%d %H:%i:%s') ordered_at,
+           COALESCE((SELECT SUM(quantity) FROM order_items oi WHERE oi.order_id=o.id),0) product_count
+    FROM orders o LEFT JOIN users u ON u.id=o.user_id
+    <include refid="orderWhere"/>
+    ORDER BY o.ordered_at DESC, o.id DESC LIMIT #{pageSize} OFFSET #{offset}
+  </select>
+  <select id="countOrders" resultType="int">SELECT COUNT(*) FROM orders o LEFT JOIN users u ON u.id=o.user_id <include refid="orderWhere"/></select>
+  <select id="getOrder" resultType="camelMap">
+    SELECT o.*, CONCAT_WS(' ',u.first_name,u.last_name) customer_name, u.phone_number, u.address customer_address
+    FROM orders o LEFT JOIN users u ON u.id=o.user_id WHERE o.id=#{id} LIMIT 1
+  </select>
+  <select id="getOrderItems" resultType="camelMap">SELECT * FROM order_items WHERE order_id=#{id} ORDER BY id</select>
+  <update id="updateOrderStatus">
+    UPDATE orders
+    <set>
+      <if test="status != null">status=#{status},</if>
+      <if test="paymentStatus != null">payment_status=#{paymentStatus},</if>
+      <if test="status == 'DELIVERED'">delivered_at=COALESCE(delivered_at,NOW()),</if>
+      updated_at=NOW()
+    </set>
+    WHERE id=#{id}
+  </update>
+  <update id="syncDeliveryJobFromOrder">
+    UPDATE delivery_jobs
+    SET status = CASE
+          WHEN #{status} = 'ON_THE_WAY' THEN 'ON_THE_WAY'
+          WHEN #{status} = 'DELIVERED' THEN 'DELIVERED'
+          WHEN #{status} = 'CANCELLED' THEN 'CANCELLED'
+          WHEN #{status} = 'PREPARING' AND delivery_worker_id IS NOT NULL THEN 'ACCEPTED'
+          ELSE status
+        END,
+        on_the_way_at = CASE WHEN #{status}='ON_THE_WAY' THEN COALESCE(on_the_way_at,NOW()) ELSE on_the_way_at END,
+        delivered_at = CASE WHEN #{status}='DELIVERED' THEN COALESCE(delivered_at,NOW()) ELSE delivered_at END,
+        updated_at = NOW()
+    WHERE order_id=#{id}
+  </update>
+
+  <sql id="productWhere"><where>
+    <if test="search != null">AND (p.name LIKE CONCAT('%',#{search},'%') OR p.sku LIKE CONCAT('%',#{search},'%') OR p.barcode LIKE CONCAT('%',#{search},'%') OR p.brand LIKE CONCAT('%',#{search},'%'))</if>
+    <if test="categoryId != null">AND p.category_id=#{categoryId}</if>
+    <if test="active != null">AND p.is_active=#{active}</if>
+  </where></sql>
+  <select id="getProducts" resultType="camelMap">
+    SELECT p.*, c.name category_name,
+      (SELECT image_url FROM product_images pi WHERE pi.product_id=p.id ORDER BY sort_order,id LIMIT 1) image_url
+    FROM products p LEFT JOIN categories c ON c.id=p.category_id
+    <include refid="productWhere"/> ORDER BY p.id DESC LIMIT #{pageSize} OFFSET #{offset}
+  </select>
+  <select id="countProducts" resultType="int">SELECT COUNT(*) FROM products p <include refid="productWhere"/></select>
+  <select id="getProduct" resultType="camelMap">SELECT p.*, c.name category_name FROM products p LEFT JOIN categories c ON c.id=p.category_id WHERE p.id=#{id} LIMIT 1</select>
+  <select id="getProductImages" resultType="camelMap">SELECT * FROM product_images WHERE product_id=#{id} ORDER BY sort_order,id</select>
+  <select id="getMaxProductImageSortOrder" resultType="int">SELECT COALESCE(MAX(sort_order),0) FROM product_images WHERE product_id=#{productId}</select>
+  <insert id="insertProductImage">
+    INSERT INTO product_images(product_id,image_url,sort_order) VALUES(#{productId},#{imageUrl},#{sortOrder})
+  </insert>
+  <select id="getProductImage" resultType="camelMap">SELECT id,product_id,image_url,sort_order FROM product_images WHERE product_id=#{productId} AND id=#{imageId} LIMIT 1</select>
+  <delete id="deleteProductImage">DELETE FROM product_images WHERE product_id=#{productId} AND id=#{imageId}</delete>
+  <update id="updateProduct" parameterType="map">
+    UPDATE products <set>
+      <if test="category_id != null">category_id=#{category_id},</if>
+      <if test="fiscal_mxik_package_id != null">fiscal_mxik_package_id=#{fiscal_mxik_package_id},</if>
+      <if test="vat_percent != null">vat_percent=#{vat_percent},</if>
+      <if test="name != null">name=#{name},</if>
+      <if test="short_description != null">short_description=#{short_description},</if>
+      <if test="description != null">description=#{description},</if>
+      <if test="sku != null">sku=#{sku},</if>
+      <if test="barcode != null">barcode=#{barcode},</if>
+      <if test="brand != null">brand=#{brand},</if>
+      <if test="price != null">price=#{price},</if>
+      <if test="subscription_price != null">subscription_price=#{subscription_price},</if>
+      <if test="stock_quantity != null">stock_quantity=#{stock_quantity},</if>
+      <if test="weight_gram != null">weight_gram=#{weight_gram},</if>
+      <if test="is_active != null">is_active=#{is_active},</if>
+      <if test="is_featured != null">is_featured=#{is_featured},</if>
+      updated_at=NOW()
+    </set> WHERE id=#{id}
+  </update>
+
+  <select id="getCategories" resultType="camelMap">SELECT * FROM categories ORDER BY sort_order,name,id</select>
+  <insert id="insertCategory" parameterType="map">
+    INSERT INTO categories(parent_id,name,image_url,sort_order,is_active,created_at,updated_at)
+    VALUES(#{parent_id},#{name},#{image_url},COALESCE(#{sort_order},0),COALESCE(#{is_active},1),NOW(),NOW())
+  </insert>
+  <update id="updateCategory" parameterType="map">
+    UPDATE categories <set>
+      <if test="parent_id != null">parent_id=#{parent_id},</if><if test="name != null">name=#{name},</if>
+      <if test="image_url != null">image_url=#{image_url},</if><if test="sort_order != null">sort_order=#{sort_order},</if>
+      <if test="is_active != null">is_active=#{is_active},</if>updated_at=NOW()
+    </set> WHERE id=#{id}
+  </update>
+
+  <sql id="customerWhere"><where>
+    <if test="search != null">AND (u.phone_number LIKE CONCAT('%',#{search},'%') OR u.email LIKE CONCAT('%',#{search},'%') OR CONCAT_WS(' ',u.first_name,u.last_name) LIKE CONCAT('%',#{search},'%'))</if>
+    <if test="active != null">AND u.is_active=#{active}</if>
+  </where></sql>
+  <select id="getCustomers" resultType="camelMap">
+    SELECT u.id,u.first_name,u.last_name,u.phone_number,u.email,u.gender,u.address,u.region_id,u.status,u.is_active,u.created_at,u.updated_at,
+      (SELECT COUNT(*) FROM orders o WHERE o.user_id=u.id) order_count,
+      COALESCE((SELECT SUM(total_price) FROM orders o WHERE o.user_id=u.id AND o.payment_status='PAID' AND o.status&lt;&gt;'CANCELLED'),0) total_spent
+    FROM users u <include refid="customerWhere"/> ORDER BY u.id DESC LIMIT #{pageSize} OFFSET #{offset}
+  </select>
+  <select id="countCustomers" resultType="int">SELECT COUNT(*) FROM users u <include refid="customerWhere"/></select>
+  <update id="updateCustomerStatus">UPDATE users SET is_active=#{active}, status=CASE WHEN #{active}=1 THEN 'ACTIVE' ELSE 'BANNED' END, updated_at=NOW() WHERE id=#{id}</update>
+
+  <sql id="subscriptionWhere"><where>
+    <if test="search != null">AND (u.phone_number LIKE CONCAT('%',#{search},'%') OR CONCAT_WS(' ',u.first_name,u.last_name) LIKE CONCAT('%',#{search},'%') OR tp.name LIKE CONCAT('%',#{search},'%'))</if>
+    <if test="status != null">AND ut.status=#{status}</if>
+  </where></sql>
+  <select id="getSubscriptions" resultType="camelMap">
+    SELECT ut.id,ut.user_id,ut.tariff_plan_id,tp.name tariff_name,tp.monthly_price,ut.status,ut.start_date,ut.end_date,ut.auto_renew,ut.created_at,
+      CONCAT_WS(' ',u.first_name,u.last_name) customer_name,u.phone_number
+    FROM user_tariffs ut JOIN tariff_plans tp ON tp.id=ut.tariff_plan_id JOIN users u ON u.id=ut.user_id
+    <include refid="subscriptionWhere"/> ORDER BY ut.id DESC LIMIT #{pageSize} OFFSET #{offset}
+  </select>
+  <select id="countSubscriptions" resultType="int">SELECT COUNT(*) FROM user_tariffs ut JOIN tariff_plans tp ON tp.id=ut.tariff_plan_id JOIN users u ON u.id=ut.user_id <include refid="subscriptionWhere"/></select>
+  <update id="updateSubscriptionStatus">
+    UPDATE user_tariffs ut
+    JOIN tariff_plans tp ON tp.id=ut.tariff_plan_id
+    SET ut.status=#{status},
+        ut.start_date=CASE WHEN #{status}='ACTIVE' THEN COALESCE(ut.start_date,NOW()) ELSE ut.start_date END,
+        ut.end_date=CASE
+          WHEN #{status}='ACTIVE' THEN COALESCE(ut.end_date,DATE_ADD(NOW(), INTERVAL tp.duration_months MONTH))
+          WHEN #{status} IN ('CANCELLED','EXPIRED') THEN COALESCE(ut.end_date,NOW())
+          ELSE ut.end_date END,
+        ut.cancelled_at=CASE WHEN #{status}='CANCELLED' THEN COALESCE(ut.cancelled_at,NOW()) ELSE ut.cancelled_at END,
+        ut.updated_at=NOW()
+    WHERE ut.id=#{id}
+  </update>
+  <select id="getTariffs" resultType="camelMap">SELECT * FROM tariff_plans ORDER BY monthly_price,id</select>
+  <insert id="insertTariff" parameterType="map">INSERT INTO tariff_plans(name,monthly_price,duration_months,description,is_active) VALUES(#{name},#{monthly_price},#{duration_months},#{description},COALESCE(#{is_active},1))</insert>
+  <update id="updateTariff" parameterType="map">UPDATE tariff_plans <set>id=id,<if test="name != null">name=#{name},</if><if test="monthly_price != null">monthly_price=#{monthly_price},</if><if test="duration_months != null">duration_months=#{duration_months},</if><if test="description != null">description=#{description},</if><if test="is_active != null">is_active=#{is_active},</if></set> WHERE id=#{id}</update>
+
+  <insert id="syncPaidOrders">
+    INSERT IGNORE INTO delivery_jobs(order_id,customer_name,customer_phone,delivery_address,status,created_at,updated_at)
+    SELECT o.id,COALESCE(NULLIF(TRIM(CONCAT_WS(' ',u.first_name,u.last_name)),''),'Mijoz'),COALESCE(NULLIF(u.phone_number,''),''),COALESCE(NULLIF(u.address,''),'Manzil ko''rsatilmagan'),'WAITING_ASSIGNMENT',NOW(),NOW()
+    FROM orders o JOIN users u ON u.id=o.user_id
+    WHERE o.payment_status='PAID' AND o.status IN ('CONFIRMED','PREPARING','ON_THE_WAY')
+  </insert>
+  <sql id="deliveryWhere"><where><if test="status != null">AND dj.status=#{status}</if></where></sql>
+  <select id="getDeliveryJobs" resultType="camelMap">
+    SELECT dj.*,o.order_number,o.total_price,o.payment_status,o.status order_status,w.worker_code,w.full_name worker_name
+    FROM delivery_jobs dj JOIN orders o ON o.id=dj.order_id LEFT JOIN delivery_app_workers w ON w.id=dj.delivery_worker_id
+    <include refid="deliveryWhere"/> ORDER BY dj.updated_at DESC,dj.id DESC LIMIT #{pageSize} OFFSET #{offset}
+  </select>
+  <select id="countDeliveryJobs" resultType="int">SELECT COUNT(*) FROM delivery_jobs dj <include refid="deliveryWhere"/></select>
+  <select id="getDeliveryWorkers" resultType="camelMap">SELECT id,worker_code,full_name,phone_number,status,is_online,vehicle_type,vehicle_number,created_at,updated_at FROM delivery_app_workers ORDER BY id DESC</select>
+  <update id="updateDeliveryWorkerStatus">UPDATE delivery_app_workers SET status=#{status}, is_online=CASE WHEN #{status}='ACTIVE' THEN is_online ELSE 0 END, updated_at=NOW() WHERE id=#{id}</update>
+  <update id="updateDeliveryJob" parameterType="map">
+    UPDATE delivery_jobs <set>
+      <if test="delivery_worker_id != null">delivery_worker_id=#{delivery_worker_id}, accepted_at=COALESCE(accepted_at,NOW()),</if>
+      <if test="status != null">status=#{status},</if><if test="note != null">note=#{note},</if>
+      <if test="status == 'ON_THE_WAY'">on_the_way_at=COALESCE(on_the_way_at,NOW()),</if>
+      <if test="status == 'DELIVERED'">delivered_at=COALESCE(delivered_at,NOW()),</if>updated_at=NOW()
+    </set> WHERE id=#{id}
+  </update>
+  <update id="syncOrderFromDeliveryJob">
+    UPDATE orders o JOIN delivery_jobs dj ON dj.order_id=o.id SET o.status=CASE WHEN dj.status='ACCEPTED' THEN 'PREPARING' WHEN dj.status='ON_THE_WAY' THEN 'ON_THE_WAY' WHEN dj.status='DELIVERED' THEN 'DELIVERED' WHEN dj.status='CANCELLED' THEN 'CANCELLED' ELSE o.status END, o.delivered_at=CASE WHEN dj.status='DELIVERED' THEN COALESCE(o.delivered_at,NOW()) ELSE o.delivered_at END,o.updated_at=NOW() WHERE dj.id=#{id}
+  </update>
+
+  <sql id="reviewWhere"><where>
+    <if test="search != null">AND (p.name LIKE CONCAT('%',#{search},'%') OR r.comment LIKE CONCAT('%',#{search},'%') OR CONCAT_WS(' ',u.first_name,u.last_name) LIKE CONCAT('%',#{search},'%'))</if>
+    <if test="active != null">AND r.is_active=#{active}</if>
+  </where></sql>
+  <select id="getReviews" resultType="camelMap">
+    SELECT r.*,p.name product_name,CONCAT_WS(' ',u.first_name,u.last_name) customer_name,u.phone_number
+    FROM reviews r LEFT JOIN products p ON p.id=r.product_id LEFT JOIN users u ON u.id=r.user_id
+    <include refid="reviewWhere"/> ORDER BY r.created_at DESC,r.id DESC LIMIT #{pageSize} OFFSET #{offset}
+  </select>
+  <select id="countReviews" resultType="int">SELECT COUNT(*) FROM reviews r LEFT JOIN products p ON p.id=r.product_id LEFT JOIN users u ON u.id=r.user_id <include refid="reviewWhere"/></select>
+  <update id="updateReviewActive">UPDATE reviews SET is_active=#{active},updated_at=NOW() WHERE id=#{id}</update>
+
+  <sql id="questionWhere"><where>
+    <if test="search != null">AND (pq.question LIKE CONCAT('%',#{search},'%') OR pq.answer LIKE CONCAT('%',#{search},'%') OR p.name LIKE CONCAT('%',#{search},'%') OR CONCAT_WS(' ',u.first_name,u.last_name) LIKE CONCAT('%',#{search},'%'))</if>
+    <if test="status != null">AND pq.status=#{status}</if>
+  </where></sql>
+  <select id="getQuestions" resultType="camelMap">
+    SELECT pq.id,pq.product_id,pq.user_id,pq.question,pq.answer,pq.status,pq.is_active,pq.created_at,pq.answered_at,pq.updated_at,
+           p.name product_name,CONCAT_WS(' ',u.first_name,u.last_name) customer_name,u.phone_number
+    FROM product_questions pq
+    LEFT JOIN products p ON p.id=pq.product_id
+    LEFT JOIN users u ON u.id=pq.user_id
+    <include refid="questionWhere"/>
+    ORDER BY pq.created_at DESC,pq.id DESC LIMIT #{pageSize} OFFSET #{offset}
+  </select>
+  <select id="countQuestions" resultType="int">
+    SELECT COUNT(*) FROM product_questions pq
+    LEFT JOIN products p ON p.id=pq.product_id
+    LEFT JOIN users u ON u.id=pq.user_id
+    <include refid="questionWhere"/>
+  </select>
+  <update id="answerQuestion">
+    UPDATE product_questions SET answer=#{answer},status='ANSWERED',answered_at=NOW(),updated_at=NOW() WHERE id=#{id}
+  </update>
+  <update id="updateQuestionActive">UPDATE product_questions SET is_active=#{active},updated_at=NOW() WHERE id=#{id}</update>
+
+  <select id="getPromotions" resultType="camelMap">SELECT * FROM promotions ORDER BY promotion_id DESC</select>
+  <insert id="insertPromotion" parameterType="map">INSERT INTO promotions(title,content,image_url,start_date,end_date,use_yn) VALUES(#{title},#{content},#{image_url},#{start_date},#{end_date},COALESCE(#{use_yn},'Y'))</insert>
+  <update id="updatePromotion" parameterType="map">UPDATE promotions <set>promotion_id=promotion_id,<if test="title != null">title=#{title},</if><if test="content != null">content=#{content},</if><if test="image_url != null">image_url=#{image_url},</if><if test="start_date != null">start_date=#{start_date},</if><if test="end_date != null">end_date=#{end_date},</if><if test="use_yn != null">use_yn=#{use_yn},</if></set> WHERE promotion_id=#{id}</update>
+  <select id="getBanners" resultType="camelMap">SELECT b.id,b.product_id,b.sort_order,b.is_active,p.name product_name,(SELECT image_url FROM product_images pi WHERE pi.product_id=p.id ORDER BY sort_order,id LIMIT 1) image_url FROM banners b JOIN products p ON p.id=b.product_id ORDER BY b.sort_order,b.id</select>
+  <delete id="clearBanners">DELETE FROM banners</delete>
+  <insert id="insertBanner">INSERT INTO banners(product_id,sort_order,is_active) VALUES(#{productId},#{sortOrder},1)</insert>
+
+  <select id="getCoupons" resultType="camelMap">
+    SELECT coupon_id,coupon_name,coupon_type,discount_amount,discount_rate,start_date,end_date,use_yn
+    FROM coupons ORDER BY coupon_id DESC
+  </select>
+  <insert id="insertCoupon" parameterType="map">
+    INSERT INTO coupons(coupon_name,coupon_type,discount_amount,discount_rate,start_date,end_date,use_yn)
+    VALUES(#{coupon_name},#{coupon_type},#{discount_amount},#{discount_rate},#{start_date},#{end_date},COALESCE(#{use_yn},'Y'))
+  </insert>
+  <update id="updateCoupon" parameterType="map">
+    UPDATE coupons <set>
+      coupon_id=coupon_id,
+      <if test="coupon_name != null">coupon_name=#{coupon_name},</if>
+      <if test="coupon_type != null">coupon_type=#{coupon_type},</if>
+      <if test="discount_amount != null">discount_amount=#{discount_amount},</if>
+      <if test="discount_rate != null">discount_rate=#{discount_rate},</if>
+      <if test="start_date != null">start_date=#{start_date},</if>
+      <if test="end_date != null">end_date=#{end_date},</if>
+      <if test="use_yn != null">use_yn=#{use_yn},</if>
+    </set> WHERE coupon_id=#{id}
+  </update>
+
+  <select id="getSettings" resultType="camelMap">SELECT * FROM app_configs ORDER BY config_id DESC LIMIT 1</select>
+  <update id="updateSettings" parameterType="map">
+    UPDATE app_configs <set>config_id=config_id,<if test="app_version != null">app_version=#{app_version},</if><if test="force_update_yn != null">force_update_yn=#{force_update_yn},</if><if test="maintenance_yn != null">maintenance_yn=#{maintenance_yn},</if><if test="maintenance_message != null">maintenance_message=#{maintenance_message},</if><if test="terms_url != null">terms_url=#{terms_url},</if><if test="privacy_url != null">privacy_url=#{privacy_url},</if></set> WHERE config_id=(SELECT id FROM (SELECT MAX(config_id) id FROM app_configs) x)
+  </update>
+  <select id="getAdmins" resultType="camelMap">SELECT id,login_id,name,role,status FROM admin_users ORDER BY id</select>
+  <update id="updateAdminStatus">UPDATE admin_users SET status=#{status} WHERE id=#{id}</update>
+</mapper>
