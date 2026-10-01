@@ -153,7 +153,15 @@ public class ProductService implements IProductService {
 
     @Override
     public List<ProductCategoryDto> getProductCategoryList() throws Exception {
-        return this.productMapper.getProductCategoryList();
+        List<ProductCategoryDto> categories = this.productMapper.getProductCategoryList();
+        for (ProductCategoryDto category : categories) {
+            String image = category.getCategoryImageUrl();
+            if (image != null && !image.trim().isEmpty()
+                    && !image.startsWith("https://") && !image.startsWith("http://")) {
+                category.setCategoryImageUrl(fileAccessUrl.replaceAll("/+$", "") + "/" + image.replaceAll("^/+", ""));
+            }
+        }
+        return categories;
     }
 
     @Override
@@ -173,6 +181,13 @@ public class ProductService implements IProductService {
             param.setOffset(0);
         }
 
+        param.setCategoryIds(null);
+        if (param.isInclude_subcategories() && param.getCategory_id() != null) {
+            List<Long> ids = com.ninimum.api.product.service.CategoryTree.descendants(
+                    param.getCategory_id(), productMapper.getProductCategoryList());
+            if (ids.isEmpty()) return java.util.Collections.emptyList();
+            param.setCategoryIds(ids);
+        }
         List<CamelCaseMap> camProducts = this.productMapper.getProductList(param);
         List<ProductResponse> products = Converter.mapToDtoList(camProducts, ProductResponse.class);
 

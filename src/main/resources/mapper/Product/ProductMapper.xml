@@ -131,12 +131,13 @@
 
     <select id="getProductCategoryList" resultType="com.ninimum.api.dto.ProductCategoryDto">
         SELECT
-        category_id AS categoryId,
-        category_name AS categoryName,
-        category_image_url AS categoryImageUrl
-        FROM product_categories
-        WHERE use_yn = 'Y'
-        ORDER BY sort_order ASC, category_id ASC
+        id AS categoryId,
+        parent_id AS parentId,
+        name AS categoryName,
+        image_url AS categoryImageUrl
+        FROM categories
+        WHERE is_active = TRUE
+        ORDER BY sort_order ASC, name ASC, id ASC
     </select>
 
     <select id="getProductImages" parameterType="long" resultType="camelMap">
@@ -199,9 +200,19 @@
 
         WHERE p.is_active = 1
 
-        <if test="category_id != null">
-            AND p.category_id = #{category_id}
-        </if>
+        <choose>
+            <when test="categoryIds != null and categoryIds.size() > 0">
+                AND p.category_id IN
+                <foreach collection="categoryIds" item="categoryId" open="(" separator="," close=")">
+                    #{categoryId}
+                </foreach>
+            </when>
+            <otherwise>
+                <if test="category_id != null">
+                    AND p.category_id = #{category_id}
+                </if>
+            </otherwise>
+        </choose>
 
         ORDER BY p.id DESC
         LIMIT #{pageSize}

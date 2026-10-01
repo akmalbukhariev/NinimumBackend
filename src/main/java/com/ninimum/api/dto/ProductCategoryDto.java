@@ -5,6 +5,7 @@ import lombok.Data;
 @Data
 public class ProductCategoryDto {
     private Long categoryId;
+    private Long parentId;
     private String categoryName;
     private String categoryImageUrl;
 }
