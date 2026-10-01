@@ -294,6 +294,20 @@ public class AdminManagementController extends BaseController {
         }
     }
 
+    @DeleteMapping("/delivery/workers/{id}")
+    public ResponseEntity<Object> deleteDeliveryWorker(@PathVariable long id) {
+        try {
+            return changed(service.deleteDeliveryWorker(id));
+        } catch (IllegalStateException ex) {
+            log.warn("AdminManagementController => deleteDeliveryWorker: {}", ex.getMessage());
+            com.ninimum.api.common.VersionResponseResult result = setResult(Result.SERVER_ERROR);
+            if (ex.getMessage() != null && !ex.getMessage().isBlank()) result.setResultMsg(ex.getMessage());
+            return new ResponseEntity<>(result, HttpStatus.OK);
+        } catch (Exception ex) {
+            return fail(ex, "deleteDeliveryWorker");
+        }
+    }
+
     @PutMapping("/delivery/jobs/{id}")
     public ResponseEntity<Object> updateDeliveryJob(@PathVariable long id, @RequestBody Map<String, Object> body) {
         try {

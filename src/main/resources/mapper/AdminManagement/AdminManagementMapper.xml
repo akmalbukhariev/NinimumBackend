@@ -179,6 +179,9 @@
   <select id="countDeliveryJobs" resultType="int">SELECT COUNT(*) FROM delivery_jobs dj <include refid="deliveryWhere"/></select>
   <select id="getDeliveryWorkers" resultType="camelMap">SELECT id,worker_code,full_name,phone_number,status,is_online,vehicle_type,vehicle_number,created_at,updated_at FROM delivery_app_workers ORDER BY id DESC</select>
   <update id="updateDeliveryWorkerStatus">UPDATE delivery_app_workers SET status=#{status}, is_online=CASE WHEN #{status}='ACTIVE' THEN is_online ELSE 0 END, updated_at=NOW() WHERE id=#{id}</update>
+  <select id="countDeliveryJobsForWorker" resultType="int">SELECT COUNT(*) FROM delivery_jobs WHERE delivery_worker_id=#{id}</select>
+  <select id="countDeliveryTrackingForWorker" resultType="int">SELECT COUNT(*) FROM delivery_job_tracking WHERE delivery_worker_id=#{id}</select>
+  <delete id="deleteDeliveryWorker">DELETE FROM delivery_app_workers WHERE id=#{id}</delete>
   <update id="updateDeliveryJob" parameterType="map">
     UPDATE delivery_jobs <set>
       <if test="delivery_worker_id != null">delivery_worker_id=#{delivery_worker_id}, accepted_at=COALESCE(accepted_at,NOW()),</if>

@@ -328,6 +328,19 @@ public class AdminManagementService implements IAdminManagementService {
 
     @Override
     @Transactional
+    public int deleteDeliveryWorker(long id) {
+        if (mapper.countDeliveryJobsForWorker(id) > 0 || mapper.countDeliveryTrackingForWorker(id) > 0) {
+            throw new IllegalStateException("COURIER_IS_IN_USE");
+        }
+        try {
+            return mapper.deleteDeliveryWorker(id);
+        } catch (RuntimeException ex) {
+            throw new IllegalStateException("COURIER_IS_IN_USE", ex);
+        }
+    }
+
+    @Override
+    @Transactional
     public int updateDeliveryJob(long id, Map<String, Object> body) {
         body.put("id", id);
         int result = mapper.updateDeliveryJob(body);
