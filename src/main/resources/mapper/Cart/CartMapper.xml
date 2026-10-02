@@ -43,6 +43,7 @@
 
         WHERE ci.user_id = #{user_id}
             AND p.is_active = 1
+            AND p.stock_quantity > 0
 
         ORDER BY ci.id DESC
 
@@ -101,8 +102,11 @@
             parameterType="com.ninimum.api.param.CartListParam"
             resultType="int">
         SELECT COUNT(*)
-        FROM cart_items
-        WHERE user_id = #{user_id}
+        FROM cart_items ci
+        INNER JOIN products p ON p.id = ci.product_id
+        WHERE ci.user_id = #{user_id}
+          AND p.is_active = 1
+          AND p.stock_quantity > 0
     </select>
 
 </mapper>

@@ -95,6 +95,13 @@ public class OrderService implements IOrderService {
                 throw new Exception("Product not found or price is invalid. product_id=" + product.getProductId());
             }
 
+            if (productPrice.getStockQuantity() == null || productPrice.getStockQuantity() < product.getQuantity()) {
+                throw new Exception(
+                        "Not enough stock. product_id=" + product.getProductId() +
+                                ", available=" + (productPrice.getStockQuantity() == null ? 0 : productPrice.getStockQuantity())
+                );
+            }
+
             int regularUnitPrice = productPrice.getPrice();
             int unitPrice = regularUnitPrice;
 

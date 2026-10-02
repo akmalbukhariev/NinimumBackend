@@ -7,4 +7,5 @@ public class ProductCheckoutPriceDto {
     private Long productId;
     private Integer price;
     private Integer subscriptionPrice;
+    private Integer stockQuantity;
 }

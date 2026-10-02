@@ -177,6 +177,37 @@
           AND tp.is_active = 1
     </update>
 
+    <select id="getOrderStockItems"
+            parameterType="com.ninimum.api.dto.payme.GetPaymeOrderParam"
+            resultType="camelMap">
+        SELECT product_id, quantity
+        FROM order_items
+        WHERE order_id = #{order_id}
+        ORDER BY id ASC
+    </select>
+
+    <update id="decreaseProductStock" parameterType="map">
+        UPDATE products
+        SET stock_quantity = stock_quantity - #{quantity},
+            updated_at = NOW()
+        WHERE id = #{product_id}
+          AND is_active = 1
+          AND stock_quantity &gt;= #{quantity}
+    </update>
+
+    <update id="restoreOrderStock"
+            parameterType="com.ninimum.api.dto.payme.GetPaymeOrderParam">
+        UPDATE products p
+        INNER JOIN (
+            SELECT product_id, SUM(quantity) AS quantity
+            FROM order_items
+            WHERE order_id = #{order_id}
+            GROUP BY product_id
+        ) oi ON oi.product_id = p.id
+        SET p.stock_quantity = p.stock_quantity + oi.quantity,
+            p.updated_at = NOW()
+    </update>
+
     <update id="performPaymePayment"
             parameterType="com.ninimum.api.dto.payme.PerformPaymePaymentParam">
         UPDATE payments

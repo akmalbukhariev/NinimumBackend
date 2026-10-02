@@ -30,6 +30,7 @@
         ON p.id = b.product_id
         WHERE b.is_active = 1
         AND p.is_active = 1
+        AND p.stock_quantity > 0
         ORDER BY b.sort_order ASC, b.created_at DESC
     </select>
 

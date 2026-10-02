@@ -39,6 +39,7 @@
         ON rs.product_id = p.id
         WHERE f.user_id = #{user_id}
         AND p.is_active = 1
+        AND p.stock_quantity > 0
         ORDER BY f.created_at DESC
         LIMIT #{pageSize} OFFSET #{offset}
     </select>
@@ -68,7 +69,10 @@
             parameterType="com.ninimum.api.param.FavoriteListParam"
             resultType="int">
         SELECT COUNT(*)
-        FROM favorites
-        WHERE user_id = #{userId}
+        FROM favorites f
+        INNER JOIN products p ON p.id = f.product_id
+        WHERE f.user_id = #{userId}
+          AND p.is_active = 1
+          AND p.stock_quantity > 0
     </select>
 </mapper>

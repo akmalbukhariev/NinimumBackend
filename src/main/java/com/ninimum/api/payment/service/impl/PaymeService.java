@@ -470,6 +470,24 @@ public class PaymeService implements IPaymeService {
             }
         }
 
+        if (orderId != null && orderId > 0) {
+            GetPaymeOrderParam stockParam = new GetPaymeOrderParam();
+            stockParam.setOrder_id(orderId);
+
+            List<CamelCaseMap> stockItems = paymeMapper.getOrderStockItems(stockParam);
+            if (stockItems == null || stockItems.isEmpty()) {
+                return PaymeResponse.error(-31008, "Order has no products", "account.order_id", request.getId());
+            }
+
+            for (CamelCaseMap stockItem : stockItems) {
+                int stockUpdated = paymeMapper.decreaseProductStock(stockItem);
+                if (stockUpdated != 1) {
+                    TransactionAspectSupport.currentTransactionStatus().setRollbackOnly();
+                    return PaymeResponse.error(-31008, "Product is out of stock or quantity is insufficient", "account.order_id", request.getId());
+                }
+            }
+        }
+
         Long performTime = System.currentTimeMillis();
 
         PerformPaymePaymentParam performParam = new PerformPaymePaymentParam();
@@ -596,6 +614,12 @@ public class PaymeService implements IPaymeService {
             orderStatusParam.setOrder_id(orderId);
             orderStatusParam.setPayment_status("PAID".equalsIgnoreCase(status) ? "REFUNDED" : "FAILED");
             paymeMapper.updateOrderPaymentStatus(orderStatusParam);
+
+            if ("PAID".equalsIgnoreCase(status)) {
+                GetPaymeOrderParam stockParam = new GetPaymeOrderParam();
+                stockParam.setOrder_id(orderId);
+                paymeMapper.restoreOrderStock(stockParam);
+            }
         } else if (subscriptionId != null && subscriptionId > 0) {
             UpdateSubscriptionStatusParam subscriptionStatusParam = new UpdateSubscriptionStatusParam();
             subscriptionStatusParam.setSubscription_id(subscriptionId);

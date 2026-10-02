@@ -199,6 +199,7 @@
         ON rs.product_id = p.id
 
         WHERE p.is_active = 1
+        AND p.stock_quantity > 0
 
         <choose>
             <when test="categoryIds != null and categoryIds.size() > 0">
@@ -261,6 +262,7 @@
             AND r.is_active = 1
 
         WHERE p.is_active = 1
+            AND p.stock_quantity > 0
             AND p.id = #{product_id}
 
         GROUP BY p.id, f.id
@@ -314,6 +316,7 @@
         ON rs.product_id = p.id
 
         WHERE p.is_active = 1
+        AND p.stock_quantity > 0
         AND p.id != #{product_id}
         AND p.category_id = (
             SELECT category_id
@@ -375,6 +378,7 @@
             ON rs.product_id = p.id
 
         WHERE p.is_active = 1
+        AND p.stock_quantity > 0
 
         <if test="keyword != null and keyword != ''">
             AND (

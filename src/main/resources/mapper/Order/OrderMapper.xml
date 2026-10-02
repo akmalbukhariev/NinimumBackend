@@ -174,7 +174,8 @@
         SELECT
             id AS productId,
             CAST(price AS SIGNED) AS price,
-            CAST(subscription_price AS SIGNED) AS subscriptionPrice
+            CAST(subscription_price AS SIGNED) AS subscriptionPrice,
+            stock_quantity AS stockQuantity
         FROM products
         WHERE id = #{productId}
           AND is_active = 1

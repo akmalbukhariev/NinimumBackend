@@ -24,6 +24,12 @@ public interface PaymeMapper {
 
     int performPaymePayment(PerformPaymePaymentParam param);
 
+    List<CamelCaseMap> getOrderStockItems(GetPaymeOrderParam param);
+
+    int decreaseProductStock(CamelCaseMap param);
+
+    int restoreOrderStock(GetPaymeOrderParam param);
+
     int updateOrderPaymentStatus(UpdateOrderPaymentStatusParam param);
 
     int updateSubscriptionStatus(UpdateSubscriptionStatusParam param);
