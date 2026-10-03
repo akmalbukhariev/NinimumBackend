@@ -15,6 +15,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Map;
+import java.util.HashMap;
+import com.ninimum.api.order.service.StockUnavailableException;
 
 @Service
 @RequiredArgsConstructor
@@ -77,6 +80,7 @@ public class OrderService implements IOrderService {
             }
         }
 
+        Map<Long, Long> requestedQuantities = new HashMap<>();
         long regularSubtotal = 0;
         long calculatedTotal = 0;
 
@@ -91,15 +95,18 @@ public class OrderService implements IOrderService {
 
             ProductCheckoutPriceDto productPrice = orderMapper.getProductCheckoutPrice(product.getProductId());
 
-            if (productPrice == null || productPrice.getPrice() == null || productPrice.getPrice() <= 0) {
+            if (productPrice == null) {
+                throw new StockUnavailableException(product.getProductId(), 0);
+            }
+            if (productPrice.getPrice() == null || productPrice.getPrice() <= 0) {
                 throw new Exception("Product not found or price is invalid. product_id=" + product.getProductId());
             }
 
-            if (productPrice.getStockQuantity() == null || productPrice.getStockQuantity() < product.getQuantity()) {
-                throw new Exception(
-                        "Not enough stock. product_id=" + product.getProductId() +
-                                ", available=" + (productPrice.getStockQuantity() == null ? 0 : productPrice.getStockQuantity())
-                );
+            long requested = requestedQuantities.merge(product.getProductId(),
+                    product.getQuantity().longValue(), Long::sum);
+            int available = productPrice.getStockQuantity() == null ? 0 : productPrice.getStockQuantity();
+            if (available < requested) {
+                throw new StockUnavailableException(product.getProductId(), available);
             }
 
             int regularUnitPrice = productPrice.getPrice();

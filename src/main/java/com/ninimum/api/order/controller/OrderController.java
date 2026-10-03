@@ -10,6 +10,8 @@ import com.ninimum.api.dto.OrderDto;
 import com.ninimum.api.dto.OrderProcessDto;
 import com.ninimum.api.dto.payme.PaymentStatusDto;
 import com.ninimum.api.order.service.IOrderService;
+import com.ninimum.api.order.service.StockUnavailableException;
+import com.ninimum.api.order.service.StockUnavailableResponse;
 import com.ninimum.api.param.CancelOrderParam;
 import com.ninimum.api.param.CreateOrderParam;
 import com.ninimum.api.param.OrderDetailParam;
@@ -107,6 +109,8 @@ public class OrderController extends BaseController {
                 result = this.setResult(Result.SERVER_ERROR);
             }
 
+        } catch (StockUnavailableException ex) {
+            result = new StockUnavailableResponse(this.setResult(Result.SERVER_ERROR), ex);
         } catch (Exception ex) {
             result = this.setResult(Result.SERVER_ERROR);
             log.error("OrderController => createOrder: ", ex);
