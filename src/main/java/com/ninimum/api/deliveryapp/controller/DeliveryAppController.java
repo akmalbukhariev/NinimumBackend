@@ -8,6 +8,7 @@ import com.ninimum.api.deliveryapp.service.IDeliveryAppService;
 import com.ninimum.api.dto.DeliveryAppWorkerDto;
 import com.ninimum.api.dto.TokenDto;
 import com.ninimum.api.param.DeliveryAppJobParam;
+import com.ninimum.api.param.DeliveryAppBatchJobParam;
 import com.ninimum.api.param.DeliveryAppLoginParam;
 import com.ninimum.api.param.DeliveryAppOnlineParam;
 import com.ninimum.api.param.DeliveryAppStatusParam;
@@ -103,6 +104,18 @@ public class DeliveryAppController extends BaseController {
     @PutMapping("/claim")
     public ResponseEntity<Object> claim(Authentication auth, @RequestBody DeliveryAppJobParam param) {
         return execute(() -> { service.claimJob(auth.getName(), param.getJobId()); return null; });
+    }
+
+    @Operation(summary = "Claim multiple available deliveries", security = @SecurityRequirement(name = "bearerAuth"))
+    @PutMapping("/claim-batch")
+    public ResponseEntity<Object> claimBatch(Authentication auth, @RequestBody DeliveryAppBatchJobParam param) {
+        return execute(() -> { service.claimJobs(auth.getName(), param); return null; });
+    }
+
+    @Operation(summary = "Start multiple accepted deliveries", security = @SecurityRequirement(name = "bearerAuth"))
+    @PutMapping("/start-batch")
+    public ResponseEntity<Object> startBatch(Authentication auth, @RequestBody DeliveryAppBatchJobParam param) {
+        return execute(() -> { service.startJobs(auth.getName(), param); return null; });
     }
 
     @Operation(summary = "Update delivery status", security = @SecurityRequirement(name = "bearerAuth"))

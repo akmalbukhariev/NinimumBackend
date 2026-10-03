@@ -79,6 +79,7 @@
     <select id="getActiveJobs" resultType="com.ninimum.api.dto.DeliveryAppJobDto">
         SELECT dj.id AS jobId, o.id AS orderId, o.order_number AS orderNumber,
                dj.customer_name AS customerName, dj.customer_phone AS customerPhone, dj.delivery_address AS deliveryAddress,
+               u.location_latitude AS locationLatitude, u.location_longitude AS locationLongitude,
                dj.status AS jobStatus, o.status AS orderStatus, o.payment_status AS paymentStatus,
                o.total_price AS totalPrice, COALESCE(SUM(oi.quantity),0) AS productCount,
                DATE_FORMAT(dj.created_at,'%Y-%m-%d %H:%i:%s') AS createdAt,
@@ -86,10 +87,11 @@
                DATE_FORMAT(dj.on_the_way_at,'%Y-%m-%d %H:%i:%s') AS onTheWayAt
         FROM delivery_jobs dj
         JOIN orders o ON o.id=dj.order_id
+        JOIN users u ON u.id=o.user_id
         LEFT JOIN order_items oi ON oi.order_id=o.id
         WHERE dj.delivery_worker_id=#{workerId} AND dj.status IN ('ACCEPTED','ON_THE_WAY')
           AND o.status &lt;&gt; 'CANCELLED'
-        GROUP BY dj.id,o.id,o.order_number,dj.customer_name,dj.customer_phone,dj.delivery_address,dj.status,o.status,o.payment_status,o.total_price,dj.created_at,dj.accepted_at,dj.on_the_way_at
+        GROUP BY dj.id,o.id,o.order_number,dj.customer_name,dj.customer_phone,dj.delivery_address,u.location_latitude,u.location_longitude,dj.status,o.status,o.payment_status,o.total_price,dj.created_at,dj.accepted_at,dj.on_the_way_at
         ORDER BY dj.updated_at DESC
     </select>
 

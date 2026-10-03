@@ -5,6 +5,7 @@ import com.ninimum.api.deliveryapp.service.IDeliveryAppService;
 import com.ninimum.api.dto.*;
 import com.ninimum.api.param.CreateDeliveryAppWorkerParam;
 import com.ninimum.api.param.DeliveryAppStatusParam;
+import com.ninimum.api.param.DeliveryAppBatchJobParam;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -160,6 +161,54 @@ public class DeliveryAppService implements IDeliveryAppService {
 
         mapper.addTracking(jobId, worker.getId(), "ACCEPTED", "Delivery accepted by courier");
         return updated;
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public int claimJobs(String workerId, DeliveryAppBatchJobParam param) throws Exception {
+        if (param == null || param.getJobIds() == null || param.getJobIds().isEmpty()) {
+            throw new Exception("At least one delivery must be selected");
+        }
+
+        DeliveryAppWorkerDto worker = getWorker(workerId);
+        int claimed = 0;
+        for (Long jobId : param.getJobIds().stream().distinct().toList()) {
+            if (jobId == null) continue;
+            int updated = mapper.claimJob(jobId, worker.getId());
+            if (updated == 0) {
+                throw new Exception("One of the selected deliveries was already taken by another courier");
+            }
+            mapper.syncOrderStatusFromJob(jobId);
+            mapper.addTracking(jobId, worker.getId(), "ACCEPTED", "Delivery accepted by courier as part of a delivery route");
+            claimed += updated;
+        }
+        if (claimed == 0) throw new Exception("At least one delivery must be selected");
+        return claimed;
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public int startJobs(String workerId, DeliveryAppBatchJobParam param) throws Exception {
+        if (param == null || param.getJobIds() == null || param.getJobIds().isEmpty()) {
+            throw new Exception("At least one delivery must be selected");
+        }
+
+        DeliveryAppWorkerDto worker = getWorker(workerId);
+        int started = 0;
+        for (Long jobId : param.getJobIds().stream().distinct().toList()) {
+            if (jobId == null) continue;
+            String current = mapper.getOwnedJobStatus(jobId, worker.getId());
+            if (!"ACCEPTED".equals(current)) {
+                throw new Exception("All selected deliveries must be accepted before starting the route");
+            }
+            int updated = mapper.updateJobStatus(jobId, worker.getId(), "ON_THE_WAY", null);
+            if (updated == 0) throw new Exception("Could not start one of the selected deliveries");
+            mapper.updateOrderStatusForJob(jobId, "ON_THE_WAY");
+            mapper.addTracking(jobId, worker.getId(), "ON_THE_WAY", "Courier started a multi-order delivery route");
+            started += updated;
+        }
+        if (started == 0) throw new Exception("At least one delivery must be selected");
+        return started;
     }
 
     @Override
