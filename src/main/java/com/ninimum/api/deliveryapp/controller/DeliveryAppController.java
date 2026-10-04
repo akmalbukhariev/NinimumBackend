@@ -38,6 +38,7 @@ public class DeliveryAppController extends BaseController {
 
     private final IDeliveryAppService service;
     private final JwtTokenProvider jwtTokenProvider;
+    private final com.ninimum.api.deliveryapp.service.DeliverySessionService deliverySessions;
 
     @PostConstruct
     public void init() { setApiVersion(Constant.api_version); }
@@ -51,6 +52,7 @@ public class DeliveryAppController extends BaseController {
                     worker.getWorkerId(), null,
                     Collections.singletonList(new SimpleGrantedAuthority(Constant.ROLE_DELIVERY)));
             TokenDto token = jwtTokenProvider.generateToken(authentication);
+            deliverySessions.activate(worker.getWorkerId(), token.getAccessToken());
 
             HttpHeaders headers = new HttpHeaders();
             headers.add(Constant.HEADER_ACCESS_TOKEN, token.getAccessToken());

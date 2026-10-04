@@ -30,12 +30,13 @@ public class ProductService implements IProductService {
         return userId != null && userId > 0 ? userId : 0L;
     }
     private final FileService fileService;
+    private final com.ninimum.api.warehouse.WarehouseService warehouse;
 
     @Value("${file.access.url}")
     private String fileAccessUrl;
 
     @Override
-    @Transactional
+    @Transactional(rollbackFor=Exception.class)
     public int createProduct(AddProductParam param, List<MultipartFile> images) throws Exception {
         if (param == null) {
             throw new Exception("Product data is required");
@@ -65,6 +66,11 @@ public class ProductService implements IProductService {
             );
         }
 
+        if (warehouse.isEnabled()) {
+            if (param.getStock_quantity() != null && param.getStock_quantity() != 0)
+                throw new com.ninimum.api.warehouse.WarehouseException("WAREHOUSE_USE_RECEIPTS");
+            param.setStock_quantity(0);
+        }
         int productResult = productMapper.insertProduct(param);
 
         if (productResult == 0) {
@@ -78,6 +84,8 @@ public class ProductService implements IProductService {
             return 0;
         }
 
+        warehouse.recordChange(productId, 0, "OPENING", "PRODUCT-"+productId,
+                com.ninimum.api.warehouse.WarehouseService.actor(), "New product", "opening:"+productId);
         if (images != null && !images.isEmpty()) {
 
             List<ProductImageParam> imageParams = new ArrayList<>();

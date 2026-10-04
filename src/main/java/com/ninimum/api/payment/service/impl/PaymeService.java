@@ -28,6 +28,7 @@ public class PaymeService implements IPaymeService {
 
     private final ObjectMapper objectMapper;
     private final PaymeMapper paymeMapper;
+    private final com.ninimum.api.warehouse.WarehouseService warehouse;
     private volatile String currentPaymeKey;
     @Value("${payme.merchant-id}")
     private String paymeMerchantId;
@@ -485,6 +486,9 @@ public class PaymeService implements IPaymeService {
                     TransactionAspectSupport.currentTransactionStatus().setRollbackOnly();
                     return PaymeResponse.error(-31008, "Product is out of stock or quantity is insufficient", "account.order_id", request.getId());
                 }
+                warehouse.recordChange(((Number)stockItem.get("product_id")).longValue(),
+                        -((Number)stockItem.get("quantity")).longValue(), "SALE", "ORDER-" + orderId,
+                        "SYSTEM", "Payme payment", "payme-sale:" + params.getId() + ":" + stockItem.get("product_id"));
             }
         }
 
@@ -496,6 +500,7 @@ public class PaymeService implements IPaymeService {
 
         int updatedPayment = paymeMapper.performPaymePayment(performParam);
         if (updatedPayment == 0) {
+            TransactionAspectSupport.currentTransactionStatus().setRollbackOnly();
             return PaymeResponse.error(-31008, "Transaction cannot be performed", "id", request.getId());
         }
 
@@ -618,7 +623,16 @@ public class PaymeService implements IPaymeService {
             if ("PAID".equalsIgnoreCase(status)) {
                 GetPaymeOrderParam stockParam = new GetPaymeOrderParam();
                 stockParam.setOrder_id(orderId);
+                List<CamelCaseMap> refundItems = paymeMapper.getOrderStockItems(stockParam);
+                if (warehouse.isEnabled()) {
+                    for (CamelCaseMap item : refundItems) warehouse.lockStock(((Number)item.get("product_id")).longValue());
+                }
                 paymeMapper.restoreOrderStock(stockParam);
+                for (CamelCaseMap item : refundItems) {
+                    warehouse.recordChange(((Number)item.get("product_id")).longValue(),
+                            ((Number)item.get("quantity")).longValue(), "PAYMENT_REFUND", "ORDER-" + orderId,
+                            "SYSTEM", "Existing Payme refund stock restoration", "payme-refund:" + params.getId() + ":" + item.get("product_id"));
+                }
             }
         } else if (subscriptionId != null && subscriptionId > 0) {
             UpdateSubscriptionStatusParam subscriptionStatusParam = new UpdateSubscriptionStatusParam();

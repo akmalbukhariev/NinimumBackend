@@ -37,6 +37,11 @@ public class AdminManagementController extends BaseController {
     }
 
     private ResponseEntity<Object> fail(Exception ex, String action) {
+        if (ex instanceof com.ninimum.api.warehouse.WarehouseException) {
+            var response = new com.ninimum.api.common.VersionResponseResult();
+            response.setResultCode(ex.getMessage()); response.setResultMsg(ex.getMessage());
+            return new ResponseEntity<>(response, HttpStatus.CONFLICT);
+        }
         log.error("AdminManagementController => {}", action, ex);
         return new ResponseEntity<>(setResult(Result.SERVER_ERROR), HttpStatus.OK);
     }

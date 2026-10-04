@@ -29,6 +29,7 @@ import java.io.IOException;
 public class AdminAuthenticationFilter extends UsernamePasswordAuthenticationFilter {
 
     private final JwtTokenProvider jwtTokenProvider;
+    private final com.ninimum.api.admin.service.AdminSessionService adminSessions;
     private final AdminAuthenticationProvider adminAuthenticationProvider;
 
     @Override
@@ -57,6 +58,15 @@ public class AdminAuthenticationFilter extends UsernamePasswordAuthenticationFil
     ) throws IOException {
         CamelCaseMap adminMap = (CamelCaseMap) authResult.getDetails();
         TokenDto tokenInfo = jwtTokenProvider.generateToken(authResult);
+        try {
+            adminSessions.activate(authResult.getName(), tokenInfo.getAccessToken());
+        } catch (Exception ex) {
+            log.error("Unable to store admin session", ex);
+            response.setStatus(HttpServletResponse.SC_SERVICE_UNAVAILABLE);
+            sendErrorResponse(response, Result.SERVER_ERROR);
+            return;
+        }
+
 
         VersionResponseResult result = new VersionResponseResult();
         result.setApiVersion(Constant.api_version);

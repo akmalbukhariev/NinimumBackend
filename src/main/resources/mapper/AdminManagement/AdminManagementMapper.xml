@@ -263,5 +263,5 @@
     UPDATE app_configs <set>config_id=config_id,<if test="app_version != null">app_version=#{app_version},</if><if test="force_update_yn != null">force_update_yn=#{force_update_yn},</if><if test="maintenance_yn != null">maintenance_yn=#{maintenance_yn},</if><if test="maintenance_message != null">maintenance_message=#{maintenance_message},</if><if test="terms_url != null">terms_url=#{terms_url},</if><if test="privacy_url != null">privacy_url=#{privacy_url},</if></set> WHERE config_id=(SELECT id FROM (SELECT MAX(config_id) id FROM app_configs) x)
   </update>
   <select id="getAdmins" resultType="camelMap">SELECT id,login_id,name,role,status FROM admin_users ORDER BY id</select>
-  <update id="updateAdminStatus">UPDATE admin_users SET status=#{status} WHERE id=#{id}</update>
+  <update id="updateAdminStatus">UPDATE admin_users SET status=#{status} WHERE id=#{id} AND role='ADMIN'</update>
 </mapper>

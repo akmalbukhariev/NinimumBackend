@@ -12,7 +12,7 @@ import static org.mockito.Mockito.*;
 class ProductCatalogTest {
     @Test void categoryImageUrlsAcceptRelativeAbsoluteAndMissingValues() throws Exception {
         ProductMapper mapper = mock(ProductMapper.class);
-        ProductService service = new ProductService(mapper, mock(FileService.class));
+        ProductService service = new ProductService(mapper, mock(FileService.class), mock(com.ninimum.api.warehouse.WarehouseService.class));
         ReflectionTestUtils.setField(service, "fileAccessUrl", "https://example.test/uploads/");
         ProductCategoryDto relative = new ProductCategoryDto(); relative.setCategoryImageUrl("/categories/a.png");
         ProductCategoryDto absolute = new ProductCategoryDto(); absolute.setCategoryImageUrl("https://cdn.test/b.png");

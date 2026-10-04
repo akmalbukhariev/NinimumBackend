@@ -28,6 +28,8 @@ import java.time.format.DateTimeFormatter;
 @RequiredArgsConstructor
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private final JwtTokenProvider jwtTokenProvider;
+    private final com.ninimum.api.admin.service.AdminSessionService adminSessions;
+    private final com.ninimum.api.deliveryapp.service.DeliverySessionService deliverySessions;
     private final UserAuthenticationProvider userAuthenticationProvider;
     private final AdminAuthenticationProvider adminAuthenticationProvider;
 
@@ -62,7 +64,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             String role = claims.get("auth", String.class);
             String loginId = claims.getSubject();
 
-            if (Constant.ROLE_ADMIN.equals(role)) {
+            if (Constant.ROLE_ADMIN.equals(role) || Constant.ROLE_SUPER_ADMIN.equals(role)) {
                 CamelCaseMap admin = adminAuthenticationProvider.getAdminByLoginId(loginId);
 
                 if (admin == null) {
@@ -74,12 +76,13 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 String currentRole = String.valueOf(admin.get("role"));
 
                 if (!"ACTIVE".equalsIgnoreCase(currentStatus)) {
-                    sendErrorResponse(response, Result.LOGIN_INACTIVE);
+                    sendErrorResponse(response, HttpServletResponse.SC_UNAUTHORIZED, "ADMIN_INACTIVE", "Administrator account is inactive.", null);
                     return;
                 }
 
-                if (!Constant.ROLE_ADMIN.equals(currentRole)) {
-                    sendErrorResponse(response, Result.ROLE_INVALID);
+                if (!role.equals(currentRole) || !adminSessions.isCurrent(loginId, token)) {
+                    sendErrorResponse(response, HttpServletResponse.SC_UNAUTHORIZED,
+                            "ADMIN_SESSION_REPLACED", "This account was signed in on another device. Please sign in again.", null);
                     return;
                 }
 
@@ -90,6 +93,12 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             }
 
             if (Constant.ROLE_DELIVERY.equals(role)) {
+                if (!deliverySessions.isCurrent(loginId, token)) {
+                    sendErrorResponse(response, HttpServletResponse.SC_UNAUTHORIZED,
+                            "SESSION_REPLACED", "This account was signed in on another device. Please sign in again.", null);
+                    return;
+                }
+
                 Authentication authentication = jwtTokenProvider.getAuthentication(token);
                 SecurityContextHolder.getContext().setAuthentication(authentication);
                 filterChain.doFilter(request, response);

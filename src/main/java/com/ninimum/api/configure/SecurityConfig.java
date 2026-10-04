@@ -29,6 +29,8 @@ import com.ninimum.api.security.filter.AdminAuthenticationFilter;
 public class SecurityConfig {
 
     private final JwtTokenProvider jwtTokenProvider;
+    private final com.ninimum.api.admin.service.AdminSessionService adminSessions;
+    private final com.ninimum.api.deliveryapp.service.DeliverySessionService deliverySessions;
     private final UserDetailsServiceImpl userDetailsService;
     private final AdminDetailsServiceImpl adminDetailsService;
 
@@ -54,8 +56,15 @@ public class SecurityConfig {
                 .antMatchers("/ninimum/api/v1/user/login").permitAll()
                 .antMatchers("/ninimum/api/v1/payment/payme/callback").permitAll()
                 .antMatchers("/ninimum/api/v1/delivery-app/login").permitAll()
-                .antMatchers("/ninimum/api/v1/admin/**").hasAuthority(Constant.ROLE_ADMIN)
-                .antMatchers("/ninimum/api/v1/delivery-app/admin/**").hasAuthority(Constant.ROLE_ADMIN)
+                .antMatchers("/ninimum/api/v1/admin/warehouse/status", "/ninimum/api/v1/admin/me",
+                        "/ninimum/api/v1/admin/management/orders", "/ninimum/api/v1/admin/management/orders/**",
+                        "/ninimum/api/v1/admin/management/products", "/ninimum/api/v1/admin/management/products/**",
+                        "/ninimum/api/v1/admin/management/categories", "/ninimum/api/v1/admin/management/categories/**",
+                        "/ninimum/api/v1/admin/management/delivery/**",
+                        "/ninimum/api/v1/admin/product/**", "/ninimum/api/v1/admin/category/**")
+                        .hasAnyAuthority(Constant.ROLE_ADMIN, Constant.ROLE_SUPER_ADMIN)
+                .antMatchers("/ninimum/api/v1/admin/**").hasAuthority(Constant.ROLE_SUPER_ADMIN)
+                .antMatchers("/ninimum/api/v1/delivery-app/admin/**").hasAnyAuthority(Constant.ROLE_ADMIN, Constant.ROLE_SUPER_ADMIN)
                 .antMatchers("/ninimum/api/v1/delivery-app/**").hasAuthority(Constant.ROLE_DELIVERY)
 
                 // Guest mode: public, read-only storefront APIs used by the MAUI app.
@@ -73,7 +82,7 @@ public class SecurityConfig {
                 ).permitAll()
 
                 //.antMatchers("/ninimum/api/v1/admin/**").hasAnyAuthority(Constant.ROLE_ADMIN)
-                .antMatchers("/ninimum/api/v1/**").hasAnyAuthority(Constant.ROLE_USER, Constant.ROLE_ADMIN);
+                .antMatchers("/ninimum/api/v1/**").hasAnyAuthority(Constant.ROLE_USER, Constant.ROLE_SUPER_ADMIN);
 
         UserAuthenticationProvider userProvider = userProvider();
         AdminAuthenticationProvider adminProvider = adminProvider();
@@ -81,11 +90,11 @@ public class SecurityConfig {
         UserAuthenticationFilter userAuthFilter = new UserAuthenticationFilter(jwtTokenProvider, userProvider);
         userAuthFilter.setFilterProcessesUrl("/ninimum/api/v1/user/login");
 
-        AdminAuthenticationFilter adminAuthFilter = new AdminAuthenticationFilter(jwtTokenProvider, adminProvider);
+        AdminAuthenticationFilter adminAuthFilter = new AdminAuthenticationFilter(jwtTokenProvider, adminSessions, adminProvider);
         adminAuthFilter.setFilterProcessesUrl("/ninimum/api/v1/admin/login");
 
         http.addFilterBefore(
-                new JwtAuthenticationFilter(jwtTokenProvider, userProvider, adminProvider),
+                new JwtAuthenticationFilter(jwtTokenProvider, adminSessions, deliverySessions, userProvider, adminProvider),
                 UsernamePasswordAuthenticationFilter.class
         );
 

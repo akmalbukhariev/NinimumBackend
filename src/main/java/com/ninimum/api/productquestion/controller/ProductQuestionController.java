@@ -96,7 +96,7 @@ public class ProductQuestionController extends BaseController {
             responses = { @ApiResponse(responseCode = "200", description = "success") },
             security = { @SecurityRequirement(name = "bearerAuth") }
     )
-    @PreAuthorize("hasAuthority('ADMIN')")
+    @PreAuthorize("hasAuthority('SUPER_ADMIN')")
     @PostMapping(value = "/answerQuestion", headers = {"Content-type=application/json"})
     public ResponseEntity<Object> answerQuestion(@RequestBody AnswerProductQuestionParam param) {
         VersionResponseResult result;

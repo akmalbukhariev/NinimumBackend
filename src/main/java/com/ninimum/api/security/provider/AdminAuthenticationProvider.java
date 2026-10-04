@@ -45,7 +45,7 @@ public class AdminAuthenticationProvider implements AuthenticationProvider {
         }
 
         Object role = admin.getDataMap().get("role");
-        if (role == null || !Constant.ROLE_ADMIN.equals(String.valueOf(role))) {
+        if (role == null || !(Constant.ROLE_ADMIN.equals(String.valueOf(role)) || Constant.ROLE_SUPER_ADMIN.equals(String.valueOf(role)))) {
             throw new BadCredentialsException(Result.ROLE_INVALID.getMessage());
         }
 
@@ -54,7 +54,7 @@ public class AdminAuthenticationProvider implements AuthenticationProvider {
         }
 
         UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
-                adminLoginId,
+                String.valueOf(admin.getDataMap().get("login_id")),
                 password,
                 admin.getAuthorities()
         );

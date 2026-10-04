@@ -100,6 +100,7 @@
         WHERE p.provider = 'PAYME'
           AND p.provider_transaction_id = #{transaction_id}
         LIMIT 1
+    FOR UPDATE
     </select>
 
     <select id="getActivePaymePaymentBySubscriptionId"
@@ -180,10 +181,11 @@
     <select id="getOrderStockItems"
             parameterType="com.ninimum.api.dto.payme.GetPaymeOrderParam"
             resultType="camelMap">
-        SELECT product_id, quantity
+        SELECT product_id, SUM(quantity) AS quantity
         FROM order_items
         WHERE order_id = #{order_id}
-        ORDER BY id ASC
+        GROUP BY product_id
+        ORDER BY product_id ASC
     </select>
 
     <update id="decreaseProductStock" parameterType="map">

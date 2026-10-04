@@ -21,6 +21,7 @@ import java.util.Map;
 public class AdminManagementService implements IAdminManagementService {
     private final AdminManagementMapper mapper;
     private final FileService fileService;
+    private final com.ninimum.api.warehouse.WarehouseService warehouse;
 
     private int page(int page) {
         return Math.max(page, 1);
@@ -104,6 +105,7 @@ public class AdminManagementService implements IAdminManagementService {
 
     @Override
     public int updateProduct(long id, Map<String, Object> body) {
+        warehouse.requireDocumentStock(body);
         body.put("id", id);
         return mapper.updateProduct(body);
     }
@@ -181,6 +183,8 @@ public class AdminManagementService implements IAdminManagementService {
     @Override
     @Transactional
     public int deleteProduct(long id) {
+        // Preserve catalog identifiers used by warehouse documents and stock history.
+        if (warehouse.isEnabled()) return mapper.updateProduct(new java.util.HashMap<>(java.util.Map.of("id",id,"is_active",false)));
         CamelCaseMap product = mapper.getProduct(id);
         if (product == null || product.isEmpty()) {
             return 0;
@@ -463,6 +467,11 @@ public class AdminManagementService implements IAdminManagementService {
 
     @Override
     public int updateAdminStatus(long id, String status) {
-        return mapper.updateAdminStatus(id, clean(status));
+        String value = clean(status);
+        if (!"ACTIVE".equals(value) && !"INACTIVE".equals(value))
+            throw new IllegalArgumentException("Invalid administrator status");
+        int changed = mapper.updateAdminStatus(id, value);
+        if (changed == 0) throw new IllegalArgumentException("Administrator not found or owner account is protected");
+        return changed;
     }
 }
