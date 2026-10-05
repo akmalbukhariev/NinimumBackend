@@ -51,6 +51,7 @@ public class JwtTokenProvider {
                 .setSubject(authentication.getName())
                 .claim("auth", authorities)
                 .setId((authorities.equals(com.ninimum.api.constants.Constant.ROLE_DELIVERY)
+                        || authorities.equals(com.ninimum.api.constants.Constant.ROLE_WAREHOUSE)
                         || authorities.equals(com.ninimum.api.constants.Constant.ROLE_ADMIN)
                         || authorities.equals(com.ninimum.api.constants.Constant.ROLE_SUPER_ADMIN))
                         ? java.util.UUID.randomUUID().toString() : null)

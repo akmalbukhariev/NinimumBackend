@@ -15,6 +15,7 @@ import java.util.List;
 @RequiredArgsConstructor
 public class DeliveryService implements IDeliveryService {
 
+    private final com.ninimum.api.warehouse.WarehouseAppService warehouseApp;
     private final DeliveryMapper deliveryMapper;
 
     @Override
@@ -28,7 +29,9 @@ public class DeliveryService implements IDeliveryService {
     }
 
     @Override
+    @org.springframework.transaction.annotation.Transactional(rollbackFor=Exception.class)
     public int updateDeliveryStatus(UpdateDeliveryStatusParam param) throws Exception {
+        if(!java.util.Set.of("CANCELLED","FAILED").contains(java.util.Objects.toString(param.getDeliveryStatus(),""))) warehouseApp.requireReadyLegacy(param.getDeliveryId());
         return this.deliveryMapper.updateDeliveryStatus(param);
     }
 

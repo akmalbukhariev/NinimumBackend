@@ -30,6 +30,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private final JwtTokenProvider jwtTokenProvider;
     private final com.ninimum.api.admin.service.AdminSessionService adminSessions;
     private final com.ninimum.api.deliveryapp.service.DeliverySessionService deliverySessions;
+    private final com.ninimum.api.warehouse.WarehouseAppService warehouseApp;
     private final UserAuthenticationProvider userAuthenticationProvider;
     private final AdminAuthenticationProvider adminAuthenticationProvider;
 
@@ -39,7 +40,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
         String path = request.getServletPath();
 
-        if (path.equals("/ninimum/api/v1/user/login") || path.equals("/ninimum/api/v1/admin/login")) {
+        if (path.equals("/ninimum/api/v1/warehouse-app/login") || path.equals("/ninimum/api/v1/user/login") || path.equals("/ninimum/api/v1/admin/login")) {
             filterChain.doFilter(request, response);
             return;
         }
@@ -88,6 +89,16 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
                 Authentication authentication = jwtTokenProvider.getAuthentication(token);
                 SecurityContextHolder.getContext().setAuthentication(authentication);
+                filterChain.doFilter(request, response);
+                return;
+            }
+
+            if (Constant.ROLE_WAREHOUSE.equals(role)) {
+                if (!warehouseApp.isCurrent(loginId, token)) {
+                    sendErrorResponse(response, HttpServletResponse.SC_UNAUTHORIZED, "WAREHOUSE_SESSION_REPLACED", "WAREHOUSE_SESSION_REPLACED", null);
+                    return;
+                }
+                SecurityContextHolder.getContext().setAuthentication(jwtTokenProvider.getAuthentication(token));
                 filterChain.doFilter(request, response);
                 return;
             }

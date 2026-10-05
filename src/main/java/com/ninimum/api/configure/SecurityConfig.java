@@ -31,6 +31,7 @@ public class SecurityConfig {
     private final JwtTokenProvider jwtTokenProvider;
     private final com.ninimum.api.admin.service.AdminSessionService adminSessions;
     private final com.ninimum.api.deliveryapp.service.DeliverySessionService deliverySessions;
+    private final org.springframework.beans.factory.ObjectProvider<com.ninimum.api.warehouse.WarehouseAppService> warehouseApp;
     private final UserDetailsServiceImpl userDetailsService;
     private final AdminDetailsServiceImpl adminDetailsService;
 
@@ -55,6 +56,8 @@ public class SecurityConfig {
                 .antMatchers("/ninimum/api/v1/admin/login").permitAll()
                 .antMatchers("/ninimum/api/v1/user/login").permitAll()
                 .antMatchers("/ninimum/api/v1/payment/payme/callback").permitAll()
+                .antMatchers("/ninimum/api/v1/warehouse-app/login").permitAll()
+                .antMatchers("/ninimum/api/v1/warehouse-app/**").hasAuthority(Constant.ROLE_WAREHOUSE)
                 .antMatchers("/ninimum/api/v1/delivery-app/login").permitAll()
                 .antMatchers("/ninimum/api/v1/admin/warehouse/status", "/ninimum/api/v1/admin/me",
                         "/ninimum/api/v1/admin/management/orders", "/ninimum/api/v1/admin/management/orders/**",
@@ -94,7 +97,7 @@ public class SecurityConfig {
         adminAuthFilter.setFilterProcessesUrl("/ninimum/api/v1/admin/login");
 
         http.addFilterBefore(
-                new JwtAuthenticationFilter(jwtTokenProvider, adminSessions, deliverySessions, userProvider, adminProvider),
+                new JwtAuthenticationFilter(jwtTokenProvider, adminSessions, deliverySessions, warehouseApp.getObject(), userProvider, adminProvider),
                 UsernamePasswordAuthenticationFilter.class
         );
 

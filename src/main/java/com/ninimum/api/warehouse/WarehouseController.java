@@ -9,6 +9,7 @@ import org.springframework.dao.DuplicateKeyException;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import java.util.Map;
+import java.util.Objects;
 
 @Slf4j
 @RestController
@@ -16,9 +17,10 @@ import java.util.Map;
 @RequestMapping("/ninimum/api/v1/admin/warehouse")
 public class WarehouseController extends BaseController {
     private final WarehouseService service;
+    private final WarehouseAppService app;
     @javax.annotation.PostConstruct public void init() { setApiVersion(com.ninimum.api.constants.Constant.api_version); }
     private Object ok(Object data) { return setResult(Result.SUCCESS,data); }
-    @GetMapping("/status") public Object status() { return ok(Map.of("enabled",service.isEnabled(),"stage",1)); }
+    @GetMapping("/status") public Object status() { return ok(Map.of("enabled",service.isEnabled(),"stage",app.isEnabled()?2:1,"preparation_enabled",app.isEnabled())); }
     @GetMapping("/locations") public Object locations() { return ok(service.locations()); }
     @PostMapping("/locations") public Object createLocation(@RequestBody Map<String,Object> body) { return ok(service.createLocation(body)); }
     @GetMapping("/stock") public Object stock(@RequestParam(required=false) String search,
@@ -40,6 +42,13 @@ public class WarehouseController extends BaseController {
     @GetMapping("/preparation") public Object preparation(@RequestParam(defaultValue="1") int page,
             @RequestParam(defaultValue="20",name="page_size") int size) { return ok(service.preparation(page,size)); }
     @GetMapping("/preparation/{id}/items") public Object preparationItems(@PathVariable long id) { return ok(service.preparationItems(id)); }
+
+    @GetMapping("/workers") public Object workers() {return ok(app.workers());}
+    @PostMapping("/workers") public Object createWorker(@RequestBody Map<String,Object> body) {app.createWorker(body);return ok(null);}
+    @PutMapping("/workers/{id}") public Object updateWorker(@PathVariable long id,@RequestBody Map<String,Object> body) {app.updateWorker(id,body);return ok(null);}
+    @GetMapping("/packing") public Object packing(@RequestParam(defaultValue="1") int page) {return ok(app.orders("","",page,20,true));}
+    @GetMapping("/packing/{id}") public Object packingDetail(@PathVariable long id) {return ok(app.detail(id));}
+    @PostMapping("/packing/{id}/reset") public Object reset(@PathVariable long id,@RequestBody Map<String,Object> body) {app.reset(id,WarehouseService.actor(),Objects.toString(body.get("reason"),""));return ok(null);}
 
     private ResponseEntity<VersionResponseResult> error(String code,int status) {
         VersionResponseResult response=new VersionResponseResult();

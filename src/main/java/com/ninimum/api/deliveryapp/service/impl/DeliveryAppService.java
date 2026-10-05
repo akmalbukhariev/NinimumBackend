@@ -20,6 +20,7 @@ public class DeliveryAppService implements IDeliveryAppService {
 
     private final DeliveryAppMapper mapper;
     private final PasswordEncoder passwordEncoder;
+    private final com.ninimum.api.warehouse.WarehouseAppService warehouseApp;
 
     @Value("${file.access.url}")
     private String fileAccessUrl;
@@ -52,7 +53,7 @@ public class DeliveryAppService implements IDeliveryAppService {
     }
 
     @Override
-    @Transactional
+    @Transactional(isolation=org.springframework.transaction.annotation.Isolation.READ_COMMITTED)
     public DeliveryAppWorkerDto createWorker(CreateDeliveryAppWorkerParam param) throws Exception {
         if (param == null || param.getWorkerId() == null || param.getWorkerId().trim().isEmpty()
                 || param.getFullName() == null || param.getFullName().trim().isEmpty()
@@ -98,14 +99,16 @@ public class DeliveryAppService implements IDeliveryAppService {
     public DeliveryAppDashboardDto getDashboard(String workerId) throws Exception {
         DeliveryAppWorkerDto worker = getWorker(workerId);
         mapper.syncPaidOrders();
-        return mapper.getDashboard(worker.getId());
+        var dashboard=mapper.getDashboard(worker.getId());
+        if(warehouseApp.isEnabled()) dashboard.setAvailableCount((int)mapper.getAvailableJobs().stream().filter(j -> warehouseApp.canDeliver(j.getOrderId())).count());
+        return dashboard;
     }
 
     @Override
     public List<DeliveryAppJobDto> getAvailableJobs(String workerId) throws Exception {
         getWorker(workerId);
         mapper.syncPaidOrders();
-        return mapper.getAvailableJobs();
+        return mapper.getAvailableJobs().stream().filter(j -> warehouseApp.canDeliver(j.getOrderId())).toList();
     }
 
     @Override
@@ -148,10 +151,11 @@ public class DeliveryAppService implements IDeliveryAppService {
     }
 
     @Override
-    @Transactional
+    @Transactional(isolation=org.springframework.transaction.annotation.Isolation.READ_COMMITTED)
     public int claimJob(String workerId, Long jobId) throws Exception {
         if (jobId == null) throw new Exception("jobId is required");
         DeliveryAppWorkerDto worker = getWorker(workerId);
+        warehouseApp.requireReadyJob(jobId);
         int updated = mapper.claimJob(jobId, worker.getId());
         if (updated == 0) throw new Exception("This delivery was already taken by another courier");
 
@@ -164,7 +168,7 @@ public class DeliveryAppService implements IDeliveryAppService {
     }
 
     @Override
-    @Transactional(rollbackFor = Exception.class)
+    @Transactional(rollbackFor = Exception.class,isolation=org.springframework.transaction.annotation.Isolation.READ_COMMITTED)
     public int claimJobs(String workerId, DeliveryAppBatchJobParam param) throws Exception {
         if (param == null || param.getJobIds() == null || param.getJobIds().isEmpty()) {
             throw new Exception("At least one delivery must be selected");
@@ -172,9 +176,10 @@ public class DeliveryAppService implements IDeliveryAppService {
 
         DeliveryAppWorkerDto worker = getWorker(workerId);
         int claimed = 0;
-        for (Long jobId : param.getJobIds().stream().distinct().toList()) {
+        for (Long jobId : param.getJobIds().stream().filter(java.util.Objects::nonNull).distinct().sorted().toList()) {
             if (jobId == null) continue;
-            int updated = mapper.claimJob(jobId, worker.getId());
+            warehouseApp.requireReadyJob(jobId);
+        int updated = mapper.claimJob(jobId, worker.getId());
             if (updated == 0) {
                 throw new Exception("One of the selected deliveries was already taken by another courier");
             }
@@ -187,7 +192,7 @@ public class DeliveryAppService implements IDeliveryAppService {
     }
 
     @Override
-    @Transactional(rollbackFor = Exception.class)
+    @Transactional(rollbackFor = Exception.class,isolation=org.springframework.transaction.annotation.Isolation.READ_COMMITTED)
     public int startJobs(String workerId, DeliveryAppBatchJobParam param) throws Exception {
         if (param == null || param.getJobIds() == null || param.getJobIds().isEmpty()) {
             throw new Exception("At least one delivery must be selected");
@@ -195,7 +200,7 @@ public class DeliveryAppService implements IDeliveryAppService {
 
         DeliveryAppWorkerDto worker = getWorker(workerId);
         int started = 0;
-        for (Long jobId : param.getJobIds().stream().distinct().toList()) {
+        for (Long jobId : param.getJobIds().stream().filter(java.util.Objects::nonNull).distinct().sorted().toList()) {
             if (jobId == null) continue;
             String current = mapper.getOwnedJobStatus(jobId, worker.getId());
             if (!"ACCEPTED".equals(current)) {
@@ -212,7 +217,7 @@ public class DeliveryAppService implements IDeliveryAppService {
     }
 
     @Override
-    @Transactional
+    @Transactional(isolation=org.springframework.transaction.annotation.Isolation.READ_COMMITTED)
     public int updateStatus(String workerId, DeliveryAppStatusParam param) throws Exception {
         if (param == null || param.getJobId() == null || param.getStatus() == null) {
             throw new Exception("jobId and status are required");

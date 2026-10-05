@@ -37,6 +37,7 @@ class AdminPermissionsTest {
     @Configuration @EnableWebMvc
     static class Fixture {
         @Bean JwtTokenProvider jwt() { return mock(JwtTokenProvider.class); }
+        @Bean com.ninimum.api.warehouse.WarehouseAppService warehouseApp() { return mock(com.ninimum.api.warehouse.WarehouseAppService.class); }
         @Bean AdminSessionService admins() { return mock(AdminSessionService.class); }
         @Bean DeliverySessionService deliveries() { return mock(DeliverySessionService.class); }
         @Bean AdminDetailsServiceImpl details() { return mock(AdminDetailsServiceImpl.class); }
@@ -47,11 +48,12 @@ class AdminPermissionsTest {
         @RequestMapping({"/ninimum/api/v1/admin/register", "/ninimum/api/v1/admin/management/admins",
                 "/ninimum/api/v1/admin/management/settings", "/ninimum/api/v1/admin/warehouse/locations", "/ninimum/api/v1/admin/warehouse/status", "/ninimum/api/v1/admin/management/categories",
                 "/ninimum/api/v1/admin/management/orders", "/ninimum/api/v1/admin/management/products",
-                "/ninimum/api/v1/admin/management/delivery/jobs", "/ninimum/api/v1/admin/me"})
+                "/ninimum/api/v1/admin/management/delivery/jobs", "/ninimum/api/v1/admin/me", "/ninimum/api/v1/warehouse-app/me", "/ninimum/api/v1/warehouse-app/login"})
         public String ok() { return "ok"; }
     }
     @Autowired WebApplicationContext context;
     @Autowired JwtTokenProvider jwt;
+    @Autowired com.ninimum.api.warehouse.WarehouseAppService warehouseApp;
     @Autowired AdminSessionService sessions;
     @Autowired AdminDetailsServiceImpl details;
     private MockMvc mvc;
@@ -94,4 +96,17 @@ class AdminPermissionsTest {
                 .andExpect(status().isOk());
     }
 
+    @Test void warehouseWorkerCanOnlyUseWarehouseAppAndReplacedSessionIsRejected() throws Exception {
+        login("WAREHOUSE"); when(warehouseApp.isCurrent("test","token")).thenReturn(true);
+        mvc.perform(get("/ninimum/api/v1/warehouse-app/me").header("Authorization","Bearer token")).andExpect(status().isOk());
+        mvc.perform(get("/ninimum/api/v1/admin/warehouse/locations").header("Authorization","Bearer token")).andExpect(status().isForbidden());
+        mvc.perform(get("/ninimum/api/v1/admin/management/orders").header("Authorization","Bearer token")).andExpect(status().isForbidden());
+        when(warehouseApp.isCurrent("test","token")).thenReturn(false);
+        mvc.perform(get("/ninimum/api/v1/warehouse-app/me").header("Authorization","Bearer token")).andExpect(status().isUnauthorized());
+    }
+    @Test void adminCannotUseWorkerApiAndWorkerLoginIsPublic() throws Exception {
+        login("SUPER_ADMIN");
+        mvc.perform(get("/ninimum/api/v1/warehouse-app/me").header("Authorization","Bearer token")).andExpect(status().isForbidden());
+        mvc.perform(post("/ninimum/api/v1/warehouse-app/login")).andExpect(status().isOk());
+    }
 }

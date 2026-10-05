@@ -41,7 +41,7 @@ class AdminSessionTest {
         when(sessions.isCurrent("test", "token")).thenReturn(current);
         when(jwt.getAuthentication("token")).thenReturn(new UsernamePasswordAuthenticationToken("test", null,
                 Collections.singletonList(new SimpleGrantedAuthority(tokenRole))));
-        var filter = new JwtAuthenticationFilter(jwt, sessions, mock(DeliverySessionService.class),
+        var filter = new JwtAuthenticationFilter(jwt, sessions, mock(DeliverySessionService.class), mock(com.ninimum.api.warehouse.WarehouseAppService.class),
                 mock(UserAuthenticationProvider.class), admins);
         MockHttpServletRequest request = new MockHttpServletRequest();
         request.setServletPath("/ninimum/api/v1/admin/me"); request.addHeader("Authorization", "Bearer token");

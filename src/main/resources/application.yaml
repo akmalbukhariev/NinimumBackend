@@ -88,3 +88,6 @@ management:
 # Enable only after warehouse-step1.sql has been installed.
 warehouse:
   enabled: true
+
+  # Install warehouse-step2.sql before activating the worker app and courier gate.
+  preparation-enabled: true

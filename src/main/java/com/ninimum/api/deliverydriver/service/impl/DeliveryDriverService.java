@@ -14,6 +14,7 @@ import java.util.List;
 @RequiredArgsConstructor
 public class DeliveryDriverService implements IDeliveryDriverService {
 
+    private final com.ninimum.api.warehouse.WarehouseAppService warehouseApp;
     private final DeliveryDriverMapper deliveryDriverMapper;
 
     @Override
@@ -27,7 +28,9 @@ public class DeliveryDriverService implements IDeliveryDriverService {
     }
 
     @Override
+    @org.springframework.transaction.annotation.Transactional(rollbackFor=Exception.class)
     public int assignDeliveryDriver(AssignDeliveryDriverParam param) throws Exception {
+        warehouseApp.requireReadyLegacy(param.getDeliveryId());
         return this.deliveryDriverMapper.assignDeliveryDriver(param);
     }
 }

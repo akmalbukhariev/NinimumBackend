@@ -21,6 +21,7 @@ import java.util.Map;
 public class AdminManagementService implements IAdminManagementService {
     private final AdminManagementMapper mapper;
     private final FileService fileService;
+    private final com.ninimum.api.warehouse.WarehouseAppService warehouseApp;
     private final com.ninimum.api.warehouse.WarehouseService warehouse;
 
     private int page(int page) {
@@ -70,10 +71,11 @@ public class AdminManagementService implements IAdminManagementService {
     }
 
     @Override
-    @Transactional
+    @Transactional(isolation=org.springframework.transaction.annotation.Isolation.READ_COMMITTED)
     public int updateOrderStatus(long id, Map<String, Object> body) {
         String status = clean((String) body.get("status"));
         String paymentStatus = clean((String) body.get("payment_status"));
+        if(java.util.Set.of("ON_THE_WAY","DELIVERED").contains(java.util.Objects.toString(status,""))) warehouseApp.requireReadyOrder(id);
         int result = mapper.updateOrderStatus(id, status, paymentStatus);
         if (result > 0 && status != null) {
             mapper.syncDeliveryJobFromOrder(id, status);
@@ -344,8 +346,10 @@ public class AdminManagementService implements IAdminManagementService {
     }
 
     @Override
-    @Transactional
+    @Transactional(isolation=org.springframework.transaction.annotation.Isolation.READ_COMMITTED)
     public int updateDeliveryJob(long id, Map<String, Object> body) {
+        if (body.get("delivery_worker_id")!=null || java.util.Set.of("ACCEPTED","ON_THE_WAY","DELIVERED").contains(java.util.Objects.toString(body.get("status"),"")))
+            warehouseApp.requireReadyJob(id);
         body.put("id", id);
         int result = mapper.updateDeliveryJob(body);
         if (result > 0) mapper.syncOrderFromDeliveryJob(id);
