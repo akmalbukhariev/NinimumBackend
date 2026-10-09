@@ -43,11 +43,11 @@
             o.id,
             COALESCE(NULLIF(TRIM(CONCAT_WS(' ', u.first_name, u.last_name)), ''), 'Mijoz'),
             COALESCE(NULLIF(u.phone_number, ''), ''),
-            COALESCE(NULLIF(u.address, ''), 'Manzil ko''rsatilmagan'),
+            COALESCE(NULLIF(o.delivery_address, ''), NULLIF(u.address, ''), 'Manzil ko''rsatilmagan'),
             'WAITING_ASSIGNMENT', NOW(), NOW()
         FROM orders o
         JOIN users u ON u.id=o.user_id
-        WHERE o.payment_status='PAID' AND o.status IN ('CONFIRMED','PREPARING','ON_THE_WAY')
+        WHERE o.payment_status='PAID' AND o.status IN ('CONFIRMED','PREPARING','READY','ON_THE_WAY')
     </insert>
 
     <select id="getDashboard" resultType="com.ninimum.api.dto.DeliveryAppDashboardDto">
@@ -56,7 +56,7 @@
              WHERE dj.delivery_worker_id IS NULL AND dj.status='WAITING_ASSIGNMENT'
                AND o.payment_status='PAID' AND o.status NOT IN ('CANCELLED','DELIVERED')) AS availableCount,
           (SELECT COUNT(*) FROM delivery_jobs
-             WHERE delivery_worker_id=#{workerId} AND status IN ('ACCEPTED','ON_THE_WAY')) AS activeCount,
+             WHERE delivery_worker_id=#{workerId} AND (status IN ('ACCEPTED','ON_THE_WAY') OR (status='FAILED' AND EXISTS (SELECT 1 FROM orders o WHERE o.id=delivery_jobs.order_id AND o.status='RETURNING')))) AS activeCount,
           (SELECT COUNT(*) FROM delivery_jobs
              WHERE delivery_worker_id=#{workerId} AND status='DELIVERED' AND DATE(delivered_at)=CURRENT_DATE()) AS completedTodayCount
     </select>
@@ -79,7 +79,7 @@
     <select id="getActiveJobs" resultType="com.ninimum.api.dto.DeliveryAppJobDto">
         SELECT dj.id AS jobId, o.id AS orderId, o.order_number AS orderNumber,
                dj.customer_name AS customerName, dj.customer_phone AS customerPhone, dj.delivery_address AS deliveryAddress,
-               u.location_latitude AS locationLatitude, u.location_longitude AS locationLongitude,
+               COALESCE(o.delivery_latitude,u.location_latitude) AS locationLatitude, COALESCE(o.delivery_longitude,u.location_longitude) AS locationLongitude,
                dj.status AS jobStatus, o.status AS orderStatus, o.payment_status AS paymentStatus,
                o.total_price AS totalPrice, COALESCE(SUM(oi.quantity),0) AS productCount,
                DATE_FORMAT(dj.created_at,'%Y-%m-%d %H:%i:%s') AS createdAt,
@@ -89,9 +89,9 @@
         JOIN orders o ON o.id=dj.order_id
         JOIN users u ON u.id=o.user_id
         LEFT JOIN order_items oi ON oi.order_id=o.id
-        WHERE dj.delivery_worker_id=#{workerId} AND dj.status IN ('ACCEPTED','ON_THE_WAY')
+        WHERE dj.delivery_worker_id=#{workerId} AND (dj.status IN ('ACCEPTED','ON_THE_WAY') OR (dj.status='FAILED' AND o.status='RETURNING'))
           AND o.status &lt;&gt; 'CANCELLED'
-        GROUP BY dj.id,o.id,o.order_number,dj.customer_name,dj.customer_phone,dj.delivery_address,u.location_latitude,u.location_longitude,dj.status,o.status,o.payment_status,o.total_price,dj.created_at,dj.accepted_at,dj.on_the_way_at
+        GROUP BY dj.id,o.id,o.order_number,dj.customer_name,dj.customer_phone,dj.delivery_address,o.delivery_latitude,o.delivery_longitude,u.location_latitude,u.location_longitude,dj.status,o.status,o.payment_status,o.total_price,dj.created_at,dj.accepted_at,dj.on_the_way_at
         ORDER BY dj.updated_at DESC
     </select>
 
@@ -106,7 +106,7 @@
         FROM delivery_jobs dj
         JOIN orders o ON o.id=dj.order_id
         LEFT JOIN order_items oi ON oi.order_id=o.id
-        WHERE dj.delivery_worker_id=#{workerId} AND dj.status IN ('DELIVERED','FAILED','CANCELLED')
+        WHERE dj.delivery_worker_id=#{workerId} AND dj.status IN ('DELIVERED','FAILED','CANCELLED') AND o.status &lt;&gt; 'RETURNING'
         GROUP BY dj.id,o.id,o.order_number,dj.customer_name,dj.customer_phone,dj.delivery_address,dj.status,o.status,o.payment_status,o.total_price,dj.created_at,dj.delivered_at,dj.note
         ORDER BY dj.updated_at DESC
         LIMIT 100
@@ -117,8 +117,8 @@
                dj.customer_name AS customerName,
                CASE WHEN dj.delivery_worker_id=#{workerId} THEN dj.customer_phone ELSE NULL END AS customerPhone,
                dj.delivery_address AS deliveryAddress,
-               CASE WHEN dj.delivery_worker_id=#{workerId} THEN u.location_latitude ELSE NULL END AS locationLatitude,
-               CASE WHEN dj.delivery_worker_id=#{workerId} THEN u.location_longitude ELSE NULL END AS locationLongitude,
+               CASE WHEN dj.delivery_worker_id=#{workerId} THEN COALESCE(o.delivery_latitude,u.location_latitude) ELSE NULL END AS locationLatitude,
+               CASE WHEN dj.delivery_worker_id=#{workerId} THEN COALESCE(o.delivery_longitude,u.location_longitude) ELSE NULL END AS locationLongitude,
                dj.status AS jobStatus,
                o.status AS orderStatus, o.payment_status AS paymentStatus, o.total_price AS totalPrice,
                (SELECT COALESCE(SUM(quantity),0) FROM order_items WHERE order_id=o.id) AS productCount,
@@ -145,27 +145,34 @@
     <update id="claimJob">
         UPDATE delivery_jobs SET delivery_worker_id=#{workerId}, status='ACCEPTED', accepted_at=NOW(), updated_at=NOW()
         WHERE id=#{jobId} AND delivery_worker_id IS NULL AND status='WAITING_ASSIGNMENT'
+          AND EXISTS (SELECT 1 FROM orders o WHERE o.id=delivery_jobs.order_id AND o.payment_status='PAID' AND o.status NOT IN ('CANCELLED','DELIVERED'))
     </update>
 
     <select id="getOwnedJobStatus" resultType="string">
-        SELECT status FROM delivery_jobs WHERE id=#{jobId} AND delivery_worker_id=#{workerId} LIMIT 1
+        SELECT dj.status FROM delivery_jobs dj JOIN orders o ON o.id=dj.order_id WHERE dj.id=#{jobId} AND dj.delivery_worker_id=#{workerId} AND o.status &lt;&gt; 'CANCELLED' LIMIT 1 FOR UPDATE
     </select>
 
     <update id="updateJobStatus">
-        UPDATE delivery_jobs
-        SET status=#{status}, note=#{note},
-            on_the_way_at=CASE WHEN #{status}='ON_THE_WAY' THEN NOW() ELSE on_the_way_at END,
-            delivered_at=CASE WHEN #{status}='DELIVERED' THEN NOW() ELSE delivered_at END,
-            updated_at=NOW()
-        WHERE id=#{jobId} AND delivery_worker_id=#{workerId}
+        UPDATE delivery_jobs dj JOIN orders o ON o.id=dj.order_id
+        SET dj.status=#{status}, dj.note=#{note},
+            dj.on_the_way_at=CASE WHEN #{status}='ON_THE_WAY' THEN NOW() ELSE dj.on_the_way_at END,
+            dj.delivered_at=CASE WHEN #{status}='DELIVERED' THEN NOW() ELSE dj.delivered_at END,
+            dj.updated_at=NOW()
+        WHERE dj.id=#{jobId} AND dj.delivery_worker_id=#{workerId} AND o.status IN ('READY','ON_THE_WAY')
+          AND ((#{status}='ON_THE_WAY' AND dj.status='ACCEPTED' AND o.status='READY')
+            OR (#{status}='DELIVERED' AND dj.status='ON_THE_WAY' AND o.status='ON_THE_WAY')
+            OR (#{status}='FAILED' AND dj.status IN ('ACCEPTED','ON_THE_WAY')))
     </update>
 
     <update id="updateOrderStatusForJob">
+    <bind name="auditActor" value="@com.ninimum.api.audit.OrderAuditActor@current()"/>
         UPDATE orders o JOIN delivery_jobs dj ON dj.order_id=o.id
-        SET o.status=#{orderStatus},
+        SET o.status_actor=CASE WHEN #{auditActor}='SYSTEM' THEN CONCAT('COURIER:',dj.delivery_worker_id) ELSE #{auditActor} END,o.status_source='COURIER', o.status_reason=CASE WHEN #{orderStatus}='RETURNING' THEN dj.note ELSE NULL END, o.status=#{orderStatus},
             o.delivered_at=CASE WHEN #{orderStatus}='DELIVERED' THEN NOW() ELSE o.delivered_at END,
             o.updated_at=NOW()
-        WHERE dj.id=#{jobId}
+        WHERE dj.id=#{jobId} AND ((#{orderStatus}='RETURNING' AND dj.status='FAILED' AND o.status IN ('READY','ON_THE_WAY'))
+          OR (#{orderStatus}='ON_THE_WAY' AND dj.status='ON_THE_WAY' AND o.status IN ('READY','ON_THE_WAY'))
+          OR (#{orderStatus}='DELIVERED' AND dj.status='DELIVERED' AND o.status='ON_THE_WAY'))
     </update>
 
     <!--
@@ -176,9 +183,10 @@
     <update id="syncOrderStatusFromJob">
         UPDATE orders o
         JOIN delivery_jobs dj ON dj.order_id=o.id
-        SET o.status = CASE
-                WHEN dj.status='ACCEPTED' THEN 'PREPARING'
+        SET o.status_actor=CONCAT('COURIER:',dj.delivery_worker_id),o.status_source='COURIER_SYNC', o.status_reason=CASE WHEN dj.status='FAILED' THEN LEFT(dj.note,500) ELSE NULL END, o.status = CASE
+                WHEN dj.status='ACCEPTED' THEN 'READY'
                 WHEN dj.status='ON_THE_WAY' THEN 'ON_THE_WAY'
+                WHEN dj.status='FAILED' THEN 'RETURNING'
                 WHEN dj.status='DELIVERED' THEN 'DELIVERED'
                 ELSE o.status
             END,
@@ -187,8 +195,11 @@
                 ELSE o.delivered_at
             END,
             o.updated_at=NOW()
-        WHERE dj.id=#{jobId}
-          AND dj.status IN ('ACCEPTED','ON_THE_WAY','DELIVERED')
+        WHERE dj.id=#{jobId} AND o.status &lt;&gt; 'CANCELLED'
+          AND ((dj.status='ACCEPTED' AND o.status IN ('CONFIRMED','PREPARING','READY'))
+            OR (dj.status='ON_THE_WAY' AND o.status IN ('READY','ON_THE_WAY'))
+            OR (dj.status='DELIVERED' AND o.status IN ('ON_THE_WAY','DELIVERED'))
+            OR (dj.status='FAILED' AND o.status IN ('READY','ON_THE_WAY')))
     </update>
 
     <insert id="addTracking">

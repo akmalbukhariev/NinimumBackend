@@ -67,6 +67,8 @@ public class AdminManagementService implements IAdminManagementService {
         Map<String, Object> result = new LinkedHashMap<>();
         result.put("order", mapper.getOrder(id));
         result.put("items", mapper.getOrderItems(id));
+        result.put("payments", mapper.getOrderPayments(id));
+        result.put("status_history", mapper.getOrderStatusHistory(id));
         return result;
     }
 
@@ -75,12 +77,21 @@ public class AdminManagementService implements IAdminManagementService {
     public int updateOrderStatus(long id, Map<String, Object> body) {
         String status = clean((String) body.get("status"));
         String paymentStatus = clean((String) body.get("payment_status"));
-        if(java.util.Set.of("ON_THE_WAY","DELIVERED").contains(java.util.Objects.toString(status,""))) warehouseApp.requireReadyOrder(id);
-        int result = mapper.updateOrderStatus(id, status, paymentStatus);
-        if (result > 0 && status != null) {
-            mapper.syncDeliveryJobFromOrder(id, status);
+        if ("CANCELLED".equals(status)) {
+            String reason = clean((String) body.get("cancel_reason"));
+            if (reason == null || reason.isBlank()) throw new IllegalArgumentException("Cancellation reason is required");
+            int changed = mapper.cancelOrder(id, reason);
+            if (changed != 1) throw new IllegalArgumentException("This order cannot be cancelled");
+            mapper.syncDeliveryJobFromOrder(id, "CANCELLED");
+            return changed;
         }
-        return result;
+        // Operational progress belongs to the warehouse/courier actions. This editor cannot
+        // invent a preparation, dispatch, delivery, or payment event.
+        if (status == null) throw new IllegalArgumentException("Order status is required");
+        var current = mapper.lockOrderState(id);
+        if (current == null) throw new IllegalArgumentException("Order not found");
+        if (status.equals(current.get("status"))) return 1;
+        throw new IllegalArgumentException("Use the warehouse and courier apps to advance the order. Only cancellation is allowed here.");
     }
 
     @Override
@@ -348,6 +359,11 @@ public class AdminManagementService implements IAdminManagementService {
     @Override
     @Transactional(isolation=org.springframework.transaction.annotation.Isolation.READ_COMMITTED)
     public int updateDeliveryJob(long id, Map<String, Object> body) {
+        if ("FAILED".equals(body.get("status"))) {
+            String reason = java.util.Objects.toString(body.get("note"), "").trim();
+            if (reason.isEmpty() || reason.length() > 500) throw new IllegalArgumentException("RETURN_REASON_REQUIRED");
+            body.put("note", reason);
+        }
         if (body.get("delivery_worker_id")!=null || java.util.Set.of("ACCEPTED","ON_THE_WAY","DELIVERED").contains(java.util.Objects.toString(body.get("status"),"")))
             warehouseApp.requireReadyJob(id);
         body.put("id", id);

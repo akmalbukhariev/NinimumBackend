@@ -131,7 +131,7 @@ public class DeliveryAppService implements IDeliveryAppService {
         // Self-heal customer order status from the courier job. This is important
         // for jobs that were already ACCEPTED before the synchronization change
         // was deployed. Opening the delivery detail immediately brings Ninimum
-        // to the correct step: ACCEPTED -> PREPARING, ON_THE_WAY -> ON_THE_WAY.
+        // to the correct step: ACCEPTED -> READY, ON_THE_WAY -> ON_THE_WAY.
         mapper.syncOrderStatusFromJob(jobId);
 
         DeliveryAppJobDto job = mapper.getJobDetail(jobId, worker.getId());
@@ -159,7 +159,7 @@ public class DeliveryAppService implements IDeliveryAppService {
         int updated = mapper.claimJob(jobId, worker.getId());
         if (updated == 0) throw new Exception("This delivery was already taken by another courier");
 
-        // ACCEPTED maps to PREPARING in the customer order, which Ninimum
+        // ACCEPTED maps to READY in the customer order, which Ninimum
         // displays as the third step: "Yetkazishga tayyor".
         mapper.syncOrderStatusFromJob(jobId);
 
@@ -217,7 +217,7 @@ public class DeliveryAppService implements IDeliveryAppService {
     }
 
     @Override
-    @Transactional(isolation=org.springframework.transaction.annotation.Isolation.READ_COMMITTED)
+    @Transactional(rollbackFor = Exception.class,isolation=org.springframework.transaction.annotation.Isolation.READ_COMMITTED)
     public int updateStatus(String workerId, DeliveryAppStatusParam param) throws Exception {
         if (param == null || param.getJobId() == null || param.getStatus() == null) {
             throw new Exception("jobId and status are required");
@@ -234,7 +234,10 @@ public class DeliveryAppService implements IDeliveryAppService {
         } else if ("ON_THE_WAY".equals(current) && "DELIVERED".equals(next)) {
             orderStatus = "DELIVERED";
         } else if (("ACCEPTED".equals(current) || "ON_THE_WAY".equals(current)) && "FAILED".equals(next)) {
-            // Keep the customer order alive for admin review/reassignment.
+            String reason = param.getNote() == null ? "" : param.getNote().trim();
+            if (reason.isEmpty() || reason.length() > 500) throw new Exception("A return reason of 1-500 characters is required");
+            param.setNote(reason);
+            orderStatus = "RETURNING";
         } else {
             throw new Exception("Invalid delivery status transition: " + current + " -> " + next);
         }
@@ -243,7 +246,7 @@ public class DeliveryAppService implements IDeliveryAppService {
         if (updated == 0) throw new Exception("Could not update delivery status");
 
         if (orderStatus != null) {
-            mapper.updateOrderStatusForJob(param.getJobId(), orderStatus);
+            if (mapper.updateOrderStatusForJob(param.getJobId(), orderStatus) != 1) throw new Exception("Order status changed; refresh the delivery");
         }
 
         mapper.addTracking(param.getJobId(), worker.getId(), next,

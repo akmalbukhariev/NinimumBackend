@@ -15,11 +15,14 @@ import java.util.List;
 public interface OrderMapper {
     List<OrderDto> getOrderList(OrderListParam param) throws Exception;
     List<OrderDetailDto> getOrderDetail(OrderDetailParam param) throws Exception;
+    com.ninimum.api.dto.OrderDeliveryAddressDto getUserDeliveryAddress(@Param("userId") Long userId);
+    int createOrderAddress(CreateOrderParam param);
     int createOrder(CreateOrderParam param) throws Exception;
     int createOrderItem(CreateOrderProductParam param) throws Exception;
     int isActiveTariffSubscription(CreateOrderParam param) throws Exception;
     Long getActiveTariffSubscriptionId(@Param("userId") Long userId) throws Exception;
     ProductCheckoutPriceDto getProductCheckoutPrice(@Param("productId") Long productId) throws Exception;
+    int cancelDeliveryJobs(@org.apache.ibatis.annotations.Param("orderId") Long orderId);
     int cancelOrder(CancelOrderParam param) throws Exception;
     int cancelUnpaidOrder(CancelOrderParam param) throws Exception;
     int getOrderCount(OrderListParam param) throws Exception;

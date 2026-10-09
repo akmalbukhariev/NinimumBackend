@@ -10,12 +10,7 @@
             o.id AS orderId,
             o.user_id AS userId,
             o.order_number AS orderNumber,
-            CASE
-                WHEN dj.status = 'DELIVERED' THEN 'DELIVERED'
-                WHEN dj.status = 'ON_THE_WAY' THEN 'ON_THE_WAY'
-                WHEN dj.status = 'ACCEPTED' THEN 'PREPARING'
-                ELSE o.status
-            END AS status,
+            o.status AS status,
             o.payment_status AS paymentStatus,
             o.total_price AS totalPrice,
             COALESCE(SUM(oi.quantity), 0) AS productCount,
@@ -60,6 +55,18 @@
         ORDER BY oi.id ASC
     </select>
 
+    <select id="getUserDeliveryAddress" resultType="com.ninimum.api.dto.OrderDeliveryAddressDto">
+        SELECT address AS deliveryAddress, location_latitude AS deliveryLatitude,
+               location_longitude AS deliveryLongitude FROM users WHERE id=#{userId}
+    </select>
+
+    <insert id="createOrderAddress" useGeneratedKeys="true" keyProperty="addressId" keyColumn="address_id">
+        INSERT INTO user_addresses(user_id,receiver_name,receiver_phone,address,detail_address,default_yn,created_at)
+        SELECT id,COALESCE(CONCAT_WS(' ',first_name,last_name),''),COALESCE(phone_number,''),
+               #{deliveryAddress},'', 'N',NOW()
+        FROM users WHERE id=#{userId}
+    </insert>
+
     <insert id="createOrder"
             parameterType="com.ninimum.api.param.CreateOrderParam"
             useGeneratedKeys="true"
@@ -70,6 +77,9 @@
         (
             user_id,
             address_id,
+            delivery_address,
+            delivery_latitude,
+            delivery_longitude,
             user_tariff_id,
             order_number,
             status,
@@ -85,6 +95,9 @@
         (
             #{userId},
             #{addressId},
+            #{deliveryAddress},
+            #{deliveryLatitude},
+            #{deliveryLongitude},
             #{tariffSubscriptionId},
             CONCAT('ORD-', REPLACE(UUID(), '-', '')),
             'PENDING',
@@ -182,10 +195,13 @@
         LIMIT 1
     </select>
 
+    <update id="cancelDeliveryJobs">
+        UPDATE delivery_jobs SET status='CANCELLED', updated_at=NOW() WHERE order_id=#{orderId}
+    </update>
     <update id="cancelOrder"
             parameterType="com.ninimum.api.param.CancelOrderParam">
         UPDATE orders
-        SET
+        SET status_actor=CONCAT('CUSTOMER:',#{userId}),status_source='CUSTOMER',status_reason=#{reason},
             status = 'CANCELLED',
             cancel_reason = #{reason},
             cancelled_at = NOW(),
@@ -240,12 +256,7 @@
         SELECT
             o.id AS orderId,
             o.order_number AS orderNumber,
-            CASE
-                WHEN dj.status = 'DELIVERED' THEN 'DELIVERED'
-                WHEN dj.status = 'ON_THE_WAY' THEN 'ON_THE_WAY'
-                WHEN dj.status = 'ACCEPTED' THEN 'PREPARING'
-                ELSE o.status
-            END AS status,
+            o.status AS status,
             o.payment_status AS paymentStatus,
             DATE_FORMAT(o.ordered_at, '%Y-%m-%d %H:%i:%s') AS orderedAt,
             CASE

@@ -11,8 +11,12 @@ import java.util.Map;
 public interface AdminManagementMapper {
     List<CamelCaseMap> getOrders(@Param("search") String search, @Param("status") String status, @Param("offset") int offset, @Param("pageSize") int pageSize);
     int countOrders(@Param("search") String search, @Param("status") String status);
+    List<CamelCaseMap> getOrderStatusHistory(@Param("id") long id);
     CamelCaseMap getOrder(@Param("id") long id);
+    CamelCaseMap lockOrderState(@Param("id") long id);
+    List<CamelCaseMap> getOrderPayments(@Param("id") long id);
     List<CamelCaseMap> getOrderItems(@Param("id") long id);
+    int cancelOrder(@Param("id") long id, @Param("reason") String reason);
     int updateOrderStatus(@Param("id") long id, @Param("status") String status, @Param("paymentStatus") String paymentStatus);
     int syncDeliveryJobFromOrder(@Param("id") long id, @Param("status") String status);
 

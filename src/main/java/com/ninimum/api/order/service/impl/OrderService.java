@@ -55,10 +55,6 @@ public class OrderService implements IOrderService {
             throw new Exception("User ID is required");
         }
 
-        if (param.getAddressId() == null) {
-            throw new Exception("Address ID is required");
-        }
-
         if (param.getProducts() == null || param.getProducts().isEmpty()) {
             throw new Exception("Order must contain at least one product");
         }
@@ -132,6 +128,11 @@ public class OrderService implements IOrderService {
         param.setDiscountPrice((int) discount);
         param.setTotalPrice((int) calculatedTotal);
 
+        prepareDeliveryAddress(param);
+        if (orderMapper.createOrderAddress(param) != 1 || param.getAddressId() == null) {
+            throw new Exception("Delivery address could not be saved");
+        }
+
         int resultNum = orderMapper.createOrder(param);
 
         if (resultNum != 1 || param.getOrderId() == null) {
@@ -155,6 +156,28 @@ public class OrderService implements IOrderService {
         return resultNum;
     }
 
+    private void prepareDeliveryAddress(CreateOrderParam param) throws Exception {
+        boolean suppliedAddress = param.getDeliveryAddress() != null ||
+                param.getDeliveryLatitude() != null || param.getDeliveryLongitude() != null;
+        if (!suppliedAddress) {
+            // Older clients have no order address fields. Copy their profile once at checkout.
+            var saved = orderMapper.getUserDeliveryAddress(param.getUserId());
+            if (saved == null) throw new Exception("Please select a delivery address in Shahrisabz");
+            param.setDeliveryAddress(saved.getDeliveryAddress());
+            param.setDeliveryLatitude(saved.getDeliveryLatitude());
+            param.setDeliveryLongitude(saved.getDeliveryLongitude());
+        }
+        Double lat = param.getDeliveryLatitude(), lon = param.getDeliveryLongitude();
+        if (param.getDeliveryAddress() == null || param.getDeliveryAddress().isBlank() ||
+                lat == null || lon == null || !Double.isFinite(lat) || !Double.isFinite(lon) ||
+                lat < 39.0000 || lat > 39.1500 || lon < 66.7500 || lon > 66.9500) {
+            throw new Exception("Please select a delivery address in Shahrisabz");
+        }
+        param.setDeliveryAddress(param.getDeliveryAddress().trim());
+        // Ignore a client's address ID: the new row belongs to this user and this order.
+        param.setAddressId(null);
+    }
+
     @Override
     @Transactional(rollbackFor = Exception.class)
     public int cancelOrder(CancelOrderParam param) throws Exception {
@@ -174,6 +197,7 @@ public class OrderService implements IOrderService {
             throw new Exception("Order cannot be cancelled. It may already be processing, delivered, cancelled, or not belong to this user");
         }
 
+        orderMapper.cancelDeliveryJobs(param.getOrderId());
         return result;
     }
 

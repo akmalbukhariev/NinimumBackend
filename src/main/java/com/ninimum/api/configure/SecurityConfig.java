@@ -59,6 +59,7 @@ public class SecurityConfig {
                 .antMatchers("/ninimum/api/v1/warehouse-app/login").permitAll()
                 .antMatchers("/ninimum/api/v1/warehouse-app/**").hasAuthority(Constant.ROLE_WAREHOUSE)
                 .antMatchers("/ninimum/api/v1/delivery-app/login").permitAll()
+                .antMatchers("/ninimum/api/v1/admin/management/orders/*/correction").hasAuthority(Constant.ROLE_SUPER_ADMIN)
                 .antMatchers("/ninimum/api/v1/admin/warehouse/status", "/ninimum/api/v1/admin/me",
                         "/ninimum/api/v1/admin/management/orders", "/ninimum/api/v1/admin/management/orders/**",
                         "/ninimum/api/v1/admin/management/products", "/ninimum/api/v1/admin/management/products/**",

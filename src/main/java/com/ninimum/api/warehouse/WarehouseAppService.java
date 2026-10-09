@@ -96,18 +96,18 @@ public class WarehouseAppService {
         int p=Math.max(1,Math.min(page,1000000)),s=Math.max(1,Math.min(size,100));
         String from="FROM orders o LEFT JOIN warehouse_preparations wp ON wp.order_id=o.id ";
         List<Object> args=new ArrayList<>();
-        if (admin) from+="WHERE ("+ELIGIBLE+" OR wp.order_id IS NOT NULL) ";
-        else if ("history".equals(view)) {from+="WHERE wp.status='READY' AND wp.worker_code=? ";args.add(code);}
+        if (admin) from+="WHERE o.status<>'CANCELLED' AND ("+ELIGIBLE+" OR wp.order_id IS NOT NULL) ";
+        else if ("history".equals(view)) {from+="WHERE o.status<>'CANCELLED' AND wp.status='READY' AND wp.worker_code=? ";args.add(code);}
         else if ("mine".equals(view)) {from+="WHERE "+ELIGIBLE+" AND wp.status IN ('PICKING','BLOCKED') AND wp.worker_code=? ";args.add(code);}
         else from+="WHERE "+ELIGIBLE+" AND (wp.status IS NULL OR wp.status='WAITING') ";
         long total=jdbc.queryForObject("SELECT COUNT(*) "+from,Long.class,args.toArray());args.add(s);args.add((p-1)*s);
-        var rows=jdbc.queryForList("SELECT o.id,o.order_number,o.status AS order_status,o.payment_status,COALESCE(wp.status,'WAITING') AS preparation_status,wp.worker_code,wp.note,"+
+        var rows=jdbc.queryForList("SELECT o.id,o.order_number,o.status AS order_status,o.payment_status,CASE WHEN o.status='CANCELLED' THEN 'CANCELLED' ELSE COALESCE(wp.status,'WAITING') END AS preparation_status,wp.worker_code,wp.note,"+
             "DATE_FORMAT(wp.ready_at,'%Y-%m-%dT%H:%i:%sZ') AS ready_at,DATE_FORMAT(o.ordered_at,'%Y-%m-%d %H:%i:%s') AS ordered_at,"+
             "(SELECT COALESCE(SUM(quantity),0) FROM order_items i WHERE i.order_id=o.id) AS quantity "+from+"ORDER BY o.ordered_at "+(admin || "history".equals(view)?"DESC":"ASC")+",o.id LIMIT ? OFFSET ?",args.toArray());
         return Map.of("items",rows,"total",total,"page",p,"page_size",s);
     }
     public Map<String,Object> detail(long id) {
-        requireEnabled();var row=new LinkedHashMap<>(one("SELECT o.id,o.order_number,o.payment_status,o.status AS order_status,COALESCE(wp.status,'WAITING') AS preparation_status,wp.worker_code,wp.note "+
+        requireEnabled();var row=new LinkedHashMap<>(one("SELECT o.id,o.order_number,o.payment_status,o.status AS order_status,CASE WHEN o.status='CANCELLED' THEN 'CANCELLED' ELSE COALESCE(wp.status,'WAITING') END AS preparation_status,wp.worker_code,wp.note "+
             "FROM orders o LEFT JOIN warehouse_preparations wp ON wp.order_id=o.id WHERE o.id=?",id));
         var items=jdbc.queryForList("SELECT wi.product_id,wi.product_name,wi.barcode,wi.required_quantity,wi.checked_quantity," +
             "(SELECT MAX(NULLIF(oi.product_image_url,'')) FROM order_items oi WHERE oi.order_id=wi.order_id AND oi.product_id=wi.product_id) AS product_image_url " +
@@ -119,7 +119,7 @@ public class WarehouseAppService {
     }
     private void lockOrder(long id) {
         var order=one("SELECT payment_status,status FROM orders WHERE id=? FOR UPDATE",id);
-        if (!"PAID".equals(order.get("payment_status")) || !Set.of("CONFIRMED","PREPARING").contains(order.get("status")))
+        if (!"PAID".equals(order.get("payment_status")) || !Set.of("CONFIRMED","PREPARING","READY").contains(order.get("status")))
             throw new WarehouseException("WAREHOUSE_ORDER_UNAVAILABLE");
         var jobs=jdbc.queryForList("SELECT status FROM delivery_jobs WHERE order_id=? FOR UPDATE",id);
         if(jobs.stream().anyMatch(x->!Set.of("WAITING_ASSIGNMENT","PENDING").contains(x.get("status"))))
@@ -139,6 +139,7 @@ public class WarehouseAppService {
         if (jdbc.queryForObject("SELECT COUNT(*) FROM warehouse_preparation_items WHERE order_id=?",Integer.class,id)==0)
             throw new WarehouseException("WAREHOUSE_INVALID_INPUT");
         jdbc.update("UPDATE warehouse_preparations SET status='PICKING',worker_code=?,note=NULL,started_at=UTC_TIMESTAMP(),updated_at=UTC_TIMESTAMP() WHERE order_id=?",code,id);
+        jdbc.update("UPDATE orders SET status='PREPARING',status_actor=?,status_source='WAREHOUSE',updated_at=NOW() WHERE id=? AND status IN ('CONFIRMED','PREPARING')",code,id);
         event(id,code,"CLAIM",null,null,"");return detail(id);
     }
     private Map<String,Object> owned(long id,String code) {
@@ -186,7 +187,7 @@ public class WarehouseAppService {
         if(missing!=0 || jdbc.queryForObject("SELECT COUNT(*) FROM warehouse_preparation_items WHERE order_id=?",Integer.class,id)==0)
             throw new WarehouseException("WAREHOUSE_INCOMPLETE");
         jdbc.update("UPDATE warehouse_preparations SET status='READY',ready_at=UTC_TIMESTAMP(),updated_at=UTC_TIMESTAMP() WHERE order_id=?",id);
-        jdbc.update("UPDATE orders SET status='PREPARING',updated_at=NOW() WHERE id=?",id);
+        jdbc.update("UPDATE orders SET status='READY',status_actor=?,status_source='WAREHOUSE',updated_at=NOW() WHERE id=?",code,id);
         event(id,code,"READY",null,null,"");return detail(id);
     }
     @Transactional(isolation=org.springframework.transaction.annotation.Isolation.READ_COMMITTED) public void reset(long id,String actor,String reason) {
@@ -194,6 +195,7 @@ public class WarehouseAppService {
         one("SELECT order_id FROM warehouse_preparations WHERE order_id=? FOR UPDATE",id);
         jdbc.update("DELETE FROM warehouse_preparation_items WHERE order_id=?",id);
         jdbc.update("UPDATE warehouse_preparations SET status='WAITING',worker_code=NULL,note=NULL,started_at=NULL,ready_at=NULL,updated_at=UTC_TIMESTAMP() WHERE order_id=?",id);
+        jdbc.update("UPDATE orders SET status='CONFIRMED',status_actor=?,status_source='OWNER_RESET',status_reason=?,updated_at=NOW() WHERE id=?",actor,reason,id);
         event(id,actor,"RESET",null,null,reason);
     }
     @Transactional(propagation=org.springframework.transaction.annotation.Propagation.MANDATORY)

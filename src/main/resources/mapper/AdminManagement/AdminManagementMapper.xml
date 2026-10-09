@@ -21,19 +21,39 @@
   </select>
   <select id="countOrders" resultType="int">SELECT COUNT(*) FROM orders o LEFT JOIN users u ON u.id=o.user_id <include refid="orderWhere"/></select>
   <select id="getOrder" resultType="camelMap">
-    SELECT o.*, CONCAT_WS(' ',u.first_name,u.last_name) customer_name, u.phone_number, u.address customer_address
+    SELECT o.*, CONCAT_WS(' ',u.first_name,u.last_name) customer_name, u.phone_number, COALESCE(o.delivery_address,u.address) customer_address
     FROM orders o LEFT JOIN users u ON u.id=o.user_id WHERE o.id=#{id} LIMIT 1
   </select>
+  <select id="getOrderStatusHistory" resultType="camelMap">
+    SELECT id,from_status,to_status,actor,source,reason,
+           DATE_FORMAT(changed_at,'%Y-%m-%dT%H:%i:%sZ') changed_at
+    FROM order_status_history WHERE order_id=#{id} ORDER BY id DESC LIMIT 500
+  </select>
   <select id="getOrderItems" resultType="camelMap">SELECT * FROM order_items WHERE order_id=#{id} ORDER BY id</select>
+  <select id="getOrderPayments" resultType="camelMap">
+    SELECT id,provider,provider_transaction_id,amount,status,
+           payme_create_time,payme_perform_time,payme_cancel_time
+    FROM payments WHERE order_id=#{id} ORDER BY id DESC
+  </select>
+  <select id="lockOrderState" resultType="camelMap">
+    SELECT status,payment_status FROM orders WHERE id=#{id} FOR UPDATE
+  </select>
+  <update id="cancelOrder">
+    <bind name="auditActor" value="@com.ninimum.api.audit.OrderAuditActor@current()"/>
+    UPDATE orders SET status_actor=#{auditActor},status_source='ADMIN', status='CANCELLED',status_reason=#{reason},cancel_reason=#{reason},cancelled_at=NOW(),updated_at=NOW()
+    WHERE id=#{id} AND status IN ('PENDING','CONFIRMED','PREPARING','READY')
+  </update>
   <update id="updateOrderStatus">
+    <bind name="auditActor" value="@com.ninimum.api.audit.OrderAuditActor@current()"/>
     UPDATE orders
     <set>
+      status_actor=#{auditActor},status_source='ADMIN',
       <if test="status != null">status=#{status},</if>
       <if test="paymentStatus != null">payment_status=#{paymentStatus},</if>
       <if test="status == 'DELIVERED'">delivered_at=COALESCE(delivered_at,NOW()),</if>
       updated_at=NOW()
     </set>
-    WHERE id=#{id}
+    WHERE id=#{id} AND status NOT IN ('CANCELLED','DELIVERED')
   </update>
   <update id="syncDeliveryJobFromOrder">
     UPDATE delivery_jobs
@@ -41,7 +61,7 @@
           WHEN #{status} = 'ON_THE_WAY' THEN 'ON_THE_WAY'
           WHEN #{status} = 'DELIVERED' THEN 'DELIVERED'
           WHEN #{status} = 'CANCELLED' THEN 'CANCELLED'
-          WHEN #{status} = 'PREPARING' AND delivery_worker_id IS NOT NULL THEN 'ACCEPTED'
+          WHEN #{status} = 'READY' AND delivery_worker_id IS NOT NULL THEN 'ACCEPTED'
           ELSE status
         END,
         on_the_way_at = CASE WHEN #{status}='ON_THE_WAY' THEN COALESCE(on_the_way_at,NOW()) ELSE on_the_way_at END,
@@ -166,9 +186,9 @@
 
   <insert id="syncPaidOrders">
     INSERT IGNORE INTO delivery_jobs(order_id,customer_name,customer_phone,delivery_address,status,created_at,updated_at)
-    SELECT o.id,COALESCE(NULLIF(TRIM(CONCAT_WS(' ',u.first_name,u.last_name)),''),'Mijoz'),COALESCE(NULLIF(u.phone_number,''),''),COALESCE(NULLIF(u.address,''),'Manzil ko''rsatilmagan'),'WAITING_ASSIGNMENT',NOW(),NOW()
+    SELECT o.id,COALESCE(NULLIF(TRIM(CONCAT_WS(' ',u.first_name,u.last_name)),''),'Mijoz'),COALESCE(NULLIF(u.phone_number,''),''),COALESCE(NULLIF(o.delivery_address,''),NULLIF(u.address,''),'Manzil ko''rsatilmagan'),'WAITING_ASSIGNMENT',NOW(),NOW()
     FROM orders o JOIN users u ON u.id=o.user_id
-    WHERE o.payment_status='PAID' AND o.status IN ('CONFIRMED','PREPARING','ON_THE_WAY')
+    WHERE o.payment_status='PAID' AND o.status IN ('CONFIRMED','PREPARING','READY','ON_THE_WAY')
   </insert>
   <sql id="deliveryWhere"><where><if test="status != null">AND dj.status=#{status}</if></where></sql>
   <select id="getDeliveryJobs" resultType="camelMap">
@@ -188,10 +208,23 @@
       <if test="status != null">status=#{status},</if><if test="note != null">note=#{note},</if>
       <if test="status == 'ON_THE_WAY'">on_the_way_at=COALESCE(on_the_way_at,NOW()),</if>
       <if test="status == 'DELIVERED'">delivered_at=COALESCE(delivered_at,NOW()),</if>updated_at=NOW()
-    </set> WHERE id=#{id}
+    </set> WHERE id=#{id} AND EXISTS (SELECT 1 FROM orders o WHERE o.id=delivery_jobs.order_id AND o.status NOT IN ('CANCELLED','DELIVERED','RETURNING'))
+    <if test="status != null">
+      AND (status=#{status}
+        OR (#{status}='ACCEPTED' AND status IN ('WAITING_ASSIGNMENT','PENDING'))
+        OR (#{status}='ON_THE_WAY' AND status='ACCEPTED')
+        OR (#{status}='DELIVERED' AND status='ON_THE_WAY')
+        OR (#{status}='FAILED' AND status IN ('ACCEPTED','ON_THE_WAY')))
+    </if>
   </update>
   <update id="syncOrderFromDeliveryJob">
-    UPDATE orders o JOIN delivery_jobs dj ON dj.order_id=o.id SET o.status=CASE WHEN dj.status='ACCEPTED' THEN 'PREPARING' WHEN dj.status='ON_THE_WAY' THEN 'ON_THE_WAY' WHEN dj.status='DELIVERED' THEN 'DELIVERED' WHEN dj.status='CANCELLED' THEN 'CANCELLED' ELSE o.status END, o.delivered_at=CASE WHEN dj.status='DELIVERED' THEN COALESCE(o.delivered_at,NOW()) ELSE o.delivered_at END,o.updated_at=NOW() WHERE dj.id=#{id}
+    <bind name="auditActor" value="@com.ninimum.api.audit.OrderAuditActor@current()"/>
+    UPDATE orders o JOIN delivery_jobs dj ON dj.order_id=o.id SET status_actor=#{auditActor},status_source='ADMIN',status_reason=CASE WHEN dj.status='FAILED' THEN dj.note ELSE NULL END, o.status=CASE WHEN dj.status='ACCEPTED' THEN 'READY' WHEN dj.status='ON_THE_WAY' THEN 'ON_THE_WAY' WHEN dj.status='DELIVERED' THEN 'DELIVERED' WHEN dj.status='CANCELLED' THEN 'CANCELLED' WHEN dj.status='FAILED' THEN 'RETURNING' ELSE o.status END, o.delivered_at=CASE WHEN dj.status='DELIVERED' THEN COALESCE(o.delivered_at,NOW()) ELSE o.delivered_at END,o.updated_at=NOW() WHERE dj.id=#{id} AND o.status &lt;&gt; 'CANCELLED'
+      AND ((dj.status='ACCEPTED' AND o.status IN ('CONFIRMED','PREPARING','READY'))
+        OR (dj.status='ON_THE_WAY' AND o.status IN ('READY','ON_THE_WAY'))
+        OR (dj.status='DELIVERED' AND o.status IN ('ON_THE_WAY','DELIVERED'))
+        OR (dj.status='CANCELLED' AND o.status IN ('PENDING','CONFIRMED','PREPARING','READY'))
+        OR (dj.status='FAILED' AND o.status IN ('READY','ON_THE_WAY')))
   </update>
 
   <sql id="reviewWhere"><where>
