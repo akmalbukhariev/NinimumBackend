@@ -31,6 +31,9 @@ public class WarehouseAppController extends BaseController {
     @PostMapping("/orders/{id}/problem") public Object problem(Authentication auth,@PathVariable long id,@RequestBody Map<String,Object> body) {return ok(service.problem(id,auth.getName(),body));}
     @PostMapping("/orders/{id}/resume") public Object resume(Authentication auth,@PathVariable long id) {return ok(service.resume(id,auth.getName()));}
     @PostMapping("/orders/{id}/ready") public Object ready(Authentication auth,@PathVariable long id) {return ok(service.ready(id,auth.getName()));}
+    @PostMapping("/orders/{id}/return-claim") public Object returnClaim(Authentication auth,@PathVariable long id) {return ok(service.returnClaim(id,auth.getName()));}
+    @PostMapping("/orders/{id}/return-check") public Object returnCheck(Authentication auth,@PathVariable long id,@RequestBody Map<String,Object> body) {return ok(service.returnCheck(id,auth.getName(),body));}
+    @PostMapping("/orders/{id}/return-receive") public Object returnReceive(Authentication auth,@PathVariable long id) {return ok(service.returnReceive(id,auth.getName()));}
     @ExceptionHandler(WarehouseException.class) public ResponseEntity<VersionResponseResult> invalid(WarehouseException ex) {return error(ex.getMessage(),"WAREHOUSE_LOGIN_FAILED".equals(ex.getMessage())?401:409);}
     @ExceptionHandler(Exception.class) public ResponseEntity<VersionResponseResult> failure(Exception ex) {log.error("Warehouse app request failed",ex);return error("WAREHOUSE_SERVER_ERROR",500);}
     private ResponseEntity<VersionResponseResult> error(String code,int status) {var r=new VersionResponseResult();r.setResultCode(code);r.setResultMsg(code);return ResponseEntity.status(status).body(r);}

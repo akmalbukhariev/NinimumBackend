@@ -22,6 +22,11 @@ public class WarehouseService {
     private final JdbcTemplate jdbc;
     @Value("${warehouse.enabled:false}") private boolean enabled;
 
+    @Transactional(propagation=Propagation.MANDATORY)
+    public boolean needsPhysicalReturn(long id) {
+        var order=one("SELECT status FROM orders WHERE id=? FOR UPDATE",id);
+        return Set.of("RETURNING","RETURNED").contains(order.get("status"));
+    }
     public boolean isEnabled() { return enabled; }
 
     @PostConstruct public void verifySchema() {

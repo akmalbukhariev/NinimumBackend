@@ -620,7 +620,7 @@ public class PaymeService implements IPaymeService {
             orderStatusParam.setPayment_status("PAID".equalsIgnoreCase(status) ? "REFUNDED" : "FAILED");
             paymeMapper.updateOrderPaymentStatus(orderStatusParam);
 
-            if ("PAID".equalsIgnoreCase(status)) {
+            if ("PAID".equalsIgnoreCase(status) && !warehouse.needsPhysicalReturn(orderId)) {
                 GetPaymeOrderParam stockParam = new GetPaymeOrderParam();
                 stockParam.setOrder_id(orderId);
                 List<CamelCaseMap> refundItems = paymeMapper.getOrderStockItems(stockParam);

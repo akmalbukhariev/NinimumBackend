@@ -29,15 +29,15 @@ class OrderAddressIntegrationTest {
             throw new IllegalArgumentException("Only isolated loopback address_test is permitted");
         var ds = new DriverManagerDataSource(url,"root","");
         jdbc = new JdbcTemplate(ds);
-        for (String table : new String[]{"warehouse_preparation_items","warehouse_preparation_events","warehouse_workers","delivery_app_workers","delivery_job_tracking","products","warehouse_preparations","order_items","delivery_jobs","order_status_history","orders","user_addresses","users"})
+        for (String table : new String[]{"warehouse_order_return_items","warehouse_order_returns","warehouse_stock_movements","warehouse_preparation_items","warehouse_preparation_events","warehouse_workers","delivery_app_workers","delivery_job_tracking","products","warehouse_preparations","order_items","delivery_jobs","order_status_history","orders","user_addresses","users"})
             jdbc.execute("DROP TABLE IF EXISTS " + table);
         jdbc.execute("CREATE TABLE users(id BIGINT PRIMARY KEY,first_name VARCHAR(100),last_name VARCHAR(100),phone_number VARCHAR(50),address TEXT,location_latitude DOUBLE,location_longitude DOUBLE)");
-        jdbc.execute(Files.readString(Path.of("database/migrations/20261009_user_addresses.sql")));
+        jdbc.execute(Files.readString(Path.of("src/test/resources/order-fixtures/20261009_user_addresses.sql")));
         // This follow-up migration must also be safe for installations that already have the table.
-        jdbc.execute(Files.readString(Path.of("database/migrations/20261009_user_addresses.sql")));
+        jdbc.execute(Files.readString(Path.of("src/test/resources/order-fixtures/20261009_user_addresses.sql")));
         jdbc.execute("CREATE TABLE orders(id BIGINT AUTO_INCREMENT PRIMARY KEY,user_id BIGINT,address_id BIGINT,user_tariff_id BIGINT,order_number VARCHAR(100),status VARCHAR(30),payment_status VARCHAR(30),subtotal_price INT,delivery_price INT,discount_price INT,total_price INT,ordered_at DATETIME,created_at DATETIME,updated_at DATETIME,cancelled_at DATETIME,cancel_reason TEXT,delivered_at DATETIME,is_history_deleted INT DEFAULT 0)");
-        jdbc.execute(Files.readString(Path.of("database/migrations/20261008_order_delivery_address.sql")));
-        String auditSql=Files.readString(Path.of("database/migrations/20261009_order_status_history.sql"));
+        jdbc.execute(Files.readString(Path.of("src/test/resources/order-fixtures/20261008_order_delivery_address.sql")));
+        String auditSql=Files.readString(Path.of("src/test/resources/order-fixtures/20261009_order_status_history.sql"));
         String[] auditParts=auditSql.split("DELIMITER \\$\\$");
         for(String statement:auditParts[0].split(";")) if(!statement.isBlank()) jdbc.execute(statement);
         for(String statement:auditParts[1].replace("DELIMITER ;", "").split("\\$\\$"))
@@ -57,6 +57,63 @@ class OrderAddressIntegrationTest {
         orders = session.getMapper(OrderMapper.class);
         deliveries = session.getMapper(DeliveryAppMapper.class);
         admin = session.getMapper(AdminManagementMapper.class);
+    }
+    @Test void warehouseReceiptRestoresStockOnceAndKeepsRefundSeparate() throws Exception {
+        jdbc.execute("ALTER TABLE order_items ADD product_id BIGINT, ADD product_name VARCHAR(255), ADD product_image_url VARCHAR(255)");
+        jdbc.execute("CREATE TABLE products(id BIGINT PRIMARY KEY,name VARCHAR(255),barcode VARCHAR(120),stock_quantity INT,updated_at DATETIME)");
+        jdbc.execute("CREATE TABLE warehouse_workers(worker_code VARCHAR(50),full_name VARCHAR(100),status VARCHAR(20))");
+        jdbc.execute("CREATE TABLE warehouse_preparations(order_id BIGINT PRIMARY KEY,status VARCHAR(30),worker_code VARCHAR(50),note TEXT)");
+        jdbc.execute("CREATE TABLE warehouse_preparation_items(order_id BIGINT,product_id BIGINT,product_name VARCHAR(255),barcode VARCHAR(120),required_quantity INT,checked_quantity INT)");
+        jdbc.execute("CREATE TABLE warehouse_preparation_events(id BIGINT AUTO_INCREMENT PRIMARY KEY,order_id BIGINT,actor VARCHAR(50),kind VARCHAR(30),product_id BIGINT,quantity INT,note TEXT,created_at DATETIME)");
+        jdbc.execute("CREATE TABLE warehouse_stock_movements(id BIGINT AUTO_INCREMENT PRIMARY KEY,product_id BIGINT,product_name VARCHAR(255),kind VARCHAR(40),quantity_change BIGINT,stock_after BIGINT,reference VARCHAR(100),actor VARCHAR(100),note TEXT,event_key VARCHAR(150) UNIQUE,created_at DATETIME)");
+        new org.springframework.jdbc.datasource.init.ResourceDatabasePopulator(new FileSystemResource("database/migrations/20261010_warehouse_returns.sql")).execute(jdbc.getDataSource());
+        jdbc.update("INSERT INTO warehouse_workers VALUES('WH001','Worker','ACTIVE'),('WH002','Other','ACTIVE')");
+        jdbc.update("INSERT INTO products VALUES(12,'Milk','123456',8,NOW())");
+        var p=new CreateOrderParam();p.setUserId(7L);p.setDeliveryAddress("Shahrisabz");p.setTotalPrice(1000);
+        orders.createOrderAddress(p);orders.createOrder(p);long id=p.getOrderId();
+        jdbc.update("INSERT INTO order_items VALUES(1,?,2,12,'Milk',NULL)",id);
+        jdbc.update("UPDATE orders SET status='RETURNING',payment_status='PAID' WHERE id=?",id);
+        var stock=new com.ninimum.api.warehouse.WarehouseService(jdbc);
+        org.springframework.test.util.ReflectionTestUtils.setField(stock,"enabled",true);
+        var service=new com.ninimum.api.warehouse.WarehouseAppService(jdbc,org.mockito.Mockito.mock(org.springframework.security.crypto.password.PasswordEncoder.class),stock);
+        org.springframework.test.util.ReflectionTestUtils.setField(service,"enabled",true);
+        var tx=new org.springframework.transaction.support.TransactionTemplate(new org.springframework.jdbc.datasource.DataSourceTransactionManager(jdbc.getDataSource()));
+        assertEquals(Boolean.TRUE,tx.execute(t->stock.needsPhysicalReturn(id)));
+        tx.executeWithoutResult(t->service.returnClaim(id,"WH001"));
+        assertThrows(RuntimeException.class,()->tx.executeWithoutResult(t->service.returnClaim(id,"WH002")));
+        assertThrows(RuntimeException.class,()->tx.executeWithoutResult(t->service.returnReceive(id,"WH001")));
+        assertThrows(RuntimeException.class,()->tx.executeWithoutResult(t->service.returnCheck(id,"WH001",java.util.Map.of("product_id",12,"quantity",3,"barcode","123456"))));
+        assertThrows(RuntimeException.class,()->tx.executeWithoutResult(t->service.returnCheck(id,"WH001",java.util.Map.of("product_id",12,"quantity",2,"barcode","wrong"))));
+        tx.executeWithoutResult(t->service.returnCheck(id,"WH001",java.util.Map.of("product_id",12,"quantity",2,"barcode","123456")));
+        assertEquals(8,jdbc.queryForObject("SELECT stock_quantity FROM products WHERE id=12",Integer.class));
+        // A later failure must roll back stock, receipt and audit together.
+        jdbc.execute("CREATE TRIGGER reject_return_event BEFORE INSERT ON warehouse_preparation_events FOR EACH ROW BEGIN IF NEW.kind='RETURN_RECEIVED' THEN SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT='fixture failure'; END IF; END");
+        assertThrows(RuntimeException.class,()->tx.executeWithoutResult(t->service.returnReceive(id,"WH001")));
+        assertEquals(8,jdbc.queryForObject("SELECT stock_quantity FROM products WHERE id=12",Integer.class));
+        assertEquals("RETURNING",admin.getOrder(id).get("status"));
+        assertEquals(0,jdbc.queryForObject("SELECT COUNT(*) FROM warehouse_stock_movements",Integer.class));
+        jdbc.execute("DROP TRIGGER reject_return_event");
+        tx.executeWithoutResult(t->service.returnReceive(id,"WH001"));
+        tx.executeWithoutResult(t->service.returnReceive(id,"WH001"));
+        assertEquals(10,jdbc.queryForObject("SELECT stock_quantity FROM products WHERE id=12",Integer.class));
+        assertEquals(1,jdbc.queryForObject("SELECT COUNT(*) FROM warehouse_stock_movements",Integer.class));
+        assertEquals("RETURNED",admin.getOrder(id).get("status"));
+        assertEquals("PAID",admin.getOrder(id).get("payment_status"));
+        assertEquals("WAREHOUSE_RETURN",admin.getOrderStatusHistory(id).get(0).get("source"));
+        assertEquals("WH001",admin.getOrderStatusHistory(id).get(0).get("actor"));
+        assertEquals(Boolean.TRUE,tx.execute(t->stock.needsPhysicalReturn(id)));
+        // A legacy refund that already credited stock must not be credited again at receipt.
+        var p2=new CreateOrderParam();p2.setUserId(7L);p2.setDeliveryAddress("Shahrisabz");p2.setTotalPrice(1000);
+        orders.createOrderAddress(p2);orders.createOrder(p2);long legacy=p2.getOrderId();
+        jdbc.update("INSERT INTO order_items VALUES(2,?,2,12,'Milk',NULL)",legacy);
+        jdbc.update("UPDATE orders SET status='RETURNING',payment_status='REFUNDED' WHERE id=?",legacy);
+        jdbc.update("INSERT INTO warehouse_stock_movements(product_id,kind,quantity_change,reference,event_key) VALUES(12,'PAYMENT_REFUND',2,?,'legacy')","ORDER-"+legacy);
+        tx.executeWithoutResult(t->service.returnClaim(legacy,"WH001"));
+        tx.executeWithoutResult(t->service.returnCheck(legacy,"WH001",java.util.Map.of("product_id",12,"quantity",2,"barcode","123456")));
+        tx.executeWithoutResult(t->service.returnReceive(legacy,"WH001"));
+        assertEquals(10,jdbc.queryForObject("SELECT stock_quantity FROM products WHERE id=12",Integer.class));
+        assertEquals(0,jdbc.queryForObject("SELECT restocked_quantity FROM warehouse_order_return_items WHERE order_id=?",Integer.class,legacy));
+        assertEquals("REFUNDED",admin.getOrder(legacy).get("payment_status"));
     }
     @Test void failedDeliveryReturnsOrderAndAuditsReasonAtomically() throws Exception {
         jdbc.execute("CREATE TABLE delivery_app_workers(id BIGINT PRIMARY KEY,worker_code VARCHAR(50),full_name VARCHAR(100),phone_number VARCHAR(50),status VARCHAR(30),is_online INT,vehicle_type VARCHAR(30),vehicle_number VARCHAR(30))");
@@ -96,9 +153,9 @@ class OrderAddressIntegrationTest {
         assertEquals("RETURNING",orders.getOrderList(query).get(0).getStatus());
         // Repair is idempotent and logs the present repair, without changing payment.
         jdbc.update("UPDATE orders SET status='ON_THE_WAY' WHERE id=?",id);
-        jdbc.execute(Files.readString(Path.of("database/migrations/20261009_order_returning.sql")));
+        jdbc.execute(Files.readString(Path.of("src/test/resources/order-fixtures/20261009_order_returning.sql")));
         int repaired=admin.getOrderStatusHistory(id).size();
-        jdbc.execute(Files.readString(Path.of("database/migrations/20261009_order_returning.sql")));
+        jdbc.execute(Files.readString(Path.of("src/test/resources/order-fixtures/20261009_order_returning.sql")));
         assertEquals(repaired,admin.getOrderStatusHistory(id).size());assertEquals("RETURN_REPAIR",admin.getOrderStatusHistory(id).get(0).get("source"));
         assertEquals("RETURNING",admin.getOrder(id).get("status"));assertEquals("PAID",admin.getOrder(id).get("payment_status"));
     }
@@ -211,7 +268,7 @@ class OrderAddressIntegrationTest {
         jdbc.execute("CREATE TABLE delivery_job_tracking(delivery_job_id BIGINT,delivery_worker_id BIGINT,status VARCHAR(30),message TEXT,created_at DATETIME)");
         jdbc.execute("ALTER TABLE orders MODIFY COLUMN status ENUM('PENDING','CONFIRMED','PREPARING','ON_THE_WAY','DELIVERED','CANCELLED') NOT NULL DEFAULT 'PENDING'");
         new org.springframework.jdbc.datasource.init.ResourceDatabasePopulator(
-                new FileSystemResource("database/migrations/20261009_order_ready_status.sql")).execute(jdbc.getDataSource());
+                new FileSystemResource("src/test/resources/order-fixtures/20261009_order_ready_status.sql")).execute(jdbc.getDataSource());
         jdbc.update("INSERT INTO products VALUES (12,'123456')");
         jdbc.update("INSERT INTO warehouse_workers VALUES ('WH001','Warehouse worker','ACTIVE')");
         jdbc.update("INSERT INTO delivery_app_workers VALUES (9,'CO001','Courier','+998900000000','ACTIVE',1,NULL,NULL)");
