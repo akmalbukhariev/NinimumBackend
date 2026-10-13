@@ -13,6 +13,8 @@
             o.status AS status,
             o.payment_status AS paymentStatus,
             o.total_price AS totalPrice,
+            (SELECT pr.status FROM delivery_partial_returns pr WHERE pr.order_id=o.id) AS partialReturnStatus,
+            (SELECT pr.refund_amount FROM delivery_partial_returns pr WHERE pr.order_id=o.id) AS partialRefundAmount,
             COALESCE(SUM(oi.quantity), 0) AS productCount,
             DATE_FORMAT(o.ordered_at, '%Y-%m-%d %H:%i:%s') AS orderedAt
         FROM orders o
@@ -212,9 +214,12 @@
             AND status IN ('PENDING', 'CONFIRMED')
     </update>
 
-    <delete id="cancelUnpaidOrder"
+    <update id="cancelUnpaidOrder"
             parameterType="com.ninimum.api.param.CancelOrderParam">
-        DELETE FROM orders
+        UPDATE orders
+        SET status_actor=CONCAT('CUSTOMER:',#{userId}), status_source='CUSTOMER',
+            status_reason=#{reason}, status='CANCELLED', cancel_reason=#{reason},
+            cancelled_at=NOW(), updated_at=NOW()
         WHERE id = #{orderId}
           AND user_id = #{userId}
           AND status = 'PENDING'
@@ -224,7 +229,14 @@
               FROM payments p
               WHERE p.order_id = orders.id
           )
-    </delete>
+    </update>
+
+    <select id="isAlreadyCancelledUnpaidOrder" resultType="int">
+        SELECT COUNT(*) FROM orders
+        WHERE id = #{orderId} AND user_id = #{userId}
+          AND status = 'CANCELLED' AND payment_status = 'PENDING'
+          AND NOT EXISTS (SELECT 1 FROM payments p WHERE p.order_id = orders.id AND p.status = 'PAID')
+    </select>
 
     <select id="getOrderCount"
             parameterType="com.ninimum.api.param.OrderListParam"
@@ -243,7 +255,8 @@
         SELECT
             id AS orderId,
             order_number AS orderNumber,
-            payment_status AS paymentStatus
+            CASE WHEN status = 'CANCELLED' AND payment_status = 'PENDING'
+                 THEN 'CANCELLED' ELSE payment_status END AS paymentStatus
         FROM orders
         WHERE id = #{orderId}
           AND user_id = #{userId}
@@ -257,6 +270,7 @@
             o.id AS orderId,
             o.order_number AS orderNumber,
             o.status AS status,
+            (SELECT pr.status FROM delivery_partial_returns pr WHERE pr.order_id=o.id) AS partialReturnStatus,
             o.payment_status AS paymentStatus,
             DATE_FORMAT(o.ordered_at, '%Y-%m-%d %H:%i:%s') AS orderedAt,
             CASE

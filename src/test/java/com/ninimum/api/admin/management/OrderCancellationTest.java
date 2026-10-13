@@ -9,7 +9,7 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 class OrderCancellationTest {
  private AdminManagementService service(AdminManagementMapper mapper) {
-  return new AdminManagementService(mapper,mock(FileService.class),mock(WarehouseAppService.class),mock(WarehouseService.class));
+  return new AdminManagementService(mapper,mock(FileService.class),mock(WarehouseAppService.class),mock(WarehouseService.class),mock(com.ninimum.api.deliveryapp.service.ReturnPhotoService.class),mock(com.ninimum.api.deliveryapp.service.PartialReturnService.class));
  }
  @Test void cancellationRequiresReasonBeforeAnyChange() {
   var mapper=mock(AdminManagementMapper.class);

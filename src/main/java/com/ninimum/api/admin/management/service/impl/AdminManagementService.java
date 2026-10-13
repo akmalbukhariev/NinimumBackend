@@ -20,9 +20,13 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class AdminManagementService implements IAdminManagementService {
     private final AdminManagementMapper mapper;
+    @org.springframework.beans.factory.annotation.Autowired
+    private com.ninimum.api.payment.refund.PaymeReceiptClient refundClient;
     private final FileService fileService;
     private final com.ninimum.api.warehouse.WarehouseAppService warehouseApp;
     private final com.ninimum.api.warehouse.WarehouseService warehouse;
+    private final com.ninimum.api.deliveryapp.service.ReturnPhotoService returnPhotos;
+    private final com.ninimum.api.deliveryapp.service.PartialReturnService partialReturns;
 
     private int page(int page) {
         return Math.max(page, 1);
@@ -66,9 +70,12 @@ public class AdminManagementService implements IAdminManagementService {
     public Map<String, Object> getOrder(long id) {
         Map<String, Object> result = new LinkedHashMap<>();
         result.put("order", mapper.getOrder(id));
+        result.put("refund_monitor_enabled", refundClient != null && refundClient.available());
         result.put("items", mapper.getOrderItems(id));
         result.put("payments", mapper.getOrderPayments(id));
         result.put("status_history", mapper.getOrderStatusHistory(id));
+        if(result.get("order")!=null) result.put("partial_return",partialReturns.details(id));
+        if (result.get("order") != null) result.put("return_photo", returnPhotos.forOrder(id));
         return result;
     }
 
@@ -357,7 +364,7 @@ public class AdminManagementService implements IAdminManagementService {
     }
 
     @Override
-    @Transactional(isolation=org.springframework.transaction.annotation.Isolation.READ_COMMITTED)
+    @Transactional(rollbackFor=Exception.class,isolation=org.springframework.transaction.annotation.Isolation.READ_COMMITTED)
     public int updateDeliveryJob(long id, Map<String, Object> body) {
         if ("FAILED".equals(body.get("status"))) {
             String reason = java.util.Objects.toString(body.get("note"), "").trim();
@@ -368,7 +375,18 @@ public class AdminManagementService implements IAdminManagementService {
             warehouseApp.requireReadyJob(id);
         body.put("id", id);
         int result = mapper.updateDeliveryJob(body);
-        if (result > 0) mapper.syncOrderFromDeliveryJob(id);
+        if (result == 0 && "FAILED".equals(body.get("status")))
+            throw new IllegalArgumentException("Delivery changed; refresh the order");
+        if (result > 0) {
+            if ("FAILED".equals(body.get("status"))) {
+                try {
+                    returnPhotos.save(id, com.ninimum.api.audit.OrderAuditActor.current(),
+                            (String) body.get("note"), java.util.Objects.toString(body.get("photo_base64"), null));
+                } catch (RuntimeException ex) { throw ex; }
+                catch (Exception ex) { throw new IllegalStateException("RETURN_PHOTO_INVALID", ex); }
+            }
+            mapper.syncOrderFromDeliveryJob(id);
+        }
         return result;
     }
 

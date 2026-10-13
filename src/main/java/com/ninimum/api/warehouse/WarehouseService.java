@@ -25,9 +25,14 @@ public class WarehouseService {
     @Transactional(propagation=Propagation.MANDATORY)
     public boolean needsPhysicalReturn(long id) {
         var order=one("SELECT status FROM orders WHERE id=? FOR UPDATE",id);
-        return Set.of("RETURNING","RETURNED").contains(order.get("status"));
+        return Set.of("RETURNING","RETURNED").contains(order.get("status")) || ("DELIVERED".equals(order.get("status")) && jdbc.queryForObject("SELECT COUNT(*) FROM delivery_partial_returns WHERE order_id=?",Integer.class,id)==1);
     }
     public boolean isEnabled() { return enabled; }
+    @Transactional(propagation=Propagation.MANDATORY)
+    public void reconcilePartialRefund(long orderId) {
+        // This records an authenticated provider callback, never initiates a payment/refund.
+        jdbc.update("UPDATE delivery_partial_returns SET refund_status='FULL_PAYMENT_REFUND' WHERE order_id=? AND refund_status='PENDING'",orderId);
+    }
 
     @PostConstruct public void verifySchema() {
         if (enabled && !Integer.valueOf(1).equals(jdbc.queryForObject(

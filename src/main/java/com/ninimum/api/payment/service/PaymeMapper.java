@@ -10,6 +10,8 @@ import java.util.List;
 public interface PaymeMapper {
     CamelCaseMap getPaymeOrderCheckById(GetPaymeOrderParam param);
 
+    CamelCaseMap lockOrderForPayment(GetPaymeOrderParam param);
+
     CamelCaseMap getPaymeSubscriptionCheckById(GetPaymeSubscriptionParam param);
 
     List<CamelCaseMap> getPaymeOrderFiscalItems(GetPaymeOrderParam param);

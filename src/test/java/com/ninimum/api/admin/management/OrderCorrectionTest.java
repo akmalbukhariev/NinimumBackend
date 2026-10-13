@@ -38,4 +38,16 @@ class OrderCorrectionTest {
             verify(jdbc).queryForList("SELECT status,payment_status FROM orders WHERE id=? FOR UPDATE",1L);verifyNoMoreInteractions(jdbc);
         }
     }
+    @Test void ownerCannotReopenAnOrderWithPartialReturn(){
+        login("SUPER_ADMIN");var jdbc=mock(JdbcTemplate.class);
+        when(jdbc.queryForList("SELECT status,payment_status FROM orders WHERE id=? FOR UPDATE",1L))
+            .thenReturn(List.of(Map.of("status","DELIVERED","payment_status","PAID")));
+        when(jdbc.queryForObject("SELECT COUNT(*) FROM delivery_partial_returns WHERE order_id=?",Integer.class,1L)).thenReturn(1);
+        var ex=assertThrows(IllegalArgumentException.class,()->new OrderCorrectionService(jdbc).correct(1,
+            Map.of("expected_status","DELIVERED","status","READY","reason","test")));
+        assertEquals("An order with a partial return cannot be moved back to preparation or delivery",ex.getMessage());
+        verify(jdbc).queryForList("SELECT status,payment_status FROM orders WHERE id=? FOR UPDATE",1L);
+        verify(jdbc).queryForObject("SELECT COUNT(*) FROM delivery_partial_returns WHERE order_id=?",Integer.class,1L);
+        verifyNoMoreInteractions(jdbc);
+    }
 }

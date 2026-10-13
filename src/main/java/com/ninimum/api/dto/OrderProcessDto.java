@@ -10,4 +10,5 @@ public class OrderProcessDto {
     private String paymentStatus;
     private String orderedAt;
     private String deliveredAt;
+    private String partialReturnStatus;
 }

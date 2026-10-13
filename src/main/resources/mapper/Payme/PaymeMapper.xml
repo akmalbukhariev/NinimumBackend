@@ -2,6 +2,10 @@
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.ninimum.api.payment.service.PaymeMapper">
 
+    <select id="lockOrderForPayment" parameterType="com.ninimum.api.dto.payme.GetPaymeOrderParam" resultType="camelMap">
+        SELECT id,status,payment_status FROM orders WHERE id=#{order_id} FOR UPDATE
+    </select>
+
     <select id="getPaymeOrderCheckById"
             parameterType="com.ninimum.api.dto.payme.GetPaymeOrderParam"
             resultType="camelMap">

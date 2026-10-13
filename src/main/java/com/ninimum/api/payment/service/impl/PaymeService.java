@@ -475,6 +475,11 @@ public class PaymeService implements IPaymeService {
             GetPaymeOrderParam stockParam = new GetPaymeOrderParam();
             stockParam.setOrder_id(orderId);
 
+            CamelCaseMap payableOrder=paymeMapper.lockOrderForPayment(stockParam);
+            if(payableOrder==null || !"PENDING".equals(payableOrder.get("status")) || !"PENDING".equals(payableOrder.get("payment_status"))) {
+                return PaymeResponse.error(-31008, "Order is no longer payable", "account.order_id", request.getId());
+            }
+
             List<CamelCaseMap> stockItems = paymeMapper.getOrderStockItems(stockParam);
             if (stockItems == null || stockItems.isEmpty()) {
                 return PaymeResponse.error(-31008, "Order has no products", "account.order_id", request.getId());
@@ -619,6 +624,7 @@ public class PaymeService implements IPaymeService {
             orderStatusParam.setOrder_id(orderId);
             orderStatusParam.setPayment_status("PAID".equalsIgnoreCase(status) ? "REFUNDED" : "FAILED");
             paymeMapper.updateOrderPaymentStatus(orderStatusParam);
+            if("PAID".equalsIgnoreCase(status)) warehouse.reconcilePartialRefund(orderId);
 
             if ("PAID".equalsIgnoreCase(status) && !warehouse.needsPhysicalReturn(orderId)) {
                 GetPaymeOrderParam stockParam = new GetPaymeOrderParam();

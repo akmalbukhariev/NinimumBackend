@@ -46,7 +46,7 @@ class AdminPermissionsTest {
     }
     @RestController static class Endpoints {
         @RequestMapping({"/ninimum/api/v1/admin/register", "/ninimum/api/v1/admin/management/admins",
-                "/ninimum/api/v1/admin/management/settings", "/ninimum/api/v1/admin/warehouse/locations", "/ninimum/api/v1/admin/warehouse/status", "/ninimum/api/v1/admin/management/categories",
+                "/ninimum/api/v1/admin/management/settings", "/ninimum/api/v1/admin/management/order-timers", "/ninimum/api/v1/admin/management/orders/problems", "/ninimum/api/v1/admin/warehouse/locations", "/ninimum/api/v1/admin/warehouse/status", "/ninimum/api/v1/admin/management/categories",
                 "/ninimum/api/v1/admin/management/orders", "/ninimum/api/v1/admin/management/products",
                 "/ninimum/api/v1/admin/management/delivery/jobs", "/ninimum/api/v1/admin/me", "/ninimum/api/v1/warehouse-app/me", "/ninimum/api/v1/warehouse-app/login"})
         public String ok() { return "ok"; }
@@ -70,13 +70,13 @@ class AdminPermissionsTest {
     }
     @Test void restrictedAdminCannotManageAdminsOrSettings() throws Exception {
         login("ADMIN");
-        for (String path : new String[]{"register", "management/admins", "management/settings", "warehouse/locations"})
+        for (String path : new String[]{"register", "management/admins", "management/settings", "management/order-timers", "warehouse/locations"})
             mvc.perform(get("/ninimum/api/v1/admin/" + path).header("Authorization", "Bearer token"))
                     .andExpect(status().isForbidden());
     }
     @Test void restrictedAdminCanUseOperationalModules() throws Exception {
         login("ADMIN");
-        for (String path : new String[]{"orders", "products", "categories", "delivery/jobs"})
+        for (String path : new String[]{"orders", "orders/problems", "products", "categories", "delivery/jobs"})
             mvc.perform(get("/ninimum/api/v1/admin/management/" + path).header("Authorization", "Bearer token"))
                     .andExpect(status().isOk());
     }

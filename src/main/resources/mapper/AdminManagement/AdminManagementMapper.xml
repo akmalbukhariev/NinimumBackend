@@ -10,8 +10,17 @@
       <if test="status != null">AND o.status = #{status}</if>
     </where>
   </sql>
+  <sql id="refundFields">
+    CASE WHEN o.payment_status='PAID' AND (o.status IN ('CANCELLED','RETURNING','RETURNED') OR EXISTS (SELECT 1 FROM delivery_partial_returns pr WHERE pr.order_id=o.id AND pr.refund_status='PENDING' AND pr.refund_amount>0)) THEN 1 ELSE 0 END refund_pending,
+    (SELECT pr.status FROM delivery_partial_returns pr WHERE pr.order_id=o.id) partial_return_status,
+    (SELECT pr.refund_amount FROM delivery_partial_returns pr WHERE pr.order_id=o.id) partial_refund_amount,
+    DATE_FORMAT(COALESCE((SELECT MIN(h.changed_at) FROM order_status_history h WHERE h.order_id=o.id
+      AND h.to_status IN ('CANCELLED','RETURNING','RETURNED') AND h.id &gt; COALESCE(
+        (SELECT MAX(n.id) FROM order_status_history n WHERE n.order_id=o.id AND n.to_status NOT IN ('CANCELLED','RETURNING','RETURNED')),0)),
+      CASE WHEN o.status='CANCELLED' THEN o.cancelled_at END,(SELECT pr.created_at FROM delivery_partial_returns pr WHERE pr.order_id=o.id)),'%Y-%m-%dT%H:%i:%sZ') refund_pending_since
+  </sql>
   <select id="getOrders" resultType="camelMap">
-    SELECT o.id, o.order_number, o.user_id, CONCAT_WS(' ',u.first_name,u.last_name) customer_name, u.phone_number,
+    SELECT <include refid="refundFields"/>, o.id, o.order_number, o.user_id, CONCAT_WS(' ',u.first_name,u.last_name) customer_name, u.phone_number,
            o.status, o.payment_status, o.subtotal_price, o.delivery_price, o.discount_price, o.total_price,
            DATE_FORMAT(o.ordered_at,'%Y-%m-%d %H:%i:%s') ordered_at,
            COALESCE((SELECT SUM(quantity) FROM order_items oi WHERE oi.order_id=o.id),0) product_count
@@ -21,7 +30,7 @@
   </select>
   <select id="countOrders" resultType="int">SELECT COUNT(*) FROM orders o LEFT JOIN users u ON u.id=o.user_id <include refid="orderWhere"/></select>
   <select id="getOrder" resultType="camelMap">
-    SELECT o.*, CONCAT_WS(' ',u.first_name,u.last_name) customer_name, u.phone_number, COALESCE(o.delivery_address,u.address) customer_address
+    SELECT <include refid="refundFields"/>, o.*, CONCAT_WS(' ',u.first_name,u.last_name) customer_name, u.phone_number, COALESCE(o.delivery_address,u.address) customer_address
     FROM orders o LEFT JOIN users u ON u.id=o.user_id WHERE o.id=#{id} LIMIT 1
   </select>
   <select id="getOrderStatusHistory" resultType="camelMap">
@@ -31,9 +40,13 @@
   </select>
   <select id="getOrderItems" resultType="camelMap">SELECT * FROM order_items WHERE order_id=#{id} ORDER BY id</select>
   <select id="getOrderPayments" resultType="camelMap">
-    SELECT id,provider,provider_transaction_id,amount,status,
-           payme_create_time,payme_perform_time,payme_cancel_time
-    FROM payments WHERE order_id=#{id} ORDER BY id DESC
+    SELECT p.id,p.provider,p.provider_transaction_id,p.amount,p.status,
+           p.payme_create_time,p.payme_perform_time,p.payme_cancel_time,
+           DATE_FORMAT(c.checked_at,'%Y-%m-%dT%H:%i:%sZ') refund_checked_at,
+           DATE_FORMAT(c.last_success_at,'%Y-%m-%dT%H:%i:%sZ') refund_last_success_at,
+           c.receipt_state refund_receipt_state,c.error_code refund_check_error
+    FROM payments p LEFT JOIN payment_refund_checks c ON c.payment_id=p.id
+    WHERE p.order_id=#{id} ORDER BY p.id DESC
   </select>
   <select id="lockOrderState" resultType="camelMap">
     SELECT status,payment_status FROM orders WHERE id=#{id} FOR UPDATE

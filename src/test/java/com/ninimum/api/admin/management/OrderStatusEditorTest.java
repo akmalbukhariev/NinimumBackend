@@ -12,7 +12,7 @@ import static org.mockito.Mockito.*;
 
 class OrderStatusEditorTest {
     private AdminManagementService service(AdminManagementMapper mapper) {
-        return new AdminManagementService(mapper,mock(FileService.class),mock(WarehouseAppService.class),mock(WarehouseService.class));
+        return new AdminManagementService(mapper,mock(FileService.class),mock(WarehouseAppService.class),mock(WarehouseService.class),mock(com.ninimum.api.deliveryapp.service.ReturnPhotoService.class),mock(com.ninimum.api.deliveryapp.service.PartialReturnService.class));
     }
     private AdminManagementMapper mapper(String state) {
         var mapper=mock(AdminManagementMapper.class);

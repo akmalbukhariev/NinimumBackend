@@ -14,4 +14,6 @@ public class OrderDto {
     private BigDecimal totalPrice;
     private Integer productCount;
     private String orderedAt;
+    private String partialReturnStatus;
+    private BigDecimal partialRefundAmount;
 }

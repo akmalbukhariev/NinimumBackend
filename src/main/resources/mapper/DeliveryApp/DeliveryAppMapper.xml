@@ -56,7 +56,7 @@
              WHERE dj.delivery_worker_id IS NULL AND dj.status='WAITING_ASSIGNMENT'
                AND o.payment_status='PAID' AND o.status NOT IN ('CANCELLED','DELIVERED')) AS availableCount,
           (SELECT COUNT(*) FROM delivery_jobs
-             WHERE delivery_worker_id=#{workerId} AND (status IN ('ACCEPTED','ON_THE_WAY') OR (status='FAILED' AND EXISTS (SELECT 1 FROM orders o WHERE o.id=delivery_jobs.order_id AND o.status='RETURNING')))) AS activeCount,
+             WHERE delivery_worker_id=#{workerId} AND (status IN ('ACCEPTED','ON_THE_WAY') OR (status='FAILED' AND EXISTS (SELECT 1 FROM orders o WHERE o.id=delivery_jobs.order_id AND o.status='RETURNING')) OR (status='DELIVERED' AND EXISTS (SELECT 1 FROM delivery_partial_returns pr WHERE pr.order_id=delivery_jobs.order_id AND pr.status='RETURNING')))) AS activeCount,
           (SELECT COUNT(*) FROM delivery_jobs
              WHERE delivery_worker_id=#{workerId} AND status='DELIVERED' AND DATE(delivered_at)=CURRENT_DATE()) AS completedTodayCount
     </select>
@@ -64,7 +64,7 @@
     <select id="getAvailableJobs" resultType="com.ninimum.api.dto.DeliveryAppJobDto">
         SELECT dj.id AS jobId, o.id AS orderId, o.order_number AS orderNumber,
                dj.customer_name AS customerName, NULL AS customerPhone, dj.delivery_address AS deliveryAddress,
-               dj.status AS jobStatus, o.status AS orderStatus, o.payment_status AS paymentStatus,
+               dj.status AS jobStatus, o.status AS orderStatus, o.payment_status AS paymentStatus, (SELECT pr.status FROM delivery_partial_returns pr WHERE pr.order_id=o.id) AS partialReturnStatus,
                o.total_price AS totalPrice, COALESCE(SUM(oi.quantity),0) AS productCount,
                DATE_FORMAT(dj.created_at,'%Y-%m-%d %H:%i:%s') AS createdAt
         FROM delivery_jobs dj
@@ -80,7 +80,7 @@
         SELECT dj.id AS jobId, o.id AS orderId, o.order_number AS orderNumber,
                dj.customer_name AS customerName, dj.customer_phone AS customerPhone, dj.delivery_address AS deliveryAddress,
                COALESCE(o.delivery_latitude,u.location_latitude) AS locationLatitude, COALESCE(o.delivery_longitude,u.location_longitude) AS locationLongitude,
-               dj.status AS jobStatus, o.status AS orderStatus, o.payment_status AS paymentStatus,
+               dj.status AS jobStatus, o.status AS orderStatus, o.payment_status AS paymentStatus, (SELECT pr.status FROM delivery_partial_returns pr WHERE pr.order_id=o.id) AS partialReturnStatus,
                o.total_price AS totalPrice, COALESCE(SUM(oi.quantity),0) AS productCount,
                DATE_FORMAT(dj.created_at,'%Y-%m-%d %H:%i:%s') AS createdAt,
                DATE_FORMAT(dj.accepted_at,'%Y-%m-%d %H:%i:%s') AS acceptedAt,
@@ -89,7 +89,7 @@
         JOIN orders o ON o.id=dj.order_id
         JOIN users u ON u.id=o.user_id
         LEFT JOIN order_items oi ON oi.order_id=o.id
-        WHERE dj.delivery_worker_id=#{workerId} AND (dj.status IN ('ACCEPTED','ON_THE_WAY') OR (dj.status='FAILED' AND o.status='RETURNING'))
+        WHERE dj.delivery_worker_id=#{workerId} AND (dj.status IN ('ACCEPTED','ON_THE_WAY') OR (dj.status='FAILED' AND o.status='RETURNING') OR (dj.status='DELIVERED' AND EXISTS (SELECT 1 FROM delivery_partial_returns pr WHERE pr.order_id=o.id AND pr.status='RETURNING')))
           AND o.status &lt;&gt; 'CANCELLED'
         GROUP BY dj.id,o.id,o.order_number,dj.customer_name,dj.customer_phone,dj.delivery_address,o.delivery_latitude,o.delivery_longitude,u.location_latitude,u.location_longitude,dj.status,o.status,o.payment_status,o.total_price,dj.created_at,dj.accepted_at,dj.on_the_way_at
         ORDER BY dj.updated_at DESC
@@ -98,7 +98,7 @@
     <select id="getHistoryJobs" resultType="com.ninimum.api.dto.DeliveryAppJobDto">
         SELECT dj.id AS jobId, o.id AS orderId, o.order_number AS orderNumber,
                dj.customer_name AS customerName, dj.customer_phone AS customerPhone, dj.delivery_address AS deliveryAddress,
-               dj.status AS jobStatus, o.status AS orderStatus, o.payment_status AS paymentStatus,
+               dj.status AS jobStatus, o.status AS orderStatus, o.payment_status AS paymentStatus, (SELECT pr.status FROM delivery_partial_returns pr WHERE pr.order_id=o.id) AS partialReturnStatus,
                o.total_price AS totalPrice, COALESCE(SUM(oi.quantity),0) AS productCount,
                DATE_FORMAT(dj.created_at,'%Y-%m-%d %H:%i:%s') AS createdAt,
                DATE_FORMAT(dj.delivered_at,'%Y-%m-%d %H:%i:%s') AS deliveredAt,
@@ -106,7 +106,7 @@
         FROM delivery_jobs dj
         JOIN orders o ON o.id=dj.order_id
         LEFT JOIN order_items oi ON oi.order_id=o.id
-        WHERE dj.delivery_worker_id=#{workerId} AND dj.status IN ('DELIVERED','FAILED','CANCELLED') AND o.status &lt;&gt; 'RETURNING'
+        WHERE dj.delivery_worker_id=#{workerId} AND dj.status IN ('DELIVERED','FAILED','CANCELLED') AND NOT EXISTS (SELECT 1 FROM delivery_partial_returns pr WHERE pr.order_id=o.id AND pr.status='RETURNING') AND o.status &lt;&gt; 'RETURNING'
         GROUP BY dj.id,o.id,o.order_number,dj.customer_name,dj.customer_phone,dj.delivery_address,dj.status,o.status,o.payment_status,o.total_price,dj.created_at,dj.delivered_at,dj.note
         ORDER BY dj.updated_at DESC
         LIMIT 100
@@ -120,7 +120,7 @@
                CASE WHEN dj.delivery_worker_id=#{workerId} THEN COALESCE(o.delivery_latitude,u.location_latitude) ELSE NULL END AS locationLatitude,
                CASE WHEN dj.delivery_worker_id=#{workerId} THEN COALESCE(o.delivery_longitude,u.location_longitude) ELSE NULL END AS locationLongitude,
                dj.status AS jobStatus,
-               o.status AS orderStatus, o.payment_status AS paymentStatus, o.total_price AS totalPrice,
+               o.status AS orderStatus, o.payment_status AS paymentStatus, (SELECT pr.status FROM delivery_partial_returns pr WHERE pr.order_id=o.id) AS partialReturnStatus, o.total_price AS totalPrice,
                (SELECT COALESCE(SUM(quantity),0) FROM order_items WHERE order_id=o.id) AS productCount,
                DATE_FORMAT(dj.created_at,'%Y-%m-%d %H:%i:%s') AS createdAt,
                DATE_FORMAT(dj.accepted_at,'%Y-%m-%d %H:%i:%s') AS acceptedAt,

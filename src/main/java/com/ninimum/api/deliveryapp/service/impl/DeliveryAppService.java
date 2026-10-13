@@ -20,6 +20,8 @@ public class DeliveryAppService implements IDeliveryAppService {
 
     private final DeliveryAppMapper mapper;
     private final PasswordEncoder passwordEncoder;
+    private final com.ninimum.api.deliveryapp.service.ReturnPhotoService returnPhotos;
+    private final com.ninimum.api.deliveryapp.service.PartialReturnService partialReturns;
     private final com.ninimum.api.warehouse.WarehouseAppService warehouseApp;
 
     @Value("${file.access.url}")
@@ -136,6 +138,10 @@ public class DeliveryAppService implements IDeliveryAppService {
 
         DeliveryAppJobDto job = mapper.getJobDetail(jobId, worker.getId());
         if (job == null) throw new Exception("Delivery job not found");
+        // Do not expose evidence to an unassigned courier browsing available deliveries.
+        job.setPartialReturn(partialReturns.details(job.getOrderId()));
+        if (job.getPartialReturn()!=null || java.util.Set.of("RETURNING", "RETURNED").contains(job.getOrderStatus()))
+            job.setReturnPhoto(returnPhotos.forOrder(job.getOrderId()));
 
         List<DeliveryAppJobProductDto> products = mapper.getJobProducts(jobId);
         if (products != null) {
@@ -228,6 +234,10 @@ public class DeliveryAppService implements IDeliveryAppService {
         if (current == null) throw new Exception("Delivery job does not belong to this courier");
 
         String next = param.getStatus().trim().toUpperCase();
+        if("PARTIAL_RETURN".equals(next)) { partialReturns.start(worker.getId(),workerId,param);return 1; }
+        if ("FAILED".equals(current) && "FAILED".equals(next)
+                && returnPhotos.matches(param.getJobId(), param.getNote() == null ? "" : param.getNote().trim(), param.getPhotoBase64()))
+            return 1;
         String orderStatus = null;
         if ("ACCEPTED".equals(current) && "ON_THE_WAY".equals(next)) {
             orderStatus = "ON_THE_WAY";
@@ -244,6 +254,9 @@ public class DeliveryAppService implements IDeliveryAppService {
 
         int updated = mapper.updateJobStatus(param.getJobId(), worker.getId(), next, param.getNote());
         if (updated == 0) throw new Exception("Could not update delivery status");
+
+        if ("FAILED".equals(next))
+            returnPhotos.save(param.getJobId(), workerId, param.getNote(), param.getPhotoBase64());
 
         if (orderStatus != null) {
             if (mapper.updateOrderStatusForJob(param.getJobId(), orderStatus) != 1) throw new Exception("Order status changed; refresh the delivery");

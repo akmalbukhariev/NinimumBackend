@@ -216,9 +216,15 @@ public class OrderService implements IOrderService {
 
         int result = orderMapper.cancelUnpaidOrder(param);
 
+        // The expiry worker may have cancelled checkout before the back request.
+        // Acknowledge it without deleting its audit history or changing payment state.
+        if (result == 0 && orderMapper.isAlreadyCancelledUnpaidOrder(param) == 1) {
+            return 1;
+        }
+
         if (result != 1) {
             throw new Exception(
-                    "Unpaid order cannot be deleted. It may already have a Payme transaction, be paid, cancelled, or not belong to this user"
+                    "Unpaid order cannot be cancelled. It may already have a Payme transaction, be paid, or not belong to this user"
             );
         }
 

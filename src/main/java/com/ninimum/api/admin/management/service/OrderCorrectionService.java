@@ -34,6 +34,8 @@ public class OrderCorrectionService {
         if(!expected.equals(current)) throw new IllegalArgumentException("The order changed. Refresh it and try again");
         if(!"PAID".equals(rows.get(0).get("payment_status")) || STAGES.indexOf(target)<0 || STAGES.indexOf(current)<=STAGES.indexOf(target))
             throw new IllegalArgumentException("Only a paid order can be moved to an earlier operational stage");
+        if(Integer.valueOf(1).equals(jdbc.queryForObject("SELECT COUNT(*) FROM delivery_partial_returns WHERE order_id=?",Integer.class,id)))
+            throw new IllegalArgumentException("An order with a partial return cannot be moved back to preparation or delivery");
         var jobs=jdbc.queryForList("SELECT id,status,delivery_worker_id FROM delivery_jobs WHERE order_id=? FOR UPDATE",id);
         var packing=jdbc.queryForList("SELECT status,worker_code FROM warehouse_preparations WHERE order_id=? FOR UPDATE",id);
         if(jobs.stream().anyMatch(j->"CANCELLED".equals(j.get("status"))))

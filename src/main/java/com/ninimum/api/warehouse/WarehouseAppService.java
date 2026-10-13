@@ -17,6 +17,7 @@ public class WarehouseAppService {
     private final JdbcTemplate jdbc;
     private final PasswordEncoder passwords;
     private final WarehouseService warehouse;
+    private final com.ninimum.api.deliveryapp.service.ReturnPhotoService returnPhotos;
     @Value("${warehouse.preparation-enabled:false}") private boolean enabled;
     public boolean isEnabled() { return enabled; }
     @PostConstruct public void verifySchema() {
@@ -97,29 +98,33 @@ public class WarehouseAppService {
         String from="FROM orders o LEFT JOIN warehouse_preparations wp ON wp.order_id=o.id ";
         List<Object> args=new ArrayList<>();
         if (admin) from+="WHERE o.status<>'CANCELLED' AND ("+ELIGIBLE+" OR wp.order_id IS NOT NULL) ";
-        else if ("returns".equals(view)) {from+="WHERE o.status='RETURNING' ";}
+        else if ("returns".equals(view)) {from+="WHERE o.status='RETURNING' OR EXISTS (SELECT 1 FROM delivery_partial_returns pr WHERE pr.order_id=o.id AND pr.status='RETURNING') ";}
         else if ("history".equals(view)) {from+="WHERE o.status<>'CANCELLED' AND wp.status='READY' AND wp.worker_code=? ";args.add(code);}
         else if ("mine".equals(view)) {from+="WHERE "+ELIGIBLE+" AND wp.status IN ('PICKING','BLOCKED') AND wp.worker_code=? ";args.add(code);}
         else from+="WHERE "+ELIGIBLE+" AND (wp.status IS NULL OR wp.status='WAITING') ";
         long total=jdbc.queryForObject("SELECT COUNT(*) "+from,Long.class,args.toArray());args.add(s);args.add((p-1)*s);
-        var rows=jdbc.queryForList("SELECT o.id,o.order_number,o.status AS order_status,o.payment_status,CASE WHEN o.status='CANCELLED' THEN 'CANCELLED' WHEN o.status='RETURNING' THEN 'RETURNING' WHEN o.status='RETURNED' THEN 'RETURNED' ELSE COALESCE(wp.status,'WAITING') END AS preparation_status,wp.worker_code,wp.note,"+
+        var rows=jdbc.queryForList("SELECT o.id,o.order_number,o.status AS order_status,o.payment_status,(SELECT pr.status FROM delivery_partial_returns pr WHERE pr.order_id=o.id) partial_return_status,CASE WHEN o.status='CANCELLED' THEN 'CANCELLED' WHEN EXISTS (SELECT 1 FROM delivery_partial_returns pr WHERE pr.order_id=o.id) THEN CASE WHEN EXISTS (SELECT 1 FROM delivery_partial_returns pr WHERE pr.order_id=o.id AND pr.status='RECEIVED') THEN 'PARTIAL_RETURNED' ELSE 'PARTIAL_RETURNING' END WHEN o.status='RETURNING' THEN 'RETURNING' WHEN o.status='RETURNED' THEN 'RETURNED' ELSE COALESCE(wp.status,'WAITING') END AS preparation_status,wp.worker_code,wp.note,"+
             "DATE_FORMAT(wp.ready_at,'%Y-%m-%dT%H:%i:%sZ') AS ready_at,DATE_FORMAT(o.ordered_at,'%Y-%m-%d %H:%i:%s') AS ordered_at,"+
-            "(SELECT COALESCE(SUM(quantity),0) FROM order_items i WHERE i.order_id=o.id) AS quantity "+from+"ORDER BY o.ordered_at "+(admin || "history".equals(view)?"DESC":"ASC")+",o.id LIMIT ? OFFSET ?",args.toArray());
+            "COALESCE((SELECT SUM(pi.quantity) FROM delivery_partial_return_items pi WHERE pi.order_id=o.id),(SELECT COALESCE(SUM(quantity),0) FROM order_items i WHERE i.order_id=o.id)) AS quantity "+from+"ORDER BY o.ordered_at "+(admin || "history".equals(view)?"DESC":"ASC")+",o.id LIMIT ? OFFSET ?",args.toArray());
         return Map.of("items",rows,"total",total,"page",p,"page_size",s);
     }
     public Map<String,Object> detail(long id) {
-        requireEnabled();var row=new LinkedHashMap<>(one("SELECT o.id,o.order_number,o.payment_status,o.status AS order_status,CASE WHEN o.status='CANCELLED' THEN 'CANCELLED' WHEN o.status='RETURNING' THEN 'RETURNING' WHEN o.status='RETURNED' THEN 'RETURNED' ELSE COALESCE(wp.status,'WAITING') END AS preparation_status,wp.worker_code,wp.note "+
+        requireEnabled();var row=new LinkedHashMap<>(one("SELECT o.id,o.order_number,o.payment_status,o.status AS order_status,(SELECT pr.status FROM delivery_partial_returns pr WHERE pr.order_id=o.id) partial_return_status,CASE WHEN o.status='CANCELLED' THEN 'CANCELLED' WHEN EXISTS (SELECT 1 FROM delivery_partial_returns pr WHERE pr.order_id=o.id) THEN CASE WHEN EXISTS (SELECT 1 FROM delivery_partial_returns pr WHERE pr.order_id=o.id AND pr.status='RECEIVED') THEN 'PARTIAL_RETURNED' ELSE 'PARTIAL_RETURNING' END WHEN o.status='RETURNING' THEN 'RETURNING' WHEN o.status='RETURNED' THEN 'RETURNED' ELSE COALESCE(wp.status,'WAITING') END AS preparation_status,wp.worker_code,wp.note "+
             "FROM orders o LEFT JOIN warehouse_preparations wp ON wp.order_id=o.id WHERE o.id=?",id));
         var items=jdbc.queryForList("SELECT wi.product_id,wi.product_name,wi.barcode,wi.required_quantity,wi.checked_quantity," +
             "(SELECT MAX(NULLIF(oi.product_image_url,'')) FROM order_items oi WHERE oi.order_id=wi.order_id AND oi.product_id=wi.product_id) AS product_image_url " +
             "FROM warehouse_preparation_items wi WHERE wi.order_id=? ORDER BY wi.product_id",id);
         if(items.isEmpty()) items=jdbc.queryForList("SELECT i.product_id,MAX(i.product_name) AS product_name,MAX(NULLIF(i.product_image_url,'')) AS product_image_url,p.barcode,SUM(i.quantity) AS required_quantity,0 AS checked_quantity FROM order_items i LEFT JOIN products p ON p.id=i.product_id WHERE i.order_id=? GROUP BY i.product_id,p.barcode ORDER BY i.product_id",id);
-        if (Set.of("RETURNING","RETURNED").contains(row.get("order_status"))) {
+        if (row.get("partial_return_status")!=null || Set.of("RETURNING","RETURNED").contains(row.get("order_status"))) {
+            row.put("return_photo", returnPhotos.forOrder(id));
+            var reasons=jdbc.queryForList("SELECT note FROM delivery_jobs WHERE order_id=?",id);
+            row.put("return_reason", reasons.isEmpty()?null:reasons.get(0).get("note"));
             var headers=jdbc.queryForList("SELECT worker_code,status,note FROM warehouse_order_returns WHERE order_id=?",id);
             row.put("preparation_status",headers.isEmpty()?"RETURN_WAITING":("RECEIVED".equals(headers.get(0).get("status"))?"RETURNED":"RETURN_CHECKING"));
             row.put("worker_code",headers.isEmpty()?null:headers.get(0).get("worker_code"));
             row.put("note",headers.isEmpty()?null:headers.get(0).get("note"));
             items=jdbc.queryForList("SELECT ri.product_id,ri.product_name,ri.barcode,ri.required_quantity,ri.checked_quantity,(SELECT MAX(NULLIF(i.product_image_url,'')) FROM order_items i WHERE i.order_id=ri.order_id AND i.product_id=ri.product_id) AS product_image_url FROM warehouse_order_return_items ri WHERE ri.order_id=? ORDER BY ri.product_id",id);
+            if(items.isEmpty() && row.get("partial_return_status")!=null) items=jdbc.queryForList("SELECT i.product_id,i.product_name,p.barcode,i.quantity required_quantity,0 checked_quantity,(SELECT MAX(oi.product_image_url) FROM order_items oi WHERE oi.order_id=i.order_id AND oi.product_id=i.product_id) product_image_url FROM delivery_partial_return_items i LEFT JOIN products p ON p.id=i.product_id WHERE i.order_id=? ORDER BY i.product_id",id);
             if(items.isEmpty()) items=jdbc.queryForList("SELECT i.product_id,MAX(i.product_name) AS product_name,MAX(NULLIF(i.product_image_url,'')) AS product_image_url,p.barcode,SUM(i.quantity) AS required_quantity,0 AS checked_quantity FROM order_items i LEFT JOIN products p ON p.id=i.product_id WHERE i.order_id=? GROUP BY i.product_id,p.barcode ORDER BY i.product_id",id);
         }
         row.put("items",items);
@@ -129,7 +134,7 @@ public class WarehouseAppService {
     private void returnOrder(long id,String code) {
         requireEnabled();worker(code);
         var order=one("SELECT status FROM orders WHERE id=? FOR UPDATE",id);
-        if(!Set.of("RETURNING","RETURNED").contains(order.get("status"))) throw new WarehouseException("WAREHOUSE_ORDER_UNAVAILABLE");
+        if(!Set.of("RETURNING","RETURNED").contains(order.get("status")) && !("DELIVERED".equals(order.get("status")) && jdbc.queryForObject("SELECT COUNT(*) FROM delivery_partial_returns WHERE order_id=?",Integer.class,id)==1)) throw new WarehouseException("WAREHOUSE_ORDER_UNAVAILABLE");
     }
     @Transactional(isolation=org.springframework.transaction.annotation.Isolation.READ_COMMITTED)
     public Map<String,Object> returnClaim(long id,String code) {
@@ -139,9 +144,11 @@ public class WarehouseAppService {
             if(!code.equals(headers.get(0).get("worker_code"))) throw new WarehouseException("WAREHOUSE_NOT_OWNER");
             return detail(id);
         }
-        if(!"RETURNING".equals(jdbc.queryForObject("SELECT status FROM orders WHERE id=?",String.class,id))) throw new WarehouseException("WAREHOUSE_INVALID_STATE");
+        boolean partial=jdbc.queryForObject("SELECT COUNT(*) FROM delivery_partial_returns WHERE order_id=? AND status='RETURNING'",Integer.class,id)==1;
+        if(!partial && !"RETURNING".equals(jdbc.queryForObject("SELECT status FROM orders WHERE id=?",String.class,id))) throw new WarehouseException("WAREHOUSE_INVALID_STATE");
         jdbc.update("INSERT INTO warehouse_order_returns(order_id,worker_code,created_at) VALUES (?,?,UTC_TIMESTAMP(6))",id,code);
-        jdbc.update("INSERT INTO warehouse_order_return_items(order_id,product_id,product_name,barcode,required_quantity) SELECT ?,i.product_id,MAX(i.product_name),p.barcode,SUM(i.quantity) FROM order_items i LEFT JOIN products p ON p.id=i.product_id WHERE i.order_id=? GROUP BY i.product_id,p.barcode",id,id);
+        if(partial) jdbc.update("INSERT INTO warehouse_order_return_items(order_id,product_id,product_name,barcode,required_quantity) SELECT i.order_id,i.product_id,i.product_name,p.barcode,i.quantity FROM delivery_partial_return_items i LEFT JOIN products p ON p.id=i.product_id WHERE i.order_id=?",id);
+        else jdbc.update("INSERT INTO warehouse_order_return_items(order_id,product_id,product_name,barcode,required_quantity) SELECT ?,i.product_id,MAX(i.product_name),p.barcode,SUM(i.quantity) FROM order_items i LEFT JOIN products p ON p.id=i.product_id WHERE i.order_id=? GROUP BY i.product_id,p.barcode",id,id);
         if(jdbc.queryForObject("SELECT COUNT(*) FROM warehouse_order_return_items WHERE order_id=?",Integer.class,id)==0) throw new WarehouseException("WAREHOUSE_INVALID_INPUT");
         event(id,code,"RETURN_CLAIM",null,null,"");return detail(id);
     }
@@ -172,7 +179,8 @@ public class WarehouseAppService {
     public Map<String,Object> returnReceive(long id,String code) {
         var header=ownedReturn(id,code);
         if("RECEIVED".equals(header.get("status"))) return detail(id);
-        if(!"CHECKING".equals(header.get("status")) || !"RETURNING".equals(jdbc.queryForObject("SELECT status FROM orders WHERE id=?",String.class,id))) throw new WarehouseException("WAREHOUSE_INVALID_STATE");
+        boolean partial=jdbc.queryForObject("SELECT COUNT(*) FROM delivery_partial_returns WHERE order_id=? AND status='RETURNING'",Integer.class,id)==1;
+        if(!"CHECKING".equals(header.get("status")) || (!partial && !"RETURNING".equals(jdbc.queryForObject("SELECT status FROM orders WHERE id=?",String.class,id)))) throw new WarehouseException("WAREHOUSE_INVALID_STATE");
         var items=jdbc.queryForList("SELECT * FROM warehouse_order_return_items WHERE order_id=? ORDER BY product_id FOR UPDATE",id);
         if(items.isEmpty() || items.stream().anyMatch(i->!i.get("required_quantity").equals(i.get("checked_quantity")))) throw new WarehouseException("WAREHOUSE_INCOMPLETE");
         for(var item:items) {
@@ -189,7 +197,8 @@ public class WarehouseAppService {
             jdbc.update("UPDATE warehouse_order_return_items SET restocked_quantity=? WHERE order_id=? AND product_id=?",credit,id,product);
         }
         jdbc.update("UPDATE warehouse_order_returns SET status='RECEIVED',received_at=UTC_TIMESTAMP(6),note='Returned products received and checked' WHERE order_id=?",id);
-        jdbc.update("UPDATE orders SET status='RETURNED',status_actor=?,status_source='WAREHOUSE_RETURN',status_reason='Returned products received and checked',updated_at=NOW() WHERE id=? AND status='RETURNING'",code,id);
+        if(partial) jdbc.update("UPDATE delivery_partial_returns SET status='RECEIVED',received_at=UTC_TIMESTAMP() WHERE order_id=? AND status='RETURNING'",id);
+        else jdbc.update("UPDATE orders SET status='RETURNED',status_actor=?,status_source='WAREHOUSE_RETURN',status_reason='Returned products received and checked',updated_at=NOW() WHERE id=? AND status='RETURNING'",code,id);
         event(id,code,"RETURN_RECEIVED",null,null,"Returned products received and checked");
         return detail(id);
     }

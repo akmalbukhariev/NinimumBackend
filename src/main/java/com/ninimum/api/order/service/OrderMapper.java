@@ -25,6 +25,7 @@ public interface OrderMapper {
     int cancelDeliveryJobs(@org.apache.ibatis.annotations.Param("orderId") Long orderId);
     int cancelOrder(CancelOrderParam param) throws Exception;
     int cancelUnpaidOrder(CancelOrderParam param) throws Exception;
+    int isAlreadyCancelledUnpaidOrder(CancelOrderParam param);
     int getOrderCount(OrderListParam param) throws Exception;
     PaymentStatusDto getOrderPaymentStatus(OrderDetailParam param) throws Exception;
     OrderProcessDto getOrderProcess(OrderDetailParam param) throws Exception;

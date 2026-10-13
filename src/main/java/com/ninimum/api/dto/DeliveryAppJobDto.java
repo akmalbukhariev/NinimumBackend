@@ -25,5 +25,8 @@ public class DeliveryAppJobDto {
     private String onTheWayAt;
     private String deliveredAt;
     private String note;
+    private String returnPhoto;
+    private java.util.Map<String,Object> partialReturn;
+    private String partialReturnStatus;
     private List<DeliveryAppJobProductDto> products = new ArrayList<>();
 }

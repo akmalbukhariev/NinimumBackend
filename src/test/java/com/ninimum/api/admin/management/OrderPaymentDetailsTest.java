@@ -14,7 +14,7 @@ import static org.mockito.Mockito.*;
 class OrderPaymentDetailsTest {
     @Test void orderDetailsIncludeEveryPaymentAttemptWithoutMutatingPayments() {
         var mapper = mock(AdminManagementMapper.class);
-        var service = new AdminManagementService(mapper, mock(FileService.class), mock(WarehouseAppService.class), mock(WarehouseService.class));
+        var service = new AdminManagementService(mapper, mock(FileService.class), mock(WarehouseAppService.class), mock(WarehouseService.class),mock(com.ninimum.api.deliveryapp.service.ReturnPhotoService.class),mock(com.ninimum.api.deliveryapp.service.PartialReturnService.class));
         var order = new CamelCaseMap(); order.put("id", 52L);
         var failed = new CamelCaseMap(); failed.put("status", "CANCELLED");
         var paid = new CamelCaseMap(); paid.put("provider_transaction_id", "payme-receipt"); paid.put("status", "PAID");
@@ -37,7 +37,7 @@ class OrderPaymentDetailsTest {
     }
     @Test void unpaidOrderHasAnEmptyPaymentList() {
         var mapper = mock(AdminManagementMapper.class);
-        var service = new AdminManagementService(mapper, mock(FileService.class), mock(WarehouseAppService.class), mock(WarehouseService.class));
+        var service = new AdminManagementService(mapper, mock(FileService.class), mock(WarehouseAppService.class), mock(WarehouseService.class),mock(com.ninimum.api.deliveryapp.service.ReturnPhotoService.class),mock(com.ninimum.api.deliveryapp.service.PartialReturnService.class));
         when(mapper.getOrderPayments(52L)).thenReturn(List.of());
         assertEquals(List.of(), service.getOrder(52L).get("payments"));
     }

@@ -2,6 +2,7 @@ package com.ninimum.api.order.service;
 
 import com.ninimum.api.camelcase.CamelCaseMap;
 import com.ninimum.api.deliveryapp.service.DeliveryAppMapper;
+import com.ninimum.api.deliveryapp.service.ReturnPhotoService;
 import com.ninimum.api.admin.management.service.AdminManagementMapper;
 import com.ninimum.api.param.CreateOrderParam;
 import org.junit.jupiter.api.*;
@@ -19,6 +20,7 @@ import static org.junit.jupiter.api.Assertions.*;
 @EnabledIfSystemProperty(named="address.test.jdbc", matches=".*")
 class OrderAddressIntegrationTest {
     JdbcTemplate jdbc;
+    ReturnPhotoService returnPhotos;
     OrderMapper orders;
     DeliveryAppMapper deliveries;
     AdminManagementMapper admin;
@@ -29,7 +31,7 @@ class OrderAddressIntegrationTest {
             throw new IllegalArgumentException("Only isolated loopback address_test is permitted");
         var ds = new DriverManagerDataSource(url,"root","");
         jdbc = new JdbcTemplate(ds);
-        for (String table : new String[]{"warehouse_order_return_items","warehouse_order_returns","warehouse_stock_movements","warehouse_preparation_items","warehouse_preparation_events","warehouse_workers","delivery_app_workers","delivery_job_tracking","products","warehouse_preparations","order_items","delivery_jobs","order_status_history","orders","user_addresses","users"})
+        for (String table : new String[]{"delivery_partial_return_items","delivery_partial_returns","delivery_return_photos","warehouse_order_return_items","warehouse_order_returns","warehouse_stock_movements","warehouse_preparation_items","warehouse_preparation_events","warehouse_workers","delivery_app_workers","delivery_job_tracking","products","warehouse_preparations","order_items","delivery_jobs","order_status_history","orders","user_addresses","users"})
             jdbc.execute("DROP TABLE IF EXISTS " + table);
         jdbc.execute("CREATE TABLE users(id BIGINT PRIMARY KEY,first_name VARCHAR(100),last_name VARCHAR(100),phone_number VARCHAR(50),address TEXT,location_latitude DOUBLE,location_longitude DOUBLE)");
         jdbc.execute(Files.readString(Path.of("src/test/resources/order-fixtures/20261009_user_addresses.sql")));
@@ -45,6 +47,10 @@ class OrderAddressIntegrationTest {
 
         jdbc.execute("CREATE TABLE delivery_jobs(id BIGINT AUTO_INCREMENT PRIMARY KEY,order_id BIGINT UNIQUE,customer_name VARCHAR(255),customer_phone VARCHAR(50),delivery_address TEXT,status VARCHAR(30),delivery_worker_id BIGINT,created_at DATETIME,updated_at DATETIME,accepted_at DATETIME,on_the_way_at DATETIME,delivered_at DATETIME,note TEXT)");
         jdbc.execute("CREATE TABLE order_items(id BIGINT PRIMARY KEY,order_id BIGINT,quantity INT)");
+        new org.springframework.jdbc.datasource.init.ResourceDatabasePopulator(
+                new FileSystemResource("database/migrations/20261012_return_photos.sql")).execute(ds);
+        new org.springframework.jdbc.datasource.init.ResourceDatabasePopulator(new FileSystemResource("database/migrations/20261012_partial_returns.sql")).execute(ds);
+        returnPhotos = new ReturnPhotoService(jdbc);
         jdbc.update("INSERT INTO users VALUES (7,'Customer','Test','+998900000000','Profile address',39.0500,66.8300)");
         var config = new org.apache.ibatis.session.Configuration();
         config.getTypeAliasRegistry().registerAlias("camelMap", CamelCaseMap.class);
@@ -57,6 +63,56 @@ class OrderAddressIntegrationTest {
         orders = session.getMapper(OrderMapper.class);
         deliveries = session.getMapper(DeliveryAppMapper.class);
         admin = session.getMapper(AdminManagementMapper.class);
+    }
+    @Test void partialReturnRestocksOnlySelectedUnitsAndKeepsDeliveryAndPaymentSeparate() throws Exception {
+        jdbc.execute("ALTER TABLE order_items ADD product_id BIGINT, ADD product_name VARCHAR(255), ADD product_image_url VARCHAR(255), ADD total_price INT");
+        jdbc.execute("CREATE TABLE products(id BIGINT PRIMARY KEY,name VARCHAR(255),barcode VARCHAR(120),stock_quantity INT,updated_at DATETIME)");
+        jdbc.execute("CREATE TABLE warehouse_workers(worker_code VARCHAR(50),full_name VARCHAR(100),status VARCHAR(20))");
+        jdbc.execute("CREATE TABLE warehouse_preparations(order_id BIGINT PRIMARY KEY,status VARCHAR(30),worker_code VARCHAR(50),note TEXT)");
+        jdbc.execute("CREATE TABLE warehouse_preparation_items(order_id BIGINT,product_id BIGINT,product_name VARCHAR(255),barcode VARCHAR(120),required_quantity INT,checked_quantity INT)");
+        jdbc.execute("CREATE TABLE warehouse_preparation_events(id BIGINT AUTO_INCREMENT PRIMARY KEY,order_id BIGINT,actor VARCHAR(100),kind VARCHAR(30),product_id BIGINT,quantity INT,note TEXT,created_at DATETIME)");
+        jdbc.execute("CREATE TABLE warehouse_stock_movements(id BIGINT AUTO_INCREMENT PRIMARY KEY,product_id BIGINT,product_name VARCHAR(255),kind VARCHAR(40),quantity_change BIGINT,stock_after BIGINT,reference VARCHAR(100),actor VARCHAR(100),note TEXT,event_key VARCHAR(150) UNIQUE,created_at DATETIME)");
+        jdbc.execute("CREATE TABLE warehouse_order_returns(order_id BIGINT PRIMARY KEY,worker_code VARCHAR(50),status VARCHAR(20) DEFAULT 'CHECKING',note TEXT,created_at DATETIME,received_at DATETIME)");
+        jdbc.execute("CREATE TABLE warehouse_order_return_items(order_id BIGINT,product_id BIGINT,product_name VARCHAR(255),barcode VARCHAR(120),required_quantity INT,checked_quantity INT DEFAULT 0,restocked_quantity INT DEFAULT 0,PRIMARY KEY(order_id,product_id))");
+        jdbc.execute("CREATE TABLE delivery_job_tracking(delivery_job_id BIGINT,delivery_worker_id BIGINT,status VARCHAR(30),message TEXT,created_at DATETIME)");
+        jdbc.update("INSERT INTO warehouse_workers VALUES('WH001','Warehouse','ACTIVE')");
+        jdbc.update("INSERT INTO products VALUES(12,'Milk','123456',0,NOW())");
+        var order=new CreateOrderParam();order.setUserId(7L);order.setDeliveryAddress("Shahrisabz");order.setSubtotalPrice(7500);order.setTotalPrice(8000);
+        orders.createOrderAddress(order);orders.createOrder(order);long id=order.getOrderId();
+        jdbc.update("INSERT INTO order_items VALUES(1,?,5,12,'Milk',NULL,7500)",id);
+        jdbc.update("UPDATE orders SET status='ON_THE_WAY',payment_status='PAID',delivery_price=500 WHERE id=?",id);
+        deliveries.syncPaidOrders();long job=jdbc.queryForObject("SELECT id FROM delivery_jobs WHERE order_id=?",Long.class,id);
+        jdbc.update("UPDATE delivery_jobs SET status='ON_THE_WAY',delivery_worker_id=9 WHERE id=?",job);
+        var partial=new com.ninimum.api.deliveryapp.service.PartialReturnService(jdbc,returnPhotos);
+        var request=new com.ninimum.api.param.DeliveryAppStatusParam();request.setJobId(job);request.setNote("Customer refused two units");
+        var photo=new java.io.ByteArrayOutputStream();javax.imageio.ImageIO.write(new java.awt.image.BufferedImage(2,2,java.awt.image.BufferedImage.TYPE_INT_RGB),"png",photo);
+        request.setPhotoBase64(java.util.Base64.getEncoder().encodeToString(photo.toByteArray()));
+        var quantity=new com.ninimum.api.param.ReturnQuantityParam();quantity.setProductId(12L);quantity.setQuantity(5);request.setReturnItems(java.util.List.of(quantity));
+        var tx=new org.springframework.transaction.support.TransactionTemplate(new org.springframework.jdbc.datasource.DataSourceTransactionManager(jdbc.getDataSource()));
+        assertThrows(RuntimeException.class,()->tx.executeWithoutResult(t->{try{partial.start(9L,"DEL001",request);}catch(Exception ex){throw new RuntimeException(ex);}}));
+        assertEquals("ON_THE_WAY",admin.getOrder(id).get("status"));
+        quantity.setQuantity(2);
+        tx.executeWithoutResult(t->{try{partial.start(9L,"DEL001",request);}catch(Exception ex){throw new RuntimeException(ex);}});
+        assertEquals("DELIVERED",admin.getOrder(id).get("status"));
+        assertEquals("PAID",admin.getOrder(id).get("payment_status"));
+        assertEquals(new java.math.BigDecimal("3000.00"),partial.details(id).get("refund_amount"));
+        assertEquals(0,jdbc.queryForObject("SELECT stock_quantity FROM products WHERE id=12",Integer.class));
+        tx.executeWithoutResult(t->{try{partial.start(9L,"DEL001",request);}catch(Exception ex){throw new RuntimeException(ex);}});
+        assertEquals(1,jdbc.queryForObject("SELECT COUNT(*) FROM delivery_partial_returns",Integer.class));
+        var stock=new com.ninimum.api.warehouse.WarehouseService(jdbc);org.springframework.test.util.ReflectionTestUtils.setField(stock,"enabled",true);
+        var warehouse=new com.ninimum.api.warehouse.WarehouseAppService(jdbc,org.mockito.Mockito.mock(org.springframework.security.crypto.password.PasswordEncoder.class),stock,returnPhotos);
+        org.springframework.test.util.ReflectionTestUtils.setField(warehouse,"enabled",true);
+        assertEquals(Boolean.TRUE,tx.execute(t->stock.needsPhysicalReturn(id)));
+        tx.executeWithoutResult(t->warehouse.returnClaim(id,"WH001"));
+        assertEquals(2,jdbc.queryForObject("SELECT required_quantity FROM warehouse_order_return_items WHERE order_id=?",Integer.class,id));
+        tx.executeWithoutResult(t->warehouse.returnCheck(id,"WH001",java.util.Map.of("product_id",12,"quantity",2,"barcode","123456")));
+        tx.executeWithoutResult(t->warehouse.returnReceive(id,"WH001"));
+        tx.executeWithoutResult(t->warehouse.returnReceive(id,"WH001"));
+        assertEquals(2,jdbc.queryForObject("SELECT stock_quantity FROM products WHERE id=12",Integer.class));
+        assertEquals("DELIVERED",admin.getOrder(id).get("status"));
+        assertEquals("RECEIVED",partial.details(id).get("status"));
+        assertEquals("PENDING",partial.details(id).get("refund_status"));
+        assertEquals(1,jdbc.queryForObject("SELECT COUNT(*) FROM warehouse_stock_movements",Integer.class));
     }
     @Test void warehouseReceiptRestoresStockOnceAndKeepsRefundSeparate() throws Exception {
         jdbc.execute("ALTER TABLE order_items ADD product_id BIGINT, ADD product_name VARCHAR(255), ADD product_image_url VARCHAR(255)");
@@ -75,7 +131,7 @@ class OrderAddressIntegrationTest {
         jdbc.update("UPDATE orders SET status='RETURNING',payment_status='PAID' WHERE id=?",id);
         var stock=new com.ninimum.api.warehouse.WarehouseService(jdbc);
         org.springframework.test.util.ReflectionTestUtils.setField(stock,"enabled",true);
-        var service=new com.ninimum.api.warehouse.WarehouseAppService(jdbc,org.mockito.Mockito.mock(org.springframework.security.crypto.password.PasswordEncoder.class),stock);
+        var service=new com.ninimum.api.warehouse.WarehouseAppService(jdbc,org.mockito.Mockito.mock(org.springframework.security.crypto.password.PasswordEncoder.class),stock,returnPhotos);
         org.springframework.test.util.ReflectionTestUtils.setField(service,"enabled",true);
         var tx=new org.springframework.transaction.support.TransactionTemplate(new org.springframework.jdbc.datasource.DataSourceTransactionManager(jdbc.getDataSource()));
         assertEquals(Boolean.TRUE,tx.execute(t->stock.needsPhysicalReturn(id)));
@@ -124,13 +180,16 @@ class OrderAddressIntegrationTest {
         deliveries.syncPaidOrders();long job=jdbc.queryForObject("SELECT id FROM delivery_jobs WHERE order_id=?",Long.class,id);
         jdbc.update("UPDATE delivery_jobs SET status='ON_THE_WAY',delivery_worker_id=9 WHERE id=?",job);
         var courier=new com.ninimum.api.deliveryapp.service.impl.DeliveryAppService(deliveries,
-            org.mockito.Mockito.mock(org.springframework.security.crypto.password.PasswordEncoder.class),
+            org.mockito.Mockito.mock(org.springframework.security.crypto.password.PasswordEncoder.class),returnPhotos,new com.ninimum.api.deliveryapp.service.PartialReturnService(jdbc,returnPhotos),
             org.mockito.Mockito.mock(com.ninimum.api.warehouse.WarehouseAppService.class));
         var tx=new org.springframework.transaction.support.TransactionTemplate(new org.springframework.jdbc.datasource.DataSourceTransactionManager(jdbc.getDataSource()));
         var request=new com.ninimum.api.param.DeliveryAppStatusParam();request.setJobId(job);request.setStatus("FAILED");request.setNote("   ");
         assertThrows(Exception.class,()->courier.updateStatus("DEL001",request));
         assertEquals("ON_THE_WAY",admin.getOrder(id).get("status"));
         request.setNote("Customer unavailable");
+        var photo = new java.io.ByteArrayOutputStream();
+        javax.imageio.ImageIO.write(new java.awt.image.BufferedImage(2,2,java.awt.image.BufferedImage.TYPE_INT_RGB),"png",photo);
+        request.setPhotoBase64(java.util.Base64.getEncoder().encodeToString(photo.toByteArray()));
         // Force a later write to fail, proving job, order and trigger history roll back together.
         jdbc.execute("DROP TABLE IF EXISTS delivery_job_tracking");
         int before=admin.getOrderStatusHistory(id).size();
@@ -138,9 +197,12 @@ class OrderAddressIntegrationTest {
         assertEquals("ON_THE_WAY",admin.getOrder(id).get("status"));
         assertEquals("ON_THE_WAY",jdbc.queryForObject("SELECT status FROM delivery_jobs WHERE id=?",String.class,job));
         assertEquals(before,admin.getOrderStatusHistory(id).size());
+        assertEquals(0,jdbc.queryForObject("SELECT COUNT(*) FROM delivery_return_photos",Integer.class));
         jdbc.execute("CREATE TABLE delivery_job_tracking(id BIGINT AUTO_INCREMENT PRIMARY KEY,delivery_job_id BIGINT,delivery_worker_id BIGINT,status VARCHAR(30),message TEXT,created_at DATETIME)");
         tx.executeWithoutResult(t->{try{courier.updateStatus("DEL001",request);}catch(Exception e){throw new RuntimeException(e);}});
         assertEquals("RETURNING",admin.getOrder(id).get("status"));
+        assertNotNull(returnPhotos.forOrder(id));
+        assertTrue(returnPhotos.matches(job,"Customer unavailable",request.getPhotoBase64()));
         assertEquals("PAID",admin.getOrder(id).get("payment_status"));
         var history=admin.getOrderStatusHistory(id);assertEquals(before+1,history.size());
         assertEquals("COURIER:9",history.get(0).get("actor"));assertEquals("Customer unavailable",history.get(0).get("reason"));
@@ -233,7 +295,7 @@ class OrderAddressIntegrationTest {
         jdbc.update("INSERT INTO warehouse_preparations VALUES (?,'PICKING','WH001',NULL,NULL)",id);
         var warehouse = new com.ninimum.api.warehouse.WarehouseAppService(jdbc,
                 org.mockito.Mockito.mock(org.springframework.security.crypto.password.PasswordEncoder.class),
-                org.mockito.Mockito.mock(com.ninimum.api.warehouse.WarehouseService.class));
+                org.mockito.Mockito.mock(com.ninimum.api.warehouse.WarehouseService.class),returnPhotos);
         org.springframework.test.util.ReflectionTestUtils.setField(warehouse,"enabled",true);
         assertEquals(1L,warehouse.orders("WH001","mine",1,20,false).get("total"));
         assertEquals(1,admin.cancelOrder(id,"Customer cancelled"));
@@ -280,10 +342,10 @@ class OrderAddressIntegrationTest {
         jdbc.update("UPDATE orders SET status='CONFIRMED',payment_status='PAID' WHERE id=?",id);
         var warehouse=new com.ninimum.api.warehouse.WarehouseAppService(jdbc,
                 org.mockito.Mockito.mock(org.springframework.security.crypto.password.PasswordEncoder.class),
-                org.mockito.Mockito.mock(com.ninimum.api.warehouse.WarehouseService.class));
+                org.mockito.Mockito.mock(com.ninimum.api.warehouse.WarehouseService.class),returnPhotos);
         org.springframework.test.util.ReflectionTestUtils.setField(warehouse,"enabled",true);
         var courier=new com.ninimum.api.deliveryapp.service.impl.DeliveryAppService(deliveries,
-                org.mockito.Mockito.mock(org.springframework.security.crypto.password.PasswordEncoder.class),warehouse);
+                org.mockito.Mockito.mock(org.springframework.security.crypto.password.PasswordEncoder.class),returnPhotos,new com.ninimum.api.deliveryapp.service.PartialReturnService(jdbc,returnPhotos),warehouse);
         var tx=new org.springframework.transaction.support.TransactionTemplate(
                 new org.springframework.jdbc.datasource.DataSourceTransactionManager(jdbc.getDataSource()));
         deliveries.syncPaidOrders();long job=jdbc.queryForObject("SELECT id FROM delivery_jobs WHERE order_id=?",Long.class,id);
