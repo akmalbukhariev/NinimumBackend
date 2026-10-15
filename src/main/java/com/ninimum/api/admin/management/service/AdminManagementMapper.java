@@ -40,6 +40,7 @@ public interface AdminManagementMapper {
     int deleteProduct(@Param("productId") long productId);
 
     List<CamelCaseMap> getCategories();
+    List<CamelCaseMap> lockCategories();
     int insertCategory(Map<String, Object> data);
     int updateCategory(Map<String, Object> data);
 

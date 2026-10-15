@@ -128,8 +128,13 @@ public class WarehouseService {
 
     @Transactional public long createReceipt(Map<String,Object> body) {
         requireEnabled();
-        String supplier = text(body.get("supplier_name"), 160, true);
+        Long supplierId = body.get("supplier_id")==null ? null : positive(body.get("supplier_id"));
+        Map<String,Object> registeredSupplier = supplierId==null ? null : one("SELECT name,payment_term_days FROM suppliers WHERE id=? AND is_active=1 FOR UPDATE",supplierId);
+        String supplier = registeredSupplier==null ? text(body.get("supplier_name"),160,true) : String.valueOf(registeredSupplier.get("name"));
+        BigDecimal invoiceAmount = supplierId==null ? null : SupplierService.invoiceAmount(body.get("invoice_amount"));
+        java.time.LocalDate invoiceDate = supplierId==null ? null : SupplierService.invoiceDate(body.get("invoice_date"));
         String invoice = text(body.get("invoice_number"), 80, false);
+        if(supplierId!=null && invoice.isEmpty()) throw new WarehouseException("WAREHOUSE_INVALID_INPUT");
         String note = text(body.get("note"), 500, false);
         Object input = body.get("items");
         if (!(input instanceof List) || ((List<?>)input).isEmpty() || ((List<?>)input).size() > 100)
@@ -153,6 +158,8 @@ public class WarehouseService {
             jdbc.update("INSERT INTO warehouse_receipt_items(receipt_id,product_id,product_name,quantity,location_id) VALUES (?,?,?,?,?)",
                     id,line.get("product_id"),product.get("name"),line.get("quantity"),line.get("location_id"));
         }
+        if(supplierId!=null) jdbc.update("INSERT INTO supplier_invoices(receipt_id,supplier_id,invoice_number,invoice_amount,invoice_date,due_date,created_by,created_at) VALUES(?,?,?,?,?,?,?,UTC_TIMESTAMP())",
+                id,supplierId,invoice,invoiceAmount,invoiceDate,invoiceDate.plusDays(((Number)registeredSupplier.get("payment_term_days")).longValue()),actor());
         return id;
     }
 

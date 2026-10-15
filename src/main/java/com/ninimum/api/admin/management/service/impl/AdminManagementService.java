@@ -259,14 +259,46 @@ public class AdminManagementService implements IAdminManagementService {
     }
 
     @Override
+    @Transactional
     public int createCategory(Map<String, Object> body) {
-        return mapper.insertCategory(body);
+        var data = new LinkedHashMap<>(body);
+        validateCategory(null, data);
+        return mapper.insertCategory(data);
     }
 
     @Override
+    @Transactional
     public int updateCategory(long id, Map<String, Object> body) {
-        body.put("id", id);
-        return mapper.updateCategory(body);
+        var data = new LinkedHashMap<>(body);
+        data.put("id", id);
+        validateCategory(id, data);
+        return mapper.updateCategory(data);
+    }
+
+    private void validateCategory(Long id, Map<String, Object> data) {
+        if (id == null || data.containsKey("name")) {
+            String name = clean(data.get("name") == null ? null : data.get("name").toString());
+            if (name == null) throw new IllegalArgumentException("Category name is required");
+            data.put("name", name);
+        }
+        var parents = new java.util.HashMap<Long, Long>();
+        for (var row : mapper.lockCategories())
+            parents.put(((Number) row.get("id")).longValue(),
+                    row.get("parent_id") == null ? null : ((Number) row.get("parent_id")).longValue());
+        if (id != null && !parents.containsKey(id))
+            throw new IllegalArgumentException("Category does not exist");
+        if (!data.containsKey("parent_id") || data.get("parent_id") == null) return;
+        Long parent;
+        try { parent = Long.valueOf(data.get("parent_id").toString()); }
+        catch (NumberFormatException ex) { throw new IllegalArgumentException("Invalid parent category"); }
+        var visited = new java.util.HashSet<Long>();
+        for (Long current = parent; current != null; current = parents.get(current)) {
+            if (current.equals(id) || !visited.add(current))
+                throw new IllegalArgumentException("Category hierarchy cannot contain a cycle");
+            if (!parents.containsKey(current))
+                throw new IllegalArgumentException("Parent category does not exist");
+        }
+        data.put("parent_id", parent);
     }
 
     @Override

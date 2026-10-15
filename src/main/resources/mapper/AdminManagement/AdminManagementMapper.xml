@@ -5,7 +5,17 @@
   <sql id="orderWhere">
     <where>
       <if test="search != null">
-        AND (o.order_number LIKE CONCAT('%',#{search},'%') OR u.phone_number LIKE CONCAT('%',#{search},'%') OR CONCAT_WS(' ',u.first_name,u.last_name) LIKE CONCAT('%',#{search},'%'))
+        <choose>
+          <when test="search.matches('#?[0-9]{1,6}')">
+            AND o.id = CAST(REPLACE(#{search},'#','') AS UNSIGNED)
+          </when>
+          <when test="search.matches('#[0-9]+')">
+            AND CAST(o.id AS CHAR) = TRIM(LEADING '0' FROM REPLACE(#{search},'#',''))
+          </when>
+          <otherwise>
+            AND (o.order_number LIKE CONCAT('%',#{search},'%') OR u.phone_number LIKE CONCAT('%',#{search},'%') OR CONCAT_WS(' ',u.first_name,u.last_name) LIKE CONCAT('%',#{search},'%'))
+          </otherwise>
+        </choose>
       </if>
       <if test="status != null">AND o.status = #{status}</if>
     </where>
@@ -144,13 +154,14 @@
   </update>
 
   <select id="getCategories" resultType="camelMap">SELECT * FROM categories ORDER BY sort_order,name,id</select>
+  <select id="lockCategories" resultType="camelMap">SELECT id,parent_id FROM categories ORDER BY id FOR UPDATE</select>
   <insert id="insertCategory" parameterType="map">
     INSERT INTO categories(parent_id,name,image_url,sort_order,is_active,created_at,updated_at)
     VALUES(#{parent_id},#{name},#{image_url},COALESCE(#{sort_order},0),COALESCE(#{is_active},1),NOW(),NOW())
   </insert>
   <update id="updateCategory" parameterType="map">
     UPDATE categories <set>
-      <if test="parent_id != null">parent_id=#{parent_id},</if><if test="name != null">name=#{name},</if>
+      <if test="_parameter.containsKey('parent_id')">parent_id=#{parent_id,jdbcType=BIGINT},</if><if test="name != null">name=#{name},</if>
       <if test="image_url != null">image_url=#{image_url},</if><if test="sort_order != null">sort_order=#{sort_order},</if>
       <if test="is_active != null">is_active=#{is_active},</if>updated_at=NOW()
     </set> WHERE id=#{id}
