@@ -9,9 +9,11 @@ import java.util.Map;
 
 @Mapper
 public interface AdminManagementMapper {
-    List<CamelCaseMap> getOrders(@Param("search") String search, @Param("status") String status, @Param("offset") int offset, @Param("pageSize") int pageSize);
-    int countOrders(@Param("search") String search, @Param("status") String status);
+    List<CamelCaseMap> getOrders(@Param("search") String search, @Param("status") String status, @Param("paymentStatus") String paymentStatus, @Param("fromUtc") String fromUtc, @Param("toUtc") String toUtc, @Param("offset") int offset, @Param("pageSize") int pageSize);
+    int countOrders(@Param("search") String search, @Param("status") String status, @Param("paymentStatus") String paymentStatus, @Param("fromUtc") String fromUtc, @Param("toUtc") String toUtc);
     List<CamelCaseMap> getOrderStatusHistory(@Param("id") long id);
+    List<CamelCaseMap> getOrderStepHistory(@Param("id") long id);
+    int addDeliveryTracking(@Param("id") long id, @Param("status") String status, @Param("message") String message);
     CamelCaseMap getOrder(@Param("id") long id);
     CamelCaseMap lockOrderState(@Param("id") long id);
     List<CamelCaseMap> getOrderPayments(@Param("id") long id);
@@ -25,6 +27,9 @@ public interface AdminManagementMapper {
     CamelCaseMap getProduct(@Param("id") long id);
     List<CamelCaseMap> getProductImages(@Param("id") long id);
     int updateProduct(Map<String, Object> data);
+    CamelCaseMap lockProductPrices(@Param("id") long id);
+    int insertPriceHistory(Map<String,Object> data);
+    java.util.List<CamelCaseMap> getPriceHistory(@Param("id") long id);
     int getMaxProductImageSortOrder(@Param("productId") long productId);
     int insertProductImage(@Param("productId") long productId, @Param("imageUrl") String imageUrl, @Param("sortOrder") int sortOrder);
     CamelCaseMap getProductImage(@Param("productId") long productId, @Param("imageId") long imageId);
@@ -69,8 +74,8 @@ public interface AdminManagementMapper {
     List<CamelCaseMap> getReviews(@Param("search") String search, @Param("active") Boolean active, @Param("offset") int offset, @Param("pageSize") int pageSize);
     int countReviews(@Param("search") String search, @Param("active") Boolean active);
     int updateReviewActive(@Param("id") long id, @Param("active") boolean active);
-    List<CamelCaseMap> getQuestions(@Param("search") String search, @Param("status") String status, @Param("offset") int offset, @Param("pageSize") int pageSize);
-    int countQuestions(@Param("search") String search, @Param("status") String status);
+    List<CamelCaseMap> getQuestions(@Param("search") String search, @Param("status") String status, @Param("kind") String kind, @Param("offset") int offset, @Param("pageSize") int pageSize);
+    int countQuestions(@Param("search") String search, @Param("status") String status, @Param("kind") String kind);
     int answerQuestion(@Param("id") long id, @Param("answer") String answer);
     int updateQuestionActive(@Param("id") long id, @Param("active") boolean active);
 

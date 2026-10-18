@@ -121,6 +121,10 @@ public class PaymeService implements IPaymeService {
             throw new Exception("Order not found");
         }
 
+        if (param.getUser_id()==null || order.get("user_id")==null ||
+                param.getUser_id().longValue()!=Long.parseLong(order.get("user_id").toString())) {
+            throw new IllegalStateException("Order does not belong to the authenticated customer");
+        }
         String paymentStatus = String.valueOf(order.get("payment_status"));
         String orderStatus = String.valueOf(order.get("status"));
 
@@ -486,6 +490,10 @@ public class PaymeService implements IPaymeService {
             }
 
             for (CamelCaseMap stockItem : stockItems) {
+                if(warehouse.isInventoryEnabled()&&!warehouse.canSell(((Number)stockItem.get("product_id")).longValue(),((Number)stockItem.get("quantity")).longValue())){
+                    TransactionAspectSupport.currentTransactionStatus().setRollbackOnly();
+                    return PaymeResponse.error(-31008,"Product is out of stock or quantity is insufficient","account.order_id",request.getId());
+                }
                 int stockUpdated = paymeMapper.decreaseProductStock(stockItem);
                 if (stockUpdated != 1) {
                     TransactionAspectSupport.currentTransactionStatus().setRollbackOnly();

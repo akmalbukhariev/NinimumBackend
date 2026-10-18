@@ -28,14 +28,17 @@ public class WarehouseController extends BaseController {
         return ok(service.stock(search,page,size));
     }
     @GetMapping("/movements") public Object movements(@RequestParam(required=false,name="product_id") Long product,
+            @RequestParam(required=false,name="date_from") String dateFrom,
+            @RequestParam(required=false,name="date_to") String dateTo,
             @RequestParam(defaultValue="1") int page,@RequestParam(defaultValue="20",name="page_size") int size) {
-        return ok(service.movements(product,page,size));
+        return ok(service.movements(product,page,size,dateFrom,dateTo));
     }
     @GetMapping("/receipts") public Object receipts(@RequestParam(defaultValue="1") int page,
             @RequestParam(defaultValue="20",name="page_size") int size) { return ok(service.receipts(page,size)); }
     @GetMapping("/receipts/{id}") public Object receipt(@PathVariable long id) { return ok(service.receipt(id)); }
     @PostMapping("/receipts") public Object createReceipt(@RequestBody Map<String,Object> body) { return ok(service.createReceipt(body)); }
-    @PostMapping("/receipts/{id}/post") public Object post(@PathVariable long id) { return ok(service.postReceipt(id)); }
+    @PutMapping("/receipts/{id}/items/{product}/metadata") public Object updateReceiptMetadata(@PathVariable long id,@PathVariable long product,@RequestBody Map<String,Object> body) { service.updateReceiptMetadata(id,product,body);return ok(null); }
+    @PostMapping("/receipts/{id}/post") public Object post(@PathVariable long id,@RequestBody Map<String,Object> body) { return ok(service.postReceipt(id,body)); }
     @PostMapping("/receipts/{id}/reverse") public Object reverse(@PathVariable long id,@RequestBody Map<String,Object> body) {
         return ok(service.reverseReceipt(id,body.get("reason")==null ? null : String.valueOf(body.get("reason"))));
     }

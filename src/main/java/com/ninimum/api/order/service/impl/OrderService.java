@@ -24,6 +24,7 @@ import com.ninimum.api.order.service.StockUnavailableException;
 public class OrderService implements IOrderService {
 
     private final OrderMapper orderMapper;
+    @org.springframework.beans.factory.annotation.Autowired private com.ninimum.api.warehouse.WarehouseService warehouse;
 
     @Value("${file.access.url}")
     private String fileAccessUrl;
@@ -51,82 +52,11 @@ public class OrderService implements IOrderService {
     @Transactional(rollbackFor = Exception.class)
     public int createOrder(CreateOrderParam param) throws Exception {
 
-        if (param.getUserId() == null) {
-            throw new Exception("User ID is required");
-        }
-
-        if (param.getProducts() == null || param.getProducts().isEmpty()) {
-            throw new Exception("Order must contain at least one product");
-        }
-
-        boolean useTariffPrice = false;
-
-        if (param.getTariffSubscriptionId() != null && param.getTariffSubscriptionId() > 0) {
-            useTariffPrice = orderMapper.isActiveTariffSubscription(param) > 0;
-
-            if (!useTariffPrice) {
-                throw new Exception("Tariff subscription is not active for this user");
-            }
-        } else {
-            Long activeTariffSubscriptionId = orderMapper.getActiveTariffSubscriptionId(param.getUserId());
-
-            if (activeTariffSubscriptionId != null) {
-                param.setTariffSubscriptionId(activeTariffSubscriptionId);
-                useTariffPrice = true;
-            }
-        }
-
-        Map<Long, Long> requestedQuantities = new HashMap<>();
-        long regularSubtotal = 0;
-        long calculatedTotal = 0;
-
-        for (CreateOrderProductParam product : param.getProducts()) {
-            if (product.getProductId() == null) {
-                throw new Exception("Product ID is required");
-            }
-
-            if (product.getQuantity() == null || product.getQuantity() <= 0) {
-                throw new Exception("Quantity must be greater than zero. product_id=" + product.getProductId());
-            }
-
-            ProductCheckoutPriceDto productPrice = orderMapper.getProductCheckoutPrice(product.getProductId());
-
-            if (productPrice == null) {
-                throw new StockUnavailableException(product.getProductId(), 0);
-            }
-            if (productPrice.getPrice() == null || productPrice.getPrice() <= 0) {
-                throw new Exception("Product not found or price is invalid. product_id=" + product.getProductId());
-            }
-
-            long requested = requestedQuantities.merge(product.getProductId(),
-                    product.getQuantity().longValue(), Long::sum);
-            int available = productPrice.getStockQuantity() == null ? 0 : productPrice.getStockQuantity();
-            if (available < requested) {
-                throw new StockUnavailableException(product.getProductId(), available);
-            }
-
-            int regularUnitPrice = productPrice.getPrice();
-            int unitPrice = regularUnitPrice;
-
-            if (useTariffPrice && productPrice.getSubscriptionPrice() != null && productPrice.getSubscriptionPrice() > 0) {
-                unitPrice = productPrice.getSubscriptionPrice();
-            }
-
-            product.setPrice(unitPrice);
-            regularSubtotal += (long) regularUnitPrice * product.getQuantity();
-            calculatedTotal += (long) unitPrice * product.getQuantity();
-        }
-
-        if (calculatedTotal <= 0 || calculatedTotal > Integer.MAX_VALUE || regularSubtotal > Integer.MAX_VALUE) {
-            throw new Exception("Calculated order total is invalid");
-        }
-
-        long discount = Math.max(0, regularSubtotal - calculatedTotal);
-
-        // Never trust the mobile total/price. The server recalculates everything from products + active tariff.
-        param.setSubtotalPrice((int) regularSubtotal);
-        param.setDiscountPrice((int) discount);
-        param.setTotalPrice((int) calculatedTotal);
+        var quoted=quote(param);
+        var benefit=(Map<String,Object>)quoted.get("benefits");
+        boolean rules=benefit!=null&&(Boolean.TRUE.equals(benefit.get("use_product_rules"))||"1".equals(String.valueOf(benefit.get("use_product_rules"))));
+        if(rules&&param.getQuotedTotal()==null)throw new PriceChangedException();
+        if(param.getQuotedTotal()!=null&&!param.getQuotedTotal().equals(param.getTotalPrice()))throw new PriceChangedException();
 
         prepareDeliveryAddress(param);
         if (orderMapper.createOrderAddress(param) != 1 || param.getAddressId() == null) {
@@ -154,6 +84,98 @@ public class OrderService implements IOrderService {
         }
 
         return resultNum;
+    }
+
+    @Override
+    @Transactional(readOnly=true)
+    public Map<String,Object> quote(CreateOrderParam param) throws Exception {
+        if (param.getUserId() == null) {
+            throw new Exception("User ID is required");
+        }
+
+        if (param.getProducts() == null || param.getProducts().isEmpty()) {
+            throw new Exception("Order must contain at least one product");
+        }
+
+        boolean useTariffPrice = false;
+
+        if (param.getTariffSubscriptionId() != null && param.getTariffSubscriptionId() > 0) {
+            useTariffPrice = orderMapper.isActiveTariffSubscription(param) > 0;
+
+            if (!useTariffPrice) {
+                throw new Exception("Tariff subscription is not active for this user");
+            }
+        } else {
+            Long activeTariffSubscriptionId = orderMapper.getActiveTariffSubscriptionId(param.getUserId());
+
+            if (activeTariffSubscriptionId != null) {
+                param.setTariffSubscriptionId(activeTariffSubscriptionId);
+                useTariffPrice = true;
+            }
+        }
+
+        Map<String,Object> benefits=useTariffPrice?orderMapper.getTariffBenefits(param.getTariffSubscriptionId(),param.getUserId()):null;
+        boolean productRules=benefits!=null&&(Boolean.TRUE.equals(benefits.get("use_product_rules"))||"1".equals(String.valueOf(benefits.get("use_product_rules"))));
+        Map<Long, Long> requestedQuantities = new HashMap<>();
+        long regularSubtotal = 0;
+        long calculatedTotal = 0;
+
+        for (CreateOrderProductParam product : param.getProducts()) {
+            if (product.getProductId() == null) {
+                throw new Exception("Product ID is required");
+            }
+
+            if (product.getQuantity() == null || product.getQuantity() <= 0) {
+                throw new Exception("Quantity must be greater than zero. product_id=" + product.getProductId());
+            }
+
+            ProductCheckoutPriceDto productPrice = orderMapper.getProductCheckoutPrice(product.getProductId());
+
+            if (productPrice == null) {
+                throw new StockUnavailableException(product.getProductId(), 0);
+            }
+            if (productPrice.getPrice() == null || productPrice.getPrice() <= 0) {
+                throw new Exception("Product not found or price is invalid. product_id=" + product.getProductId());
+            }
+
+            long requested = requestedQuantities.merge(product.getProductId(),
+                    product.getQuantity().longValue(), Long::sum);
+            int available = productPrice.getStockQuantity() == null ? 0 : productPrice.getStockQuantity();
+            if(warehouse!=null)available=(int)warehouse.sellableAvailable(product.getProductId(),available);
+            if (available < requested) {
+                throw new StockUnavailableException(product.getProductId(), available);
+            }
+
+            int regularUnitPrice = productPrice.getPrice();
+            int unitPrice = regularUnitPrice;
+
+            if(useTariffPrice&&productRules) {
+                Integer percent=orderMapper.getTariffProductDiscount(param.getTariffSubscriptionId(),product.getProductId());
+                if(percent!=null)unitPrice=com.ninimum.api.tariff.benefits.TariffBenefitService.discountedPrice(regularUnitPrice,percent);
+            } else if (useTariffPrice && productPrice.getSubscriptionPrice() != null && productPrice.getSubscriptionPrice() > 0) {
+                unitPrice = productPrice.getSubscriptionPrice();
+            }
+
+            product.setPrice(unitPrice);
+            regularSubtotal += (long) regularUnitPrice * product.getQuantity();
+            calculatedTotal += (long) unitPrice * product.getQuantity();
+        }
+
+        if (calculatedTotal <= 0 || calculatedTotal > Integer.MAX_VALUE || regularSubtotal > Integer.MAX_VALUE) {
+            throw new Exception("Calculated order total is invalid");
+        }
+
+        long discount = Math.max(0, regularSubtotal - calculatedTotal);
+
+        // Never trust the mobile total/price. The server recalculates everything from products + active tariff.
+        param.setSubtotalPrice((int) regularSubtotal);
+        param.setDiscountPrice((int) discount);
+        param.setTotalPrice((int) calculatedTotal);
+
+        var result=new java.util.LinkedHashMap<String,Object>();
+        result.put("subtotal",param.getSubtotalPrice());result.put("discount",param.getDiscountPrice());result.put("total",param.getTotalPrice());result.put("delivery_price",0);
+        result.put("tariff_subscription_id",param.getTariffSubscriptionId());result.put("benefits",benefits);result.put("products",param.getProducts());
+        return result;
     }
 
     private void prepareDeliveryAddress(CreateOrderParam param) throws Exception {

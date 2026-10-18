@@ -34,6 +34,7 @@ import java.util.List;
 public class SubscriptionController extends BaseController {
 
     private final ISubscriptionService subscriptionService;
+    private final com.ninimum.api.security.CurrentCustomer customer;
 
     @PostConstruct
     public void init() {
@@ -53,6 +54,7 @@ public class SubscriptionController extends BaseController {
         VersionResponseResult result = null;
 
         try {
+            param.setUserId(customer.id());
             List<SubscriptionDto> subscriptions = this.subscriptionService.getSubscriptionList(param);
             result = this.setResult(Result.SUCCESS, subscriptions);
         } catch (Exception ex) {
@@ -76,6 +78,7 @@ public class SubscriptionController extends BaseController {
         VersionResponseResult result = null;
 
         try {
+            param.setUserId(customer.id());
             SubscriptionDto subscription = this.subscriptionService.getActiveSubscription(param);
             result = this.setResult(Result.SUCCESS, subscription);
         } catch (Exception ex) {
@@ -99,6 +102,7 @@ public class SubscriptionController extends BaseController {
         VersionResponseResult result = null;
 
         try {
+            param.setUserId(customer.id());
             int resultNum = this.subscriptionService.createSubscription(param);
 
             if (resultNum != 0) {
@@ -127,6 +131,7 @@ public class SubscriptionController extends BaseController {
         VersionResponseResult result;
 
         try {
+            param.setUserId(customer.id());
             CreateTariffCheckoutUrlResponse checkout = subscriptionService.createCheckoutUrl(param);
             result = this.setResult(Result.SUCCESS, checkout);
         } catch (Exception ex) {
@@ -149,6 +154,7 @@ public class SubscriptionController extends BaseController {
         VersionResponseResult result;
 
         try {
+            param.setUserId(customer.id());
             int resultNum = subscriptionService.cancelSubscription(param);
             result = resultNum != 0
                     ? this.setResult(Result.SUCCESS)
@@ -173,6 +179,7 @@ public class SubscriptionController extends BaseController {
         VersionResponseResult result;
 
         try {
+            param.setUserId(customer.id());
             TariffPaymentStatusDto status = subscriptionService.getPaymentStatus(param);
             result = this.setResult(Result.SUCCESS, status);
         } catch (Exception ex) {

@@ -29,6 +29,7 @@ import javax.annotation.PostConstruct;
 public class PaymeController extends BaseController {
 
     private final IPaymeService paymeService;
+    private final com.ninimum.api.security.CurrentCustomer customer;
 
     @PostConstruct
     public void init() {
@@ -85,6 +86,7 @@ public class PaymeController extends BaseController {
         VersionResponseResult result;
 
         try {
+            param.setUser_id(customer.id());
             CreatePaymeCheckoutUrlResponse checkoutUrl = paymeService.createCheckoutUrl(param);
 
             result = setResult(Result.SUCCESS, checkoutUrl);

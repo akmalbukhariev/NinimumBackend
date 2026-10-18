@@ -28,6 +28,7 @@ import java.util.List;
 public class CartController extends BaseController {
 
     private final ICartService cartService;
+    private final com.ninimum.api.security.CurrentCustomer customer;
 
     @PostConstruct
     public void init() {
@@ -47,6 +48,7 @@ public class CartController extends BaseController {
         VersionResponseResult result = null;
 
         try {
+            param.setUser_id(customer.id());
             List<CartResponse> carts = this.cartService.getCartList(param);
             result = this.setResult(Result.SUCCESS, carts);
         } catch (Exception ex) {
@@ -70,6 +72,7 @@ public class CartController extends BaseController {
         VersionResponseResult result = null;
 
         try {
+            param.setUser_id(customer.id());
             int resultNum = this.cartService.addCart(param);
 
             if (resultNum != 0) {
@@ -99,6 +102,7 @@ public class CartController extends BaseController {
         VersionResponseResult result = null;
 
         try {
+            param.setUserId(customer.id());
             int resultNum = this.cartService.updateCart(param);
 
             if (resultNum != 0) {
@@ -128,6 +132,7 @@ public class CartController extends BaseController {
         VersionResponseResult result = null;
 
         try {
+            param.setUser_id(customer.id());
             int resultNum = this.cartService.deleteCart(param);
 
             if (resultNum != 0) {
@@ -157,6 +162,7 @@ public class CartController extends BaseController {
         VersionResponseResult result = null;
 
         try {
+            param.setUserId(customer.id());
             int resultNum = this.cartService.clearCart(param);
 
             if (resultNum != 0) {
@@ -186,6 +192,7 @@ public class CartController extends BaseController {
         VersionResponseResult result = null;
 
         try {
+            param.setUser_id(customer.id());
             CartCountDto cartCount = this.cartService.getCartCount(param);
             result = this.setResult(Result.SUCCESS, cartCount);
         } catch (Exception ex) {

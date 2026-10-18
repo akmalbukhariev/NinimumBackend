@@ -57,11 +57,13 @@ public class CartService implements ICartService {
 
     @Override
     public int addCart(AddCartParam param) throws Exception {
+        if(param.getQuantity()!=null&&param.getQuantity()<=0)throw new IllegalArgumentException("Positive quantity required");
         return this.cartMapper.addCart(param);
     }
 
     @Override
     public int updateCart(UpdateCartParam param) throws Exception {
+        if(param.getQuantity()==null||param.getQuantity()<=0)throw new IllegalArgumentException("Positive quantity required");
         return this.cartMapper.updateCart(param);
     }
 

@@ -34,13 +34,14 @@ public class SecurityConfig {
     private final org.springframework.beans.factory.ObjectProvider<com.ninimum.api.warehouse.WarehouseAppService> warehouseApp;
     private final UserDetailsServiceImpl userDetailsService;
     private final AdminDetailsServiceImpl adminDetailsService;
+    private final com.ninimum.api.security.login.LoginAttempts loginAttempts;
 
     public UserAuthenticationProvider userProvider() {
         return new UserAuthenticationProvider(userDetailsService, passwordEncoder());
     }
 
     public AdminAuthenticationProvider adminProvider() {
-        return new AdminAuthenticationProvider(adminDetailsService, passwordEncoder());
+        return new AdminAuthenticationProvider(adminDetailsService, passwordEncoder(), loginAttempts);
     }
 
     @Bean
@@ -74,6 +75,7 @@ public class SecurityConfig {
                 // Guest mode: public, read-only storefront APIs used by the MAUI app.
                 .antMatchers(HttpMethod.GET,
                         "/ninimum/api/v1/banner/getBannerList",
+                        "/ninimum/api/v1/appConfig/getAppConfig",
                         "/ninimum/api/v1/product/getProductCategoryList"
                 ).permitAll()
                 .antMatchers(HttpMethod.POST,

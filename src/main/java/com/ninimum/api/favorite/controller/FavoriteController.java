@@ -31,6 +31,7 @@ import java.util.List;
 public class FavoriteController extends BaseController {
 
     private final IFavoriteService favoriteService;
+    private final com.ninimum.api.security.CurrentCustomer customer;
 
     @PostConstruct
     public void init() {
@@ -50,6 +51,7 @@ public class FavoriteController extends BaseController {
         VersionResponseResult result = null;
 
         try {
+            param.setUser_id(customer.id());
             List<ProductResponse> favorites = this.favoriteService.getFavoriteList(param);
             result = this.setResult(Result.SUCCESS, favorites);
         } catch (Exception ex) {
@@ -73,6 +75,7 @@ public class FavoriteController extends BaseController {
         VersionResponseResult result = null;
 
         try {
+            param.setUser_id(customer.id());
             int resultNum = this.favoriteService.addFavorite(param);
 
             if (resultNum != 0) {
@@ -102,6 +105,7 @@ public class FavoriteController extends BaseController {
         VersionResponseResult result = null;
 
         try {
+            param.setUser_id(customer.id());
             int resultNum = this.favoriteService.deleteFavorite(param);
 
             if (resultNum != 0) {
@@ -131,6 +135,7 @@ public class FavoriteController extends BaseController {
         VersionResponseResult result = null;
 
         try {
+            param.setUser_id(customer.id());
             FavoriteCountDto favoriteCount = this.favoriteService.getFavoriteCount(param);
             result = this.setResult(Result.SUCCESS, favoriteCount);
         } catch (Exception ex) {

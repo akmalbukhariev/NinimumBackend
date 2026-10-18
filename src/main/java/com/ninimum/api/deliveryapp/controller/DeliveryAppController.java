@@ -60,6 +60,9 @@ public class DeliveryAppController extends BaseController {
             headers.add(Constant.HEADER_ROLE, Constant.ROLE_DELIVERY);
             headers.add(Constant.HEADER_USER_NAME, worker.getFullName());
             return new ResponseEntity<>(setResult(Result.SUCCESS, worker), headers, HttpStatus.OK);
+        } catch (org.springframework.security.authentication.LockedException ex) {
+            var result=setResult(Result.LOGIN_INACTIVE);result.setResultMsg("Too many attempts. Try again in 15 minutes.");
+            return new ResponseEntity<>(result,HttpStatus.TOO_MANY_REQUESTS);
         } catch (Exception ex) {
             log.warn("Delivery app login failed: {}", ex.getMessage());
             return new ResponseEntity<>(setResult(Result.LOGIN_INVALID_TOKEN), HttpStatus.OK);

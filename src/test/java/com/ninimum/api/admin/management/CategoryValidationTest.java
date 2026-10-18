@@ -21,6 +21,25 @@ class CategoryValidationTest {
         return new AdminManagementService(mapper, mock(FileService.class), mock(WarehouseAppService.class),
                 mock(WarehouseService.class), mock(ReturnPhotoService.class), mock(PartialReturnService.class));
     }
+    @Test void validatesImageContentAndReencodesBeforeStorage() throws Exception {
+        var files=mock(FileService.class);
+        var service=new AdminManagementService(mock(AdminManagementMapper.class),files,mock(WarehouseAppService.class),mock(WarehouseService.class),mock(ReturnPhotoService.class),mock(PartialReturnService.class));
+        assertThrows(Exception.class,()->service.uploadCategoryImage(Map.of("base64",Base64.getEncoder().encodeToString("not an image".getBytes()))));
+        assertThrows(IllegalArgumentException.class,()->service.uploadCategoryImage(Map.of("base64","A".repeat(2800001))));
+        verifyNoInteractions(files);
+        var image=new java.awt.image.BufferedImage(2,2,java.awt.image.BufferedImage.TYPE_INT_ARGB);
+        var png=new java.io.ByteArrayOutputStream();javax.imageio.ImageIO.write(image,"png",png);
+        when(files.saveProductImage(any(byte[].class),eq("category.png"))).thenReturn("products/test.png");
+        assertEquals("products/test.png",service.uploadCategoryImage(Map.of("base64",Base64.getEncoder().encodeToString(png.toByteArray()))));
+        verify(files).saveProductImage(argThat(bytes->bytes.length>0),eq("category.png"));
+    }
+    @Test void rejectsOversizeTranslationsAndUnsafeImageUrls() {
+        var mapper=mock(AdminManagementMapper.class);
+        for(String url:List.of("javascript:alert(1)","file:///etc/passwd","products/../../file","https://user:pass@example.com/image.png"))
+            assertThrows(IllegalArgumentException.class,()->service(mapper).createCategory(Map.of("name","Milk","image_url",url)));
+        assertThrows(IllegalArgumentException.class,()->service(mapper).createCategory(Map.of("name","Milk","name_ru","x".repeat(256))));
+        verify(mapper,never()).insertCategory(anyMap());
+    }
     @Test void rejectsParentingAnAncestorUnderItsDescendant() {
         var mapper = mock(AdminManagementMapper.class);
         when(mapper.lockCategories()).thenReturn(List.of(category(1,null),category(2,1L),category(3,2L)));

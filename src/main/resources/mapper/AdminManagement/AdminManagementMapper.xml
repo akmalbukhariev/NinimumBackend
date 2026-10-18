@@ -18,6 +18,9 @@
         </choose>
       </if>
       <if test="status != null">AND o.status = #{status}</if>
+      <if test="paymentStatus != null">AND o.payment_status = #{paymentStatus}</if>
+      <if test="fromUtc != null">AND o.ordered_at &gt;= #{fromUtc}</if>
+      <if test="toUtc != null">AND o.ordered_at &lt; #{toUtc}</if>
     </where>
   </sql>
   <sql id="refundFields">
@@ -47,6 +50,20 @@
     SELECT id,from_status,to_status,actor,source,reason,
            DATE_FORMAT(changed_at,'%Y-%m-%dT%H:%i:%sZ') changed_at
     FROM order_status_history WHERE order_id=#{id} ORDER BY id DESC LIMIT 500
+  </select>
+  <select id="getOrderStepHistory" resultType="camelMap">
+    SELECT * FROM (
+      SELECT CONCAT('W',e.id) id,'WAREHOUSE' step,e.kind status,e.actor,e.note reason,
+             DATE_FORMAT(e.created_at,'%Y-%m-%dT%H:%i:%sZ') changed_at,e.created_at sort_at
+      FROM warehouse_preparation_events e
+      WHERE e.order_id=#{id} AND e.kind IN ('CLAIM','PROBLEM','RESUME','READY','RESET','OWNER_CORRECTION','RETURN_CLAIM','RETURN_RECEIVED')
+      UNION ALL
+      SELECT CONCAT('D',t.id),'DELIVERY',t.status,COALESCE(w.full_name,CONCAT('COURIER:',t.delivery_worker_id),'SYSTEM'),t.message,
+             DATE_FORMAT(t.created_at,'%Y-%m-%dT%H:%i:%sZ'),t.created_at
+      FROM delivery_job_tracking t JOIN delivery_jobs dj ON dj.id=t.delivery_job_id
+      LEFT JOIN delivery_app_workers w ON w.id=t.delivery_worker_id
+      WHERE dj.order_id=#{id}
+    ) steps ORDER BY sort_at DESC,id DESC LIMIT 500
   </select>
   <select id="getOrderItems" resultType="camelMap">SELECT * FROM order_items WHERE order_id=#{id} ORDER BY id</select>
   <select id="getOrderPayments" resultType="camelMap">
@@ -116,6 +133,9 @@
     WHERE p.id=#{id}
     LIMIT 1
   </select>
+  <select id="lockProductPrices" resultType="camelMap">SELECT price,subscription_price,cost_price FROM products WHERE id=#{id} FOR UPDATE</select>
+  <insert id="insertPriceHistory">INSERT INTO product_price_history(product_id,field_name,old_amount,new_amount,reason,changed_by,changed_at) VALUES(#{product_id},#{field_name},#{old_amount},#{new_amount},#{reason},#{changed_by},UTC_TIMESTAMP())</insert>
+  <select id="getPriceHistory" resultType="camelMap">SELECT id,field_name,old_amount,new_amount,reason,changed_by,DATE_FORMAT(changed_at,'%Y-%m-%dT%H:%i:%sZ') changed_at FROM product_price_history WHERE product_id=#{id} ORDER BY id DESC LIMIT 500</select>
   <select id="getProductImages" resultType="camelMap">SELECT * FROM product_images WHERE product_id=#{id} ORDER BY sort_order,id</select>
   <select id="getMaxProductImageSortOrder" resultType="int">SELECT COALESCE(MAX(sort_order),0) FROM product_images WHERE product_id=#{productId}</select>
   <insert id="insertProductImage">
@@ -144,9 +164,16 @@
       <if test="barcode != null">barcode=#{barcode},</if>
       <if test="brand != null">brand=#{brand},</if>
       <if test="price != null">price=#{price},</if>
-      <if test="subscription_price != null">subscription_price=#{subscription_price},</if>
+      <if test="_parameter.containsKey('subscription_price')">subscription_price=#{subscription_price},</if>
       <if test="stock_quantity != null">stock_quantity=#{stock_quantity},</if>
       <if test="weight_gram != null">weight_gram=#{weight_gram},</if>
+      <if test="_parameter.containsKey('cost_price')">cost_price=#{cost_price,jdbcType=DECIMAL},</if>
+      <if test="_parameter.containsKey('min_stock_quantity')">min_stock_quantity=#{min_stock_quantity,jdbcType=INTEGER},</if>
+      <if test="_parameter.containsKey('shelf_life_days')">shelf_life_days=#{shelf_life_days,jdbcType=INTEGER},</if>
+      <if test="_parameter.containsKey('storage_temperature')">storage_temperature=#{storage_temperature,jdbcType=VARCHAR},</if>
+      <if test="_parameter.containsKey('ingredients')">ingredients=#{ingredients,jdbcType=VARCHAR},</if>
+      <if test="_parameter.containsKey('age_range')">age_range=#{age_range,jdbcType=VARCHAR},</if>
+
       <if test="is_active != null">is_active=#{is_active},</if>
       <if test="is_featured != null">is_featured=#{is_featured},</if>
       updated_at=NOW()
@@ -156,12 +183,14 @@
   <select id="getCategories" resultType="camelMap">SELECT * FROM categories ORDER BY sort_order,name,id</select>
   <select id="lockCategories" resultType="camelMap">SELECT id,parent_id FROM categories ORDER BY id FOR UPDATE</select>
   <insert id="insertCategory" parameterType="map">
-    INSERT INTO categories(parent_id,name,image_url,sort_order,is_active,created_at,updated_at)
-    VALUES(#{parent_id},#{name},#{image_url},COALESCE(#{sort_order},0),COALESCE(#{is_active},1),NOW(),NOW())
+    INSERT INTO categories(parent_id,name,name_uz,name_ru,image_url,sort_order,is_active,created_at,updated_at)
+    VALUES(#{parent_id},#{name},#{name_uz},#{name_ru},#{image_url},COALESCE(#{sort_order},0),COALESCE(#{is_active},1),NOW(),NOW())
   </insert>
   <update id="updateCategory" parameterType="map">
     UPDATE categories <set>
       <if test="_parameter.containsKey('parent_id')">parent_id=#{parent_id,jdbcType=BIGINT},</if><if test="name != null">name=#{name},</if>
+      <if test="_parameter.containsKey('name_uz')">name_uz=#{name_uz,jdbcType=VARCHAR},</if>
+      <if test="_parameter.containsKey('name_ru')">name_ru=#{name_ru,jdbcType=VARCHAR},</if>
       <if test="image_url != null">image_url=#{image_url},</if><if test="sort_order != null">sort_order=#{sort_order},</if>
       <if test="is_active != null">is_active=#{is_active},</if>updated_at=NOW()
     </set> WHERE id=#{id}
@@ -241,6 +270,10 @@
         OR (#{status}='FAILED' AND status IN ('ACCEPTED','ON_THE_WAY')))
     </if>
   </update>
+  <insert id="addDeliveryTracking">
+    INSERT INTO delivery_job_tracking(delivery_job_id,delivery_worker_id,status,message,created_at)
+    SELECT id,delivery_worker_id,#{status},#{message},NOW() FROM delivery_jobs WHERE id=#{id}
+  </insert>
   <update id="syncOrderFromDeliveryJob">
     <bind name="auditActor" value="@com.ninimum.api.audit.OrderAuditActor@current()"/>
     UPDATE orders o JOIN delivery_jobs dj ON dj.order_id=o.id SET status_actor=#{auditActor},status_source='ADMIN',status_reason=CASE WHEN dj.status='FAILED' THEN dj.note ELSE NULL END, o.status=CASE WHEN dj.status='ACCEPTED' THEN 'READY' WHEN dj.status='ON_THE_WAY' THEN 'ON_THE_WAY' WHEN dj.status='DELIVERED' THEN 'DELIVERED' WHEN dj.status='CANCELLED' THEN 'CANCELLED' WHEN dj.status='FAILED' THEN 'RETURNING' ELSE o.status END, o.delivered_at=CASE WHEN dj.status='DELIVERED' THEN COALESCE(o.delivered_at,NOW()) ELSE o.delivered_at END,o.updated_at=NOW() WHERE dj.id=#{id} AND o.status &lt;&gt; 'CANCELLED'
@@ -266,9 +299,10 @@
   <sql id="questionWhere"><where>
     <if test="search != null">AND (pq.question LIKE CONCAT('%',#{search},'%') OR pq.answer LIKE CONCAT('%',#{search},'%') OR p.name LIKE CONCAT('%',#{search},'%') OR CONCAT_WS(' ',u.first_name,u.last_name) LIKE CONCAT('%',#{search},'%'))</if>
     <if test="status != null">AND pq.status=#{status}</if>
+    <if test="kind != null">AND pq.kind=#{kind}</if>
   </where></sql>
   <select id="getQuestions" resultType="camelMap">
-    SELECT pq.id,pq.product_id,pq.user_id,pq.question,pq.answer,pq.status,pq.is_active,pq.created_at,pq.answered_at,pq.updated_at,
+    SELECT pq.id,pq.product_id,pq.user_id,pq.kind,pq.classified_by,pq.classified_at,pq.question,pq.answer,pq.status,pq.is_active,pq.created_at,pq.answered_at,pq.updated_at,
            p.name product_name,CONCAT_WS(' ',u.first_name,u.last_name) customer_name,u.phone_number
     FROM product_questions pq
     LEFT JOIN products p ON p.id=pq.product_id

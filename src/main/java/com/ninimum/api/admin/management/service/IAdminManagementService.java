@@ -8,11 +8,13 @@ import java.util.Map;
 
 public interface IAdminManagementService {
     Map<String, Object> getOrders(String search, String status, int page, int pageSize);
+    Map<String,Object> getFilteredOrders(String search,String status,String paymentStatus,String from,String to,int page,int pageSize);
     Map<String, Object> getOrder(long id);
     int updateOrderStatus(long id, Map<String, Object> body);
 
     Map<String, Object> getProducts(String search, Long categoryId, Boolean active, int page, int pageSize);
     Map<String, Object> getProduct(long id);
+    java.util.List<com.ninimum.api.camelcase.CamelCaseMap> getProductPriceHistory(long id);
     int updateProduct(long id, Map<String, Object> body);
     int addProductImages(long id, List<MultipartFile> images) throws Exception;
     int addProductImageData(long id, Map<String, Object> body) throws Exception;
@@ -21,6 +23,7 @@ public interface IAdminManagementService {
     int deleteProduct(long id);
 
     List<CamelCaseMap> getCategories();
+    String uploadCategoryImage(Map<String,Object> body) throws Exception;
     int createCategory(Map<String, Object> body);
     int updateCategory(long id, Map<String, Object> body);
 
@@ -42,6 +45,7 @@ public interface IAdminManagementService {
     Map<String, Object> getReviews(String search, Boolean active, int page, int pageSize);
     int updateReviewActive(long id, boolean active);
     Map<String, Object> getQuestions(String search, String status, int page, int pageSize);
+    Map<String,Object> getFilteredQuestions(String search,String status,String kind,int page,int pageSize);
     int answerQuestion(long id, String answer);
     int updateQuestionActive(long id, boolean active);
 

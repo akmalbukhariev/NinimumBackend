@@ -104,6 +104,12 @@ public class AdminAuthenticationFilter extends UsernamePasswordAuthenticationFil
     ) throws IOException {
         Result result;
 
+        if (failed instanceof org.springframework.security.authentication.LockedException) {
+            response.setStatus(429);
+            response.setHeader("Retry-After","900");
+            sendErrorResponse(response,Result.LOGIN_INACTIVE,"Too many attempts. Try again in 15 minutes.");
+            return;
+        }
         if (failed instanceof DisabledException) {
             result = Result.LOGIN_INACTIVE;
         } else if (failed instanceof UsernameNotFoundException) {
@@ -120,6 +126,9 @@ public class AdminAuthenticationFilter extends UsernamePasswordAuthenticationFil
     }
 
     private void sendErrorResponse(HttpServletResponse response, Result result) {
+        sendErrorResponse(response,result,result.getMessage());
+    }
+    private void sendErrorResponse(HttpServletResponse response,Result result,String message) {
         try {
             response.setHeader(Constant.HEADER_ACCESS_TOKEN, "");
             response.setHeader(Constant.HEADER_REFRESH_TOKEN, "");
@@ -130,7 +139,7 @@ public class AdminAuthenticationFilter extends UsernamePasswordAuthenticationFil
             VersionResponseResult resResult = new VersionResponseResult();
             resResult.setApiVersion(Constant.api_version);
             resResult.setResultCode(result.getCodeToString());
-            resResult.setResultMsg(result.getMessage());
+            resResult.setResultMsg(message);
 
             new ObjectMapper().writeValue(response.getOutputStream(), resResult);
         } catch (IOException e) {

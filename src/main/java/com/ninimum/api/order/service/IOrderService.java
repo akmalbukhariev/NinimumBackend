@@ -15,6 +15,7 @@ import java.util.List;
 public interface IOrderService {
     List<OrderDto> getOrderList(OrderListParam param) throws Exception;
     List<OrderDetailDto> getOrderDetail(OrderDetailParam param) throws Exception;
+    java.util.Map<String,Object> quote(CreateOrderParam param) throws Exception;
     int createOrder(CreateOrderParam param) throws Exception;
     int cancelOrder(CancelOrderParam param) throws Exception;
     int cancelUnpaidOrder(CancelOrderParam param) throws Exception;

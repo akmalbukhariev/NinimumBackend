@@ -7,4 +7,5 @@ public class AddProductQuestionParam {
     private Long product_id;
     private Long user_id;
     private String question;
+    private String kind;
 }

@@ -17,11 +17,15 @@ public class TariffService implements ITariffService {
 
     @Override
     public List<TariffDto> getTariffList() throws Exception {
-        return this.tariffMapper.getTariffList();
+        var plans=this.tariffMapper.getTariffList();
+        for(var plan:plans)plan.setProductBenefits(this.tariffMapper.getProductBenefits(plan.getTariffId()));
+        return plans;
     }
 
     @Override
     public TariffDto getTariffDetail(TariffDetailParam param) throws Exception {
-        return this.tariffMapper.getTariffDetail(param);
+        var plan=this.tariffMapper.getTariffDetail(param);
+        if(plan!=null)plan.setProductBenefits(this.tariffMapper.getProductBenefits(plan.getTariffId()));
+        return plan;
     }
 }

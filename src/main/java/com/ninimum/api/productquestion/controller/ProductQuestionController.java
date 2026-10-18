@@ -53,6 +53,10 @@ public class ProductQuestionController extends BaseController {
         VersionResponseResult result;
 
         try {
+            param.setViewer_id(null);
+            var authentication=SecurityContextHolder.getContext().getAuthentication();
+            if(authentication!=null && authentication.isAuthenticated() && !(authentication instanceof org.springframework.security.authentication.AnonymousAuthenticationToken))
+                param.setViewer_id(getAuthenticatedUserId());
             List<ProductQuestionDto> questions = productQuestionService.getQuestionList(param);
             result = setResult(Result.SUCCESS, questions);
         } catch (Exception ex) {

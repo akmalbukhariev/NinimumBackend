@@ -10,7 +10,7 @@
             pq.product_id,
             pq.user_id,
             TRIM(CONCAT(COALESCE(u.first_name, ''), ' ', COALESCE(u.last_name, ''))) AS customer_name,
-            pq.question,
+            pq.question,pq.kind,
             pq.answer,
             pq.status,
             pq.is_active,
@@ -21,6 +21,7 @@
         LEFT JOIN users u ON u.id = pq.user_id
         WHERE pq.product_id = #{product_id}
           AND pq.is_active = 1
+          AND (pq.kind='QUESTION' OR pq.user_id=#{viewer_id,jdbcType=BIGINT})
         ORDER BY pq.created_at DESC, pq.id DESC
         LIMIT #{pageSize}
         OFFSET #{offset}
@@ -32,7 +33,7 @@
         (
             product_id,
             user_id,
-            question,
+            question,kind,classified_by,classified_at,
             status,
             is_active,
             created_at,
@@ -42,7 +43,7 @@
         (
             #{product_id},
             #{user_id},
-            #{question},
+            #{question},#{kind},CONCAT('CUSTOMER:',#{user_id}),UTC_TIMESTAMP(),
             'WAITING',
             1,
             NOW(),

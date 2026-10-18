@@ -12,6 +12,7 @@ public class ProductQuestionDto {
     private Long user_id;
     private String customer_name;
     private String question;
+    private String kind;
     private String answer;
     private String status;
     private Boolean is_active;

@@ -22,18 +22,20 @@ class OrderTimersIntegrationTest {
         String url=System.getProperty("timers.test.jdbc");
         if(!url.matches("jdbc:mariadb://127\\.0\\.0\\.1:[0-9]+/timers_test")) throw new IllegalArgumentException("Dedicated local database only");
         var ds=new DriverManagerDataSource(url,"root","");jdbc=new JdbcTemplate(ds);manager=new DataSourceTransactionManager(ds);
-        for(String table:new String[]{"delivery_partial_return_items","delivery_partial_returns","order_timer_settings","order_problem_alerts","order_problem_events","order_status_history","orders","payments","delivery_jobs","warehouse_preparations","product_questions","products","delivery_app_workers"}) jdbc.execute("DROP TABLE IF EXISTS "+table);
+        for(String table:new String[]{"courier_dispatch_history","courier_dispatch_offers","courier_dispatch_settings","delivery_partial_return_items","delivery_partial_returns","order_timer_settings","order_problem_alerts","order_problem_events","order_status_history","orders","payments","delivery_jobs","warehouse_preparations","product_questions","products","delivery_app_workers"}) jdbc.execute("DROP TABLE IF EXISTS "+table);
         jdbc.execute("CREATE TABLE orders(id BIGINT PRIMARY KEY,status VARCHAR(30),payment_status VARCHAR(30),ordered_at DATETIME,updated_at DATETIME,cancelled_at DATETIME,cancel_reason TEXT,status_actor TEXT,status_source TEXT,status_reason TEXT)");
         jdbc.execute("CREATE TABLE order_status_history(id BIGINT AUTO_INCREMENT PRIMARY KEY,order_id BIGINT,to_status VARCHAR(30),changed_at DATETIME,actor TEXT,source TEXT,reason TEXT)");
         jdbc.execute("CREATE TRIGGER status_audit AFTER UPDATE ON orders FOR EACH ROW BEGIN IF NOT(OLD.status <=> NEW.status) THEN INSERT INTO order_status_history(order_id,to_status,changed_at,actor,source,reason) VALUES(NEW.id,NEW.status,UTC_TIMESTAMP(),NEW.status_actor,NEW.status_source,NEW.status_reason); END IF; END");
         jdbc.execute("CREATE TABLE payments(id BIGINT PRIMARY KEY,order_id BIGINT,status VARCHAR(30))");
-        jdbc.execute("CREATE TABLE delivery_jobs(order_id BIGINT PRIMARY KEY,status VARCHAR(30),delivery_worker_id BIGINT,updated_at DATETIME)");
+        jdbc.execute("CREATE TABLE delivery_jobs(id BIGINT NOT NULL AUTO_INCREMENT UNIQUE,order_id BIGINT PRIMARY KEY,status VARCHAR(30),delivery_worker_id BIGINT,updated_at DATETIME)");
         jdbc.execute("CREATE TABLE warehouse_preparations(order_id BIGINT PRIMARY KEY,worker_code VARCHAR(40))");
         jdbc.execute("CREATE TABLE delivery_app_workers(id BIGINT PRIMARY KEY,full_name VARCHAR(100),worker_code VARCHAR(50))");
         jdbc.execute("CREATE TABLE product_questions(id BIGINT PRIMARY KEY,status VARCHAR(30),answer TEXT,is_active INT,created_at DATETIME)");
         jdbc.execute("CREATE TABLE products(id BIGINT PRIMARY KEY,stock_quantity INT)");jdbc.update("INSERT INTO products VALUES(12,4)");
-        for(String statement:Files.readString(Path.of("database/migrations/20261011_order_timers.sql")).split(";")) if(!statement.isBlank())jdbc.execute(statement);
+        new org.springframework.jdbc.datasource.init.ResourceDatabasePopulator(new org.springframework.core.io.FileSystemResource("src/test/resources/live-schema-fixtures/order-timers.sql")).execute(ds);
+        new org.springframework.jdbc.datasource.init.ResourceDatabasePopulator(new org.springframework.core.io.FileSystemResource("database/migrations/20261017_complaints.sql")).execute(ds);
         new org.springframework.jdbc.datasource.init.ResourceDatabasePopulator(new org.springframework.core.io.FileSystemResource("database/migrations/20261012_partial_returns.sql")).execute(ds);
+        new org.springframework.jdbc.datasource.init.ResourceDatabasePopulator(new org.springframework.core.io.FileSystemResource("database/migrations/20261017_courier_dispatch.sql")).execute(ds);
         service=new OrderTimersService(jdbc,manager);
     }
     void order(long id,String status,String payment,int age) {
@@ -57,7 +59,7 @@ class OrderTimersIntegrationTest {
     @Test void alertsDeduplicateAndResolveWithPersistentHistory() {
         order(1,"CONFIRMED","PAID",31);order(2,"PREPARING","PAID",40);order(3,"READY","PAID",31);order(4,"ON_THE_WAY","PAID",121);order(5,"RETURNING","PAID",1);
         jdbc.update("INSERT INTO warehouse_preparations VALUES(2,'WH001')");jdbc.update("INSERT INTO delivery_jobs(order_id,status,delivery_worker_id) VALUES(4,'ON_THE_WAY',9)");
-        jdbc.update("INSERT INTO product_questions VALUES(7,'NEW',NULL,1,?)",OrderTimersService.timestamp(now.minusSeconds(25*3600)));
+        jdbc.update("INSERT INTO product_questions(id,status,answer,is_active,created_at) VALUES(7,'NEW',NULL,1,?)",OrderTimersService.timestamp(now.minusSeconds(25*3600)));
         service.scan(now);service.scan(now.plusSeconds(60));
         assertEquals(6,jdbc.queryForObject("SELECT COUNT(*) FROM order_problem_alerts WHERE resolved_at IS NULL",Integer.class));
         assertEquals(6,jdbc.queryForObject("SELECT COUNT(*) FROM order_problem_events WHERE event='OPENED'",Integer.class));
@@ -100,5 +102,17 @@ class OrderTimersIntegrationTest {
         assertThrows(RuntimeException.class,()->service.scan(now));
         assertEquals("PENDING",jdbc.queryForObject("SELECT status FROM orders WHERE id=1",String.class));
         assertEquals("WAITING_ASSIGNMENT",jdbc.queryForObject("SELECT status FROM delivery_jobs WHERE order_id=1",String.class));
+    }
+    @Test void complaintDeadlineIsIndependentAndReclassificationResolvesAlert() {
+        jdbc.update("UPDATE order_timer_settings SET complaint_minutes=30,question_minutes=120 WHERE id=1");
+        var created=OrderTimersService.timestamp(now.minusSeconds(60*60));
+        jdbc.update("INSERT INTO product_questions(id,status,is_active,created_at,kind) VALUES(1,'NEW',1,?,'COMPLAINT'),(2,'NEW',1,?,'QUESTION')",created,created);
+        service.scan(now);service.scan(now.plusSeconds(1));
+        assertEquals(1,jdbc.queryForObject("SELECT COUNT(*) FROM order_problem_alerts WHERE resolved_at IS NULL",Integer.class));
+        assertEquals(1L,jdbc.queryForObject("SELECT entity_id FROM order_problem_alerts WHERE resolved_at IS NULL",Long.class));
+        assertEquals(1,jdbc.queryForObject("SELECT COUNT(*) FROM order_problem_events WHERE event='OPENED'",Integer.class));
+        jdbc.update("UPDATE product_questions SET kind='QUESTION' WHERE id=1");service.scan(now.plusSeconds(2));
+        assertEquals(0,jdbc.queryForObject("SELECT COUNT(*) FROM order_problem_alerts WHERE resolved_at IS NULL",Integer.class));
+        assertEquals(1,jdbc.queryForObject("SELECT COUNT(*) FROM order_problem_events WHERE event='RESOLVED'",Integer.class));
     }
 }

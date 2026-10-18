@@ -29,7 +29,7 @@ public class AdminService implements IAdminService {
 
         AdminDto dto = new AdminDto();
         dto.setLogin_id(param.getLogin_id());
-        dto.setPassword(passwordEncoder.encode(param.getPassword()));
+        dto.setPassword(passwordEncoder.encode(com.ninimum.api.security.login.StaffPasswordPolicy.require(param.getPassword())));
         dto.setName(param.getName());
         dto.setRole(Constant.ROLE_ADMIN);
         dto.setStatus("ACTIVE");
@@ -58,6 +58,13 @@ public class AdminService implements IAdminService {
         dashboard.put("order_status_today", adminMapper.getDashboardOrderStatusToday());
         dashboard.put("recent_orders", adminMapper.getDashboardRecentOrders());
         dashboard.put("low_stock_products", adminMapper.getDashboardLowStockProducts());
+        var auth=org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
+        boolean owner=auth!=null&&auth.getAuthorities().stream().anyMatch(a->Constant.ROLE_SUPER_ADMIN.equals(a.getAuthority()));
+        if(!owner){
+            Map<String,Object> summary=new LinkedHashMap<>((Map<String,Object>)dashboard.get("summary"));
+            for(String key:java.util.List.of("revenue","paid_undelivered","subscription_receipts","supplier_due_week"))summary.put(key,null);
+            dashboard.put("summary",summary);dashboard.put("sales_last_7_days",java.util.List.of());
+        }
         return dashboard;
     }
 }

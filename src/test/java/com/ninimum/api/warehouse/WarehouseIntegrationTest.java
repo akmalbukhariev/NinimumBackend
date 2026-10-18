@@ -45,11 +45,11 @@ class WarehouseIntegrationTest {
         ds=new DriverManagerDataSource(url,"root","");
         jdbc=new JdbcTemplate(ds);
         jdbc.execute("SET FOREIGN_KEY_CHECKS=0");
-        for (String table: List.of("warehouse_receipt_items","warehouse_stock_movements","warehouse_receipts","warehouse_locations","warehouse_schema","payments","order_items","delivery_jobs","orders","products"))
+        for (String table: List.of("warehouse_receipt_counts","warehouse_receipt_items","warehouse_stock_movements","warehouse_receipts","warehouse_locations","warehouse_schema","payments","order_items","delivery_jobs","orders","products"))
             jdbc.execute("DROP TABLE IF EXISTS "+table);
         jdbc.execute("SET FOREIGN_KEY_CHECKS=1");
         jdbc.execute("CREATE TABLE products(id BIGINT PRIMARY KEY,name VARCHAR(255),sku VARCHAR(80),barcode VARCHAR(80),stock_quantity INT NOT NULL,is_active BOOLEAN NOT NULL,updated_at DATETIME)");
-        jdbc.execute("CREATE TABLE orders(id BIGINT PRIMARY KEY,order_number VARCHAR(100),payment_status VARCHAR(20),status VARCHAR(30),total_price DECIMAL(12,2),ordered_at DATETIME,updated_at DATETIME)");
+        jdbc.execute("CREATE TABLE orders(id BIGINT PRIMARY KEY,order_number VARCHAR(100),payment_status VARCHAR(20),status VARCHAR(30),total_price DECIMAL(12,2),ordered_at DATETIME,updated_at DATETIME,status_actor VARCHAR(255),status_source VARCHAR(40),status_reason VARCHAR(500))");
         jdbc.execute("CREATE TABLE order_items(id BIGINT PRIMARY KEY,order_id BIGINT,product_id BIGINT,product_name VARCHAR(255),quantity INT)");
         jdbc.execute("CREATE TABLE delivery_jobs(id BIGINT PRIMARY KEY,order_id BIGINT UNIQUE,status VARCHAR(30))");
         jdbc.execute("CREATE TABLE payments(id BIGINT PRIMARY KEY,order_id BIGINT,user_tariff_id BIGINT,provider VARCHAR(20),provider_transaction_id VARCHAR(80),status VARCHAR(20),payme_create_time BIGINT,payme_perform_time BIGINT,payme_cancel_time BIGINT,payme_reason INT,updated_at DATETIME)");
@@ -59,27 +59,47 @@ class WarehouseIntegrationTest {
         WarehouseService target=new WarehouseService(jdbc);
         ReflectionTestUtils.setField(target,"enabled",true);target.verifySchema();service=proxy(target);
     }
-    void migrate() { new ResourceDatabasePopulator(new FileSystemResource("warehouse-step1.sql")).execute(ds); }
+    void migrate() {
+        new ResourceDatabasePopulator(new FileSystemResource("src/test/resources/live-schema-fixtures/warehouse-step1.sql")).execute(ds);
+        for(String file:List.of("20261012_partial_returns.sql","20261017_receipt_approval.sql","20261017_location_hierarchy.sql","20261017_receipt_metadata.sql"))new ResourceDatabasePopulator(new FileSystemResource("database/migrations/"+file)).execute(ds);
+    }
+    long post(long id) {
+        var context=org.springframework.security.core.context.SecurityContextHolder.getContext();var previous=context.getAuthentication();
+        context.setAuthentication(new org.springframework.security.authentication.UsernamePasswordAuthenticationToken("owner",null,List.of(new org.springframework.security.core.authority.SimpleGrantedAuthority("SUPER_ADMIN"))));
+        try{return service.postReceipt(id,Map.of("counts",jdbc.queryForList("SELECT product_id,quantity FROM warehouse_receipt_items WHERE receipt_id=?",id)));}finally{context.setAuthentication(previous);}
+    }
     long qty(long id) { return jdbc.queryForObject("SELECT stock_quantity FROM products WHERE id=?",Long.class,id); }
     long count() { return jdbc.queryForObject("SELECT COUNT(*) FROM warehouse_stock_movements",Long.class); }
     long receipt(int quantity) {
         long location=service.createLocation(Map.of("code","A-03","name","Shelf","type","SHELF"));
-        return service.createReceipt(Map.of("supplier_name","Supplier","items",List.of(Map.of("product_id",1,"quantity",quantity,"location_id",location))));
+        return service.createReceipt(Map.of("supplier_name","Supplier","items",List.of(Map.of("product_id",1,"quantity",quantity,"location_id",location,"unit_price","10","expiry_date",java.time.LocalDate.now().plusYears(1).toString()))));
+    }
+    @Test void movementDatesUseInclusiveTashkentDaysAndProductFilter() {
+        jdbc.update("DELETE FROM warehouse_stock_movements");
+        String sql="INSERT INTO warehouse_stock_movements(product_id,product_name,kind,quantity_change,stock_after,reference,actor,event_key,created_at) VALUES(?,'Food','OPENING',1,1,'test','SYSTEM',?,?)";
+        jdbc.update(sql,1,"before","2026-10-16 18:59:59");
+        jdbc.update(sql,1,"start","2026-10-16 19:00:00");
+        jdbc.update(sql,1,"end","2026-10-17 18:59:59");
+        jdbc.update(sql,1,"after","2026-10-17 19:00:00");
+        jdbc.update(sql,2,"other","2026-10-17 12:00:00");
+        assertEquals(2,((Number)service.movements(1L,1,20,"2026-10-17","2026-10-17").get("total")).intValue());
+        assertEquals(3,((Number)service.movements(null,1,20,"2026-10-17","2026-10-17").get("total")).intValue());
+        assertThrows(IllegalArgumentException.class,()->service.movements(null,1,20,"2026-10-18","2026-10-17"));
     }
     @Test void draftDoesNotChangeStockAndConfirmationIsIdempotent() {
         long id=receipt(5);assertEquals(10,qty(1));assertEquals(2,count());
-        service.postReceipt(id);service.postReceipt(id);
+        post(id);post(id);
         assertEquals(15,qty(1));assertEquals(3,count());
         assertEquals("POSTED",service.receipt(id).get("status"));
     }
     @Test void reversalPreservesOriginalAndCannotRepeat() {
-        long id=receipt(5);service.postReceipt(id);service.reverseReceipt(id,"Wrong invoice");service.reverseReceipt(id,"Retry");
+        long id=receipt(5);post(id);service.reverseReceipt(id,"Wrong invoice");service.reverseReceipt(id,"Retry");
         assertEquals(10,qty(1));assertEquals(4,count());
         assertEquals("REVERSED",service.receipt(id).get("status"));
         assertEquals("Wrong invoice",service.receipt(id).get("reversal_reason"));
     }
     @Test void reversalCannotCreateNegativeStock() {
-        long id=receipt(12);service.postReceipt(id);
+        long id=receipt(12);post(id);
         tx.execute(status -> {jdbc.update("UPDATE products SET stock_quantity=1 WHERE id=1");service.recordChange(1,-21,"SALE","ORDER-1","SYSTEM","","test-sale");return null;});
         long history=count();
         assertEquals("WAREHOUSE_INSUFFICIENT_STOCK",assertThrows(WarehouseException.class,()->service.reverseReceipt(id,"Mistake")).getMessage());
@@ -88,19 +108,19 @@ class WarehouseIntegrationTest {
     @Test void failureOnSecondLineRollsBackFirstLineAndHistory() {
         long location=service.createLocation(Map.of("code","A","name","Shelf","type","SHELF"));
         long id=service.createReceipt(Map.of("supplier_name","Supplier","items",List.of(
-                Map.of("product_id",1,"quantity",3,"location_id",location),Map.of("product_id",2,"quantity",4,"location_id",location))));
+                Map.of("product_id",1,"quantity",3,"location_id",location,"unit_price","10","expiry_date",java.time.LocalDate.now().plusYears(1).toString()),Map.of("product_id",2,"quantity",4,"location_id",location,"unit_price","10","expiry_date",java.time.LocalDate.now().plusYears(1).toString()))));
         jdbc.update("UPDATE products SET is_active=0 WHERE id=2");
-        assertThrows(WarehouseException.class,()->service.postReceipt(id));
+        assertThrows(WarehouseException.class,()->post(id));
         assertEquals(10,qty(1));assertEquals(0,qty(2));assertEquals(2,count());assertEquals("DRAFT",service.receipt(id).get("status"));
     }
     @Test void migrationCanRunAgainWithoutChangingBalances() {
-        long id=receipt(5);service.postReceipt(id);migrate();
+        long id=receipt(5);post(id);migrate();
         assertEquals(15,qty(1));assertEquals(3,count());
     }
     @Test void simultaneousConfirmationsAddStockOnlyOnce() throws Exception {
         long id=receipt(5);ExecutorService pool=Executors.newFixedThreadPool(2);
         try {
-            var a=pool.submit(()->service.postReceipt(id));var b=pool.submit(()->service.postReceipt(id));
+            var a=pool.submit(()->post(id));var b=pool.submit(()->post(id));
             a.get(10,TimeUnit.SECONDS);b.get(10,TimeUnit.SECONDS);
             assertEquals(15,qty(1));assertEquals(3,count());
         } finally {pool.shutdownNow();}
@@ -112,7 +132,7 @@ class WarehouseIntegrationTest {
         assertThrows(WarehouseException.class,()->service.requireDocumentStock(Map.of("stock_quantity",20)));
     }
     @Test void paidQueueExcludesUnpaidCancelledAndAcceptedOrders() {
-        for(int i=1;i<=4;i++) jdbc.update("INSERT INTO orders VALUES (?,? ,? ,?,100,NOW(),NOW())",i,"ORDER-"+i,i==2?"PENDING":"PAID",i==3?"CANCELLED":"CONFIRMED");
+        for(int i=1;i<=4;i++) jdbc.update("INSERT INTO orders(id,order_number,payment_status,status,total_price,ordered_at,updated_at) VALUES (?,? ,? ,?,100,NOW(),NOW())",i,"ORDER-"+i,i==2?"PENDING":"PAID",i==3?"CANCELLED":"CONFIRMED");
         jdbc.update("INSERT INTO delivery_jobs VALUES (1,4,'ACCEPTED')");
         var result=service.preparation(1,20);
         assertEquals(1L,result.get("total"));
@@ -130,7 +150,7 @@ class WarehouseIntegrationTest {
         request.setParams(new ObjectMapper().valueToTree(Map.of("id","txn-1")));return request;
     }
     void orderPayment() {
-        jdbc.update("INSERT INTO orders VALUES (1,'ORDER-1','PENDING','PENDING',100,NOW(),NOW())");
+        jdbc.update("INSERT INTO orders(id,order_number,payment_status,status,total_price,ordered_at,updated_at) VALUES (1,'ORDER-1','PENDING','PENDING',100,NOW(),NOW())");
         jdbc.update("INSERT INTO order_items VALUES (1,1,1,'Baby food',2)");
         jdbc.update("INSERT INTO payments(id,order_id,provider,provider_transaction_id,status,payme_create_time) VALUES (1,1,'PAYME','txn-1','CREATED',1)");
     }

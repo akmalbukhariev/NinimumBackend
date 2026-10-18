@@ -42,6 +42,8 @@ public class ProductService implements IProductService {
             throw new Exception("Product data is required");
         }
 
+        com.ninimum.api.product.validation.ProductMetadata.normalize(param);
+
         if (param.getFiscal_mxik_package_id() == null) {
             throw new Exception("Fiscal MXIK package must be selected");
         }

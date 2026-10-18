@@ -24,11 +24,20 @@ public class AdminAuthenticationProvider implements AuthenticationProvider {
 
     private final AdminDetailsServiceImpl adminDetailsService;
     private final PasswordEncoder passwordEncoder;
+    private final com.ninimum.api.security.login.LoginAttempts loginAttempts;
 
     @Override
     public Authentication authenticate(Authentication authentication) throws AuthenticationException {
         String adminLoginId = authentication.getName();
         String password = (String) authentication.getCredentials();
+
+        loginAttempts.verify("ADMIN",adminLoginId,()->{
+            try {
+                CommUserDetails candidate=(CommUserDetails)adminDetailsService.loadUserByUsername(adminLoginId);
+                return "ACTIVE".equalsIgnoreCase(String.valueOf(candidate.getDataMap().get("status")))
+                    && password!=null && passwordEncoder.matches(password,candidate.getPassword());
+            } catch(UsernameNotFoundException ex){return false;}
+        });
 
         CommUserDetails admin;
         try {

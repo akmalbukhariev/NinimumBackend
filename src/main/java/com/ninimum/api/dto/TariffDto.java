@@ -9,4 +9,8 @@ public class TariffDto {
     private Integer price;
     private Integer durationMonth;
     private String description;
+    private Boolean useProductRules;
+    private Boolean freeDelivery;
+    private Integer recurringOrderDays;
+    private java.util.List<java.util.Map<String,Object>> productBenefits;
 }

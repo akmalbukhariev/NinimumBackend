@@ -81,8 +81,8 @@
         SET
             quantity = #{quantity},
             updated_at = NOW()
-        WHERE id = #{cart_id}
-            AND user_id = #{user_id}
+        WHERE id = #{cartId}
+            AND user_id = #{userId}
     </update>
 
     <delete id="deleteCart"
@@ -95,7 +95,7 @@
     <delete id="clearCart"
             parameterType="com.ninimum.api.param.ClearCartParam">
         DELETE FROM cart_items
-        WHERE user_id = #{user_id}
+        WHERE user_id = #{userId}
     </delete>
 
     <select id="getCartCount"

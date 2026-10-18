@@ -13,6 +13,10 @@ public class ProductDto {
     private String name;
     private String short_description;
     private String description;
+    private String storage_temperature;
+    private String ingredients;
+    private String age_range;
+    private Integer shelf_life_days;
     private String sku;
     private String barcode;
     private String brand;

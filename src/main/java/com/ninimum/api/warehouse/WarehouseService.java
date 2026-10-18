@@ -27,7 +27,19 @@ public class WarehouseService {
         var order=one("SELECT status FROM orders WHERE id=? FOR UPDATE",id);
         return Set.of("RETURNING","RETURNED").contains(order.get("status")) || ("DELIVERED".equals(order.get("status")) && jdbc.queryForObject("SELECT COUNT(*) FROM delivery_partial_returns WHERE order_id=?",Integer.class,id)==1);
     }
+    @Value("${warehouse.inventory-enabled:false}") private boolean inventoryEnabled;
     public boolean isEnabled() { return enabled; }
+    public boolean isInventoryEnabled(){return enabled&&inventoryEnabled;}
+    public long sellableAvailable(long product,long legacy){return isInventoryEnabled()&&new BatchStock(jdbc).active(product)?new BatchStock(jdbc).available(product):legacy;}
+    @Transactional(propagation=Propagation.MANDATORY) public boolean canSell(long product,long quantity){long legacy=lockStock(product);return sellableAvailable(product,legacy)>=quantity;}
+    @Transactional(propagation=Propagation.MANDATORY) public void issueOrderStock(long order){if(isInventoryEnabled())new BatchStock(jdbc).issue(order,actor());}
+    public void requireFreshInventory(long order){if(isInventoryEnabled())new BatchStock(jdbc).requireFresh(order);}
+    public List<Map<String,Object>> allocations(long order){if(!isInventoryEnabled())return List.of();return jdbc.queryForList("SELECT a.product_id,a.batch_id,a.quantity-a.issued_quantity-a.released_quantity held_quantity,b.batch_number,b.expiry_date,l.code location_code FROM inventory_allocations a JOIN inventory_batches b ON b.id=a.batch_id JOIN warehouse_locations l ON l.id=b.location_id WHERE a.order_id=? ORDER BY l.code,b.expiry_date,b.id",order);}
+    @Transactional(propagation=Propagation.MANDATORY) public void recordInventoryAdjustment(long product,long delta,String kind,String reference,String note){
+        if(delta==0)return;
+        var row=one("SELECT name,stock_quantity FROM products WHERE id=? FOR UPDATE",product);
+        jdbc.update("INSERT INTO warehouse_stock_movements(product_id,product_name,kind,quantity_change,stock_after,reference,actor,note,event_key,created_at) VALUES(?,?,?,?,?,?,?,?,?,UTC_TIMESTAMP())",product,row.get("name"),kind,delta,row.get("stock_quantity"),reference,actor(),note,"inventory:"+UUID.randomUUID());
+    }
     @Transactional(propagation=Propagation.MANDATORY)
     public void reconcilePartialRefund(long orderId) {
         // This records an authenticated provider callback, never initiates a payment/refund.
@@ -86,17 +98,25 @@ public class WarehouseService {
 
     public List<Map<String,Object>> locations() {
         requireEnabled();
-        return jdbc.queryForList("SELECT id,code,name,type,is_active FROM warehouse_locations ORDER BY code");
+        return jdbc.queryForList("SELECT l.id,l.code,l.name,l.type,l.is_active,l.hierarchy_level,l.parent_id,CONCAT_WS(' / ',g.code,p.code,l.code) path FROM warehouse_locations l LEFT JOIN warehouse_locations p ON p.id=l.parent_id LEFT JOIN warehouse_locations g ON g.id=p.parent_id ORDER BY path");
     }
     @Transactional public long createLocation(Map<String,Object> body) {
         requireEnabled();
         String code = text(body.get("code"), 40, true).toUpperCase(Locale.ROOT);
         String name = text(body.get("name"), 120, true);
         String type = text(body.get("type"), 20, true);
-        if (!code.matches("[A-Z0-9][A-Z0-9_-]*") || !Set.of("SHELF", "RECEIVING").contains(type))
+        if (!code.matches("[A-Z0-9][A-Z0-9_-]*") || !Set.of("SHELF", "RECEIVING","COLD_STORAGE","DAMAGED","PICKING","RETURNS").contains(type))
             throw new WarehouseException("WAREHOUSE_INVALID_INPUT");
-        return insert("INSERT INTO warehouse_locations(code,name,type,created_by,created_at) VALUES (?,?,?,?,UTC_TIMESTAMP())",
-                code, name, type, actor());
+        String level=text(body.getOrDefault("hierarchy_level","BIN"),10,true);
+        if(!Set.of("ZONE","ROW","BIN").contains(level))throw new WarehouseException("WAREHOUSE_INVALID_INPUT");
+        Long parent=body.get("parent_id")==null?null:positive(body.get("parent_id"));
+        if((level.equals("ZONE")&&parent!=null)||(level.equals("ROW")&&parent==null))throw new WarehouseException("WAREHOUSE_INVALID_HIERARCHY");
+        if(parent!=null) {
+            var row=one("SELECT hierarchy_level FROM warehouse_locations WHERE id=? AND is_active=1 FOR UPDATE",parent);
+            if(!Objects.equals(row.get("hierarchy_level"),level.equals("ROW")?"ZONE":"ROW"))throw new WarehouseException("WAREHOUSE_INVALID_HIERARCHY");
+        }
+        return insert("INSERT INTO warehouse_locations(code,name,type,hierarchy_level,parent_id,created_by,created_at) VALUES (?,?,?,?,?,?,UTC_TIMESTAMP())",
+                code, name, type, level, parent, actor());
     }
 
     public Map<String,Object> stock(String search, int page, int size) {
@@ -105,11 +125,18 @@ public class WarehouseService {
                 "p.id,p.name,p.sku,p.barcode,p.stock_quantity,p.is_active", "ORDER BY p.name,p.id", page, size, q,q,q);
     }
     public Map<String,Object> movements(Long productId, int page, int size) {
-        String from = "FROM warehouse_stock_movements m LEFT JOIN products p ON p.id=m.product_id";
-        if (productId != null) from += " WHERE m.product_id=?";
+        return movements(productId,page,size,null,null);
+    }
+    public Map<String,Object> movements(Long productId, int page, int size, String dateFrom, String dateTo) {
+        var dates=com.ninimum.api.admin.management.service.OrderListFilters.parse(null,dateFrom,dateTo);
+        String from = "FROM warehouse_stock_movements m LEFT JOIN products p ON p.id=m.product_id WHERE 1=1";
+        List<Object> args=new ArrayList<>();
+        if (productId != null) {from += " AND m.product_id=?";args.add(productId);}
+        if(dates.fromUtc()!=null){from+=" AND m.created_at>=?";args.add(dates.fromUtc());}
+        if(dates.toUtc()!=null){from+=" AND m.created_at<?";args.add(dates.toUtc());}
         return page(from, "m.id,m.product_id,COALESCE(p.name,m.product_name) AS product_name,m.kind,m.quantity_change," +
                 "m.stock_after,m.reference,m.actor,m.note,DATE_FORMAT(m.created_at," + UTC + ") AS created_at",
-                "ORDER BY m.id DESC", page, size, productId == null ? new Object[0] : new Object[]{productId});
+                "ORDER BY m.id DESC", page, size, args.toArray());
     }
     public Map<String,Object> receipts(int page, int size) {
         return page("FROM warehouse_receipts r", "r.id,r.supplier_name,r.invoice_number,r.status,r.created_by,r.posted_by," +
@@ -121,8 +148,13 @@ public class WarehouseService {
         Map<String,Object> result = new LinkedHashMap<>(one("SELECT r.*,DATE_FORMAT(r.created_at," + UTC + ") AS created_at," +
                 "DATE_FORMAT(r.posted_at," + UTC + ") AS posted_at,DATE_FORMAT(r.reversed_at," + UTC + ") AS reversed_at " +
                 "FROM warehouse_receipts r WHERE r.id=?",id));
-        result.put("items",jdbc.queryForList("SELECT i.id,i.product_id,i.product_name,i.quantity,i.location_id,l.code AS location_code " +
+        Object image=result.remove("invoice_image");
+        if(image instanceof byte[])result.put("invoice_image_data","data:image/png;base64,"+Base64.getEncoder().encodeToString((byte[])image));
+        result.put("items",jdbc.queryForList("SELECT i.id,i.product_id,i.product_name,i.quantity,i.location_id,i.unit_price,DATE_FORMAT(i.manufacture_date,'%Y-%m-%d') AS manufacture_date,DATE_FORMAT(i.expiry_date,'%Y-%m-%d') AS expiry_date,i.input_unit,i.input_quantity,i.units_per_block,i.batch_number,l.code AS location_code " +
                 "FROM warehouse_receipt_items i JOIN warehouse_locations l ON l.id=i.location_id WHERE i.receipt_id=? ORDER BY i.id",id));
+        if("DRAFT".equals(result.get("status"))) {
+            for(var item:(List<Map<String,Object>>)result.get("items")){item.remove("quantity");item.remove("input_quantity");}
+        }
         return result;
     }
 
@@ -136,6 +168,7 @@ public class WarehouseService {
         String invoice = text(body.get("invoice_number"), 80, false);
         if(supplierId!=null && invoice.isEmpty()) throw new WarehouseException("WAREHOUSE_INVALID_INPUT");
         String note = text(body.get("note"), 500, false);
+        byte[] image=ReceiptImage.decode(body.get("invoice_image_base64"));
         Object input = body.get("items");
         if (!(input instanceof List) || ((List<?>)input).isEmpty() || ((List<?>)input).size() > 100)
             throw new WarehouseException("WAREHOUSE_INVALID_INPUT");
@@ -144,47 +177,79 @@ public class WarehouseService {
         for (Object value : (List<?>)input) {
             if (!(value instanceof Map)) throw new WarehouseException("WAREHOUSE_INVALID_INPUT");
             Map<?,?> item = (Map<?,?>)value;
-            long product = positive(item.get("product_id")), qty = positive(item.get("quantity")), location = positive(item.get("location_id"));
+            long product = positive(item.get("product_id")), location = positive(item.get("location_id"));
+            ReceiptMetadata metadata=ReceiptMetadata.parse(item,java.time.Clock.systemUTC());
+            long qty=metadata.pieces();
             if (!seen.add(product)) throw new WarehouseException("WAREHOUSE_DUPLICATE_PRODUCT");
-            lines.add(Map.of("product_id",product,"quantity",qty,"location_id",location));
+            lines.add(Map.of("product_id",product,"quantity",qty,"location_id",location,"metadata",metadata));
         }
         lines.sort(Comparator.comparingLong(x -> ((Number)x.get("product_id")).longValue()));
-        long id = insert("INSERT INTO warehouse_receipts(supplier_name,invoice_number,note,status,created_by,created_at) " +
-                "VALUES (?,?,?,'DRAFT',?,UTC_TIMESTAMP())",supplier,invoice,note,actor());
+        long id = insert("INSERT INTO warehouse_receipts(supplier_name,invoice_number,note,status,created_by,created_at,invoice_image) " +
+                "VALUES (?,?,?,'DRAFT',?,UTC_TIMESTAMP(),?)",supplier,invoice,note,actor(),image);
         for (var line : lines) {
             Map<String,Object> product = one("SELECT name,is_active FROM products WHERE id=? FOR UPDATE",line.get("product_id"));
             if (!active(product.get("is_active"))) throw new WarehouseException("WAREHOUSE_PRODUCT_INACTIVE");
-            one("SELECT id FROM warehouse_locations WHERE id=? AND is_active=1 FOR UPDATE",line.get("location_id"));
-            jdbc.update("INSERT INTO warehouse_receipt_items(receipt_id,product_id,product_name,quantity,location_id) VALUES (?,?,?,?,?)",
-                    id,line.get("product_id"),product.get("name"),line.get("quantity"),line.get("location_id"));
+            one("SELECT id FROM warehouse_locations WHERE id=? AND is_active=1 AND hierarchy_level='BIN' FOR UPDATE",line.get("location_id"));
+            ReceiptMetadata metadata=(ReceiptMetadata)line.get("metadata");
+            jdbc.update("INSERT INTO warehouse_receipt_items(receipt_id,product_id,product_name,quantity,location_id,unit_price,manufacture_date,expiry_date,input_unit,input_quantity,units_per_block,batch_number) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)",
+                    id,line.get("product_id"),product.get("name"),line.get("quantity"),line.get("location_id"),metadata.unitPrice(),metadata.manufactured(),metadata.expiry(),metadata.unit(),metadata.inputQuantity(),metadata.unitsPerBlock(),metadata.batch());
         }
         if(supplierId!=null) jdbc.update("INSERT INTO supplier_invoices(receipt_id,supplier_id,invoice_number,invoice_amount,invoice_date,due_date,created_by,created_at) VALUES(?,?,?,?,?,?,?,UTC_TIMESTAMP())",
                 id,supplierId,invoice,invoiceAmount,invoiceDate,invoiceDate.plusDays(((Number)registeredSupplier.get("payment_term_days")).longValue()),actor());
         return id;
     }
 
-    @Transactional public long postReceipt(long id) {
+    @Transactional public void updateReceiptMetadata(long id,long product,Map<String,Object> body) {
         requireEnabled();
-        Map<String,Object> header = one("SELECT status FROM warehouse_receipts WHERE id=? FOR UPDATE",id);
+        var header=one("SELECT status FROM warehouse_receipts WHERE id=? FOR UPDATE",id);
+        if(!"DRAFT".equals(header.get("status")))throw new WarehouseException("WAREHOUSE_INVALID_STATE");
+        var input=new HashMap<String,Object>(body);input.put("quantity",1);input.put("input_unit","PIECE");
+        var metadata=ReceiptMetadata.parse(input,java.time.Clock.systemUTC());
+        if(jdbc.update("UPDATE warehouse_receipt_items SET unit_price=?,manufacture_date=?,expiry_date=?,batch_number=?,metadata_updated_by=?,metadata_updated_at=UTC_TIMESTAMP() WHERE receipt_id=? AND product_id=?",metadata.unitPrice(),metadata.manufactured(),metadata.expiry(),metadata.batch(),actor(),id,product)!=1)throw new WarehouseException("WAREHOUSE_NOT_FOUND");
+    }
+
+    @Deprecated
+    @Transactional public long postReceipt(long id) { return postReceipt(id,Map.of()); }
+    @Transactional public long postReceipt(long id,Map<String,Object> body) {
+        requireEnabled();
+        Map<String,Object> header = one("SELECT status,created_by FROM warehouse_receipts WHERE id=? FOR UPDATE",id);
         if ("POSTED".equals(header.get("status"))) return id;
         if (!"DRAFT".equals(header.get("status"))) throw new WarehouseException("WAREHOUSE_INVALID_STATE");
         List<Map<String,Object>> lines = receiptLines(id);
         if (lines.isEmpty()) throw new WarehouseException("WAREHOUSE_INVALID_INPUT");
+        var auth=SecurityContextHolder.getContext().getAuthentication();
+        boolean owner=auth!=null&&auth.getAuthorities().stream().anyMatch(a->"SUPER_ADMIN".equals(a.getAuthority()));
+        if(actor().equals(header.get("created_by"))&&!owner)throw new WarehouseException("WAREHOUSE_SEPARATE_APPROVER_REQUIRED");
+        if(!(body.get("counts") instanceof List<?> counts)||counts.size()!=lines.size())throw new WarehouseException("WAREHOUSE_BLIND_COUNT_REQUIRED");
+        var counted=new HashMap<Long,Long>();
+        for(Object raw:counts) {
+            if(!(raw instanceof Map<?,?> c))throw new WarehouseException("WAREHOUSE_INVALID_INPUT");
+            long product=positive(c.get("product_id")),quantity=positive(c.get("quantity"));
+            if(counted.put(product,quantity)!=null)throw new WarehouseException("WAREHOUSE_DUPLICATE_PRODUCT");
+        }
+        for(var line:lines) {
+            Object expiry=line.get("expiry_date");
+            if(line.get("unit_price")==null||expiry==null)throw new WarehouseException("WAREHOUSE_RECEIPT_METADATA_REQUIRED");
+            if(!java.time.LocalDate.parse(expiry.toString()).isAfter(java.time.LocalDate.now(java.time.ZoneId.of("Asia/Tashkent"))))throw new WarehouseException("WAREHOUSE_EXPIRED_BATCH");
+        }
+        for(var line:lines)if(!Objects.equals(counted.get(((Number)line.get("product_id")).longValue()),((Number)line.get("quantity")).longValue()))throw new WarehouseException("WAREHOUSE_COUNT_MISMATCH");
+
         for (var line : lines) {
             long product = ((Number)line.get("product_id")).longValue(), qty = ((Number)line.get("quantity")).longValue();
             Map<String,Object> row = one("SELECT stock_quantity,is_active FROM products WHERE id=? FOR UPDATE",product);
             if (!active(row.get("is_active"))) throw new WarehouseException("WAREHOUSE_PRODUCT_INACTIVE");
-            one("SELECT id FROM warehouse_locations WHERE id=? AND is_active=1 FOR UPDATE",line.get("location_id"));
+            one("SELECT id FROM warehouse_locations WHERE id=? AND is_active=1 AND hierarchy_level='BIN' FOR UPDATE",line.get("location_id"));
             if (((Number)row.get("stock_quantity")).longValue() + qty > Integer.MAX_VALUE)
                 throw new WarehouseException("WAREHOUSE_INVALID_INPUT");
             jdbc.update("UPDATE products SET stock_quantity=stock_quantity+?,updated_at=NOW() WHERE id=?",qty,product);
             recordChange(product,qty,"RECEIPT","KR-"+id,actor(),"", "receipt:"+id+":"+product);
         }
+        for(var entry:counted.entrySet())jdbc.update("INSERT INTO warehouse_receipt_counts(receipt_id,product_id,counted_quantity,counted_by,counted_at) VALUES(?,?,?,?,UTC_TIMESTAMP())",id,entry.getKey(),entry.getValue(),actor());
         jdbc.update("UPDATE warehouse_receipts SET status='POSTED',posted_by=?,posted_at=UTC_TIMESTAMP() WHERE id=?",actor(),id);
         return id;
     }
     private List<Map<String,Object>> receiptLines(long id) {
-        return jdbc.queryForList("SELECT product_id,quantity,location_id FROM warehouse_receipt_items WHERE receipt_id=? ORDER BY product_id",id);
+        return jdbc.queryForList("SELECT product_id,quantity,location_id,unit_price,expiry_date FROM warehouse_receipt_items WHERE receipt_id=? ORDER BY product_id",id);
     }
     @Transactional public long reverseReceipt(long id, String reason) {
         requireEnabled();
@@ -195,9 +260,13 @@ public class WarehouseService {
         for (var line : receiptLines(id)) {
             long product = ((Number)line.get("product_id")).longValue(), qty = ((Number)line.get("quantity")).longValue();
             lockStock(product);
-            if (jdbc.update("UPDATE products SET stock_quantity=stock_quantity-?,updated_at=NOW() WHERE id=? AND stock_quantity>=?",qty,product,qty)!=1)
-                throw new WarehouseException("WAREHOUSE_INSUFFICIENT_STOCK");
-            recordChange(product,-qty,"RECEIPT_REVERSAL","KR-"+id,actor(),reason,"reversal:"+id+":"+product);
+            if(isInventoryEnabled()&&new BatchStock(jdbc).active(product)){
+                long delta=new BatchStock(jdbc).reverse(product,id,qty,actor(),reason);
+                recordInventoryAdjustment(product,delta,"RECEIPT_REVERSAL","KR-"+id,reason);
+            }else{
+                if (jdbc.update("UPDATE products SET stock_quantity=stock_quantity-?,updated_at=NOW() WHERE id=? AND stock_quantity>=?",qty,product,qty)!=1)throw new WarehouseException("WAREHOUSE_INSUFFICIENT_STOCK");
+                recordChange(product,-qty,"RECEIPT_REVERSAL","KR-"+id,actor(),reason,"reversal:"+id+":"+product);
+            }
         }
         jdbc.update("UPDATE warehouse_receipts SET status='REVERSED',reversed_by=?,reversed_at=UTC_TIMESTAMP(),reversal_reason=? WHERE id=?",actor(),reason,id);
         return id;
@@ -207,13 +276,16 @@ public class WarehouseService {
     @Transactional(propagation=Propagation.MANDATORY)
     public void recordChange(long product, long delta, String kind, String reference, String actor, String note, String eventKey) {
         if (!enabled || (delta == 0 && !"OPENING".equals(kind))) return;
+        if(isInventoryEnabled())delta=new BatchStock(jdbc).reconcile(product,delta,kind,reference,actor);
         Map<String,Object> row = one("SELECT name,stock_quantity FROM products WHERE id=? FOR UPDATE",product);
         jdbc.update("INSERT INTO warehouse_stock_movements(product_id,product_name,kind,quantity_change,stock_after,reference,actor,note,event_key,created_at) " +
                 "VALUES (?,?,?,?,?,?,?,?,?,UTC_TIMESTAMP())",product,row.get("name"),kind,delta,row.get("stock_quantity"),reference,actor,note,eventKey);
     }
     @Transactional(propagation=Propagation.MANDATORY)
     public long lockStock(long product) {
-        return ((Number)one("SELECT stock_quantity FROM products WHERE id=? FOR UPDATE",product).get("stock_quantity")).longValue();
+        one("SELECT id FROM products WHERE id=? FOR UPDATE",product);
+        if(isInventoryEnabled())new BatchStock(jdbc).refresh(product);
+        return ((Number)one("SELECT stock_quantity FROM products WHERE id=?",product).get("stock_quantity")).longValue();
     }
     public void requireDocumentStock(Map<String,Object> body) {
         if (enabled && body.containsKey("stock_quantity")) throw new WarehouseException("WAREHOUSE_USE_RECEIPTS");

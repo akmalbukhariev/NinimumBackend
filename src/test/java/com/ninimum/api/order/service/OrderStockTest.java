@@ -51,11 +51,14 @@ class OrderStockTest {
         IOrderService service = mock(IOrderService.class);
         when(service.createOrder(any())).thenThrow(new StockUnavailableException(7L, 0));
         VersionResponseResult result = (VersionResponseResult)
-            new OrderController(service).createOrder(order(1)).getBody();
+            new OrderController(service,customer()).createOrder(order(1)).getBody();
         assertNotNull(result);
         assertEquals("STOCK_UNAVAILABLE", result.getResultCode());
         assertEquals(0, ((StockUnavailableResponse) result).getAvailableQuantity());
         assertEquals(7L, ((StockUnavailableResponse) result).getUnavailableProductId());
         assertEquals("Uzr, bu mahsulot qolmagan.", result.getResultMsg());
+    }
+    private com.ninimum.api.security.CurrentCustomer customer() throws Exception {
+        var customer=mock(com.ninimum.api.security.CurrentCustomer.class);when(customer.id()).thenReturn(1L);return customer;
     }
 }

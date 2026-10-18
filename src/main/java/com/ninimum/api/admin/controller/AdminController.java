@@ -53,6 +53,9 @@ public class AdminController extends BaseController {
         try {
             int resultNum = adminService.registerAdmin(param);
             result = resultNum != 0 ? this.setResult(Result.SUCCESS) : this.setResult(Result.SERVER_ERROR);
+        } catch (IllegalArgumentException ex) {
+            result = this.setResult(Result.FAILED);
+            result.setResultMsg("ADMIN_WEAK_PASSWORD");
         } catch (Exception ex) {
             result = this.setResult(Result.SERVER_ERROR);
             log.error("AdminController => registerAdmin: ", ex);

@@ -30,6 +30,7 @@ import java.util.List;
 public class AddressController extends BaseController {
 
     private final IAddressService addressService;
+    private final com.ninimum.api.security.CurrentCustomer customer;
 
     @PostConstruct
     public void init() {
@@ -49,6 +50,7 @@ public class AddressController extends BaseController {
         VersionResponseResult result = null;
 
         try {
+            param.setUserId(customer.id());
             List<AddressDto> addresses = this.addressService.getAddressList(param);
             result = this.setResult(Result.SUCCESS, addresses);
         } catch (Exception ex) {
@@ -72,6 +74,7 @@ public class AddressController extends BaseController {
         VersionResponseResult result = null;
 
         try {
+            param.setUserId(customer.id());
             int resultNum = this.addressService.addAddress(param);
 
             if (resultNum != 0) {
@@ -101,6 +104,7 @@ public class AddressController extends BaseController {
         VersionResponseResult result = null;
 
         try {
+            param.setUserId(customer.id());
             int resultNum = this.addressService.updateAddress(param);
 
             if (resultNum != 0) {
@@ -130,6 +134,7 @@ public class AddressController extends BaseController {
         VersionResponseResult result = null;
 
         try {
+            param.setUserId(customer.id());
             int resultNum = this.addressService.deleteAddress(param);
 
             if (resultNum != 0) {

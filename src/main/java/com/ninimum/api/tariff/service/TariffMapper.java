@@ -8,6 +8,7 @@ import java.util.List;
 
 @Mapper
 public interface TariffMapper {
+    java.util.List<java.util.Map<String,Object>> getProductBenefits(@org.apache.ibatis.annotations.Param("tariffId") Long tariffId);
     List<TariffDto> getTariffList() throws Exception;
 
     TariffDto getTariffDetail(TariffDetailParam param) throws Exception;

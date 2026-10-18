@@ -15,6 +15,7 @@ import java.util.*;
 @RequiredArgsConstructor
 public class WarehouseAppService {
     private final JdbcTemplate jdbc;
+    private final com.ninimum.api.security.login.LoginAttempts loginAttempts;
     private final PasswordEncoder passwords;
     private final WarehouseService warehouse;
     private final com.ninimum.api.deliveryapp.service.ReturnPhotoService returnPhotos;
@@ -37,11 +38,8 @@ public class WarehouseAppService {
         return code;
     }
     private String validPassword(Object value) {
-        if(!(value instanceof String)) throw new WarehouseException("WAREHOUSE_PASSWORD_SHORT");
-        String password=(String)value;
-        if(password.length()<6) throw new WarehouseException("WAREHOUSE_PASSWORD_SHORT");
-        if(password.getBytes(StandardCharsets.UTF_8).length>72) throw new WarehouseException("WAREHOUSE_INVALID_INPUT");
-        return password;
+        try { return com.ninimum.api.security.login.StaffPasswordPolicy.require(value); }
+        catch (IllegalArgumentException ex) { throw new WarehouseException("WAREHOUSE_PASSWORD_SHORT"); }
     }
     public List<Map<String,Object>> workers() {
         requireEnabled();
@@ -76,6 +74,10 @@ public class WarehouseAppService {
     }
     @Transactional(isolation=org.springframework.transaction.annotation.Isolation.READ_COMMITTED) public Map<String,Object> login(String input,String password, java.util.function.Function<String,String> tokens) {
         requireEnabled();String code=code(input);
+        loginAttempts.verify("WAREHOUSE",code,()->{
+            var candidates=jdbc.queryForList("SELECT status,password_hash FROM warehouse_workers WHERE worker_code=?",code);
+            return candidates.size()==1&&"ACTIVE".equals(candidates.get(0).get("status"))&&password!=null&&passwords.matches(password,(String)candidates.get(0).get("password_hash"));
+        });
         var worker=one("SELECT worker_code,full_name,status,password_hash FROM warehouse_workers WHERE worker_code=? FOR UPDATE",code);
         if (!"ACTIVE".equals(worker.get("status")) || password==null || !passwords.matches(password,(String)worker.get("password_hash")))
             throw new WarehouseException("WAREHOUSE_LOGIN_FAILED");
@@ -128,6 +130,7 @@ public class WarehouseAppService {
             if(items.isEmpty()) items=jdbc.queryForList("SELECT i.product_id,MAX(i.product_name) AS product_name,MAX(NULLIF(i.product_image_url,'')) AS product_image_url,p.barcode,SUM(i.quantity) AS required_quantity,0 AS checked_quantity FROM order_items i LEFT JOIN products p ON p.id=i.product_id WHERE i.order_id=? GROUP BY i.product_id,p.barcode ORDER BY i.product_id",id);
         }
         row.put("items",items);
+        row.put("batch_allocations",warehouse.allocations(id));
         row.put("events",jdbc.queryForList("SELECT actor,kind,product_id,quantity,note,DATE_FORMAT(created_at,'%Y-%m-%dT%H:%i:%sZ') AS created_at FROM warehouse_preparation_events WHERE order_id=? ORDER BY id DESC LIMIT 100",id));
         return row;
     }
@@ -271,6 +274,7 @@ public class WarehouseAppService {
         int missing=jdbc.queryForObject("SELECT COUNT(*) FROM warehouse_preparation_items WHERE order_id=? AND checked_quantity<>required_quantity",Integer.class,id);
         if(missing!=0 || jdbc.queryForObject("SELECT COUNT(*) FROM warehouse_preparation_items WHERE order_id=?",Integer.class,id)==0)
             throw new WarehouseException("WAREHOUSE_INCOMPLETE");
+        warehouse.requireFreshInventory(id);
         jdbc.update("UPDATE warehouse_preparations SET status='READY',ready_at=UTC_TIMESTAMP(),updated_at=UTC_TIMESTAMP() WHERE order_id=?",id);
         jdbc.update("UPDATE orders SET status='READY',status_actor=?,status_source='WAREHOUSE',updated_at=NOW() WHERE id=?",code,id);
         event(id,code,"READY",null,null,"");return detail(id);
@@ -305,6 +309,10 @@ public class WarehouseAppService {
         if(!enabled) return true;
         return jdbc.queryForObject("SELECT COUNT(*) FROM warehouse_preparations WHERE order_id=? AND status='READY'",Integer.class,order)==1;
     }
+    @Transactional(propagation=org.springframework.transaction.annotation.Propagation.MANDATORY)
+    public void issueInventoryForJob(long job){long order=((Number)one("SELECT order_id FROM delivery_jobs WHERE id=?",job).get("order_id")).longValue();warehouse.issueOrderStock(order);}
+    @Transactional(propagation=org.springframework.transaction.annotation.Propagation.MANDATORY)
+    public void issueInventoryForLegacy(long delivery){long order=((Number)one("SELECT order_id FROM deliveries WHERE delivery_id=?",delivery).get("order_id")).longValue();warehouse.issueOrderStock(order);}
     /** Call in delivery mutation transaction: order first, then job. Shares lock order with packing. */
     @Transactional(propagation=org.springframework.transaction.annotation.Propagation.MANDATORY)
     public void requireReadyJob(long job) {

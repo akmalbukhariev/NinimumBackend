@@ -50,10 +50,13 @@ public class AdminManagementController extends BaseController {
     public ResponseEntity<Object> orders(
             @RequestParam(required = false) String search,
             @RequestParam(required = false) String status,
+            @RequestParam(name="payment_status",required=false) String paymentStatus,
+            @RequestParam(name="date_from",required=false) String from,
+            @RequestParam(name="date_to",required=false) String to,
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(name = "page_size", defaultValue = "20") int pageSize) {
         try {
-            return ok(service.getOrders(search, status, page, pageSize));
+            return ok(service.getFilteredOrders(search,status,paymentStatus,from,to,page,pageSize));
         } catch (Exception ex) {
             return fail(ex, "orders");
         }
@@ -123,6 +126,8 @@ public class AdminManagementController extends BaseController {
         }
     }
 
+    @GetMapping({"/products/{id}/price-history","/products/{id}/prices"}) public ResponseEntity<Object> priceHistory(@PathVariable long id) {return ok(service.getProductPriceHistory(id));}
+
     @PostMapping(value = "/products/{id}/images", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<Object> addProductImages(
             @PathVariable long id,
@@ -171,6 +176,12 @@ public class AdminManagementController extends BaseController {
         }
     }
 
+    @PostMapping("/categories/image-data")
+    public ResponseEntity<Object> categoryImage(@RequestBody Map<String,Object> body) {
+        try { return ok(Map.of("image_url",service.uploadCategoryImage(body))); }
+        catch(Exception ex) { return fail(ex,"categoryImage"); }
+    }
+
     @GetMapping("/categories")
     public ResponseEntity<Object> categories() {
         try {
@@ -196,6 +207,28 @@ public class AdminManagementController extends BaseController {
         } catch (Exception ex) {
             return fail(ex, "updateCategory");
         }
+    }
+
+    @org.springframework.beans.factory.annotation.Autowired
+    private com.ninimum.api.admin.management.service.CustomerCardService customerCards;
+
+    @GetMapping("/customers/{id}")
+    public ResponseEntity<Object> customerCard(@PathVariable long id,
+            @RequestParam(defaultValue="orders") String section,@RequestParam(defaultValue="1") int page) {
+        try { return ok(customerCards.get(id,section,page)); }
+        catch(Exception ex) { return fail(ex,"customerCard"); }
+    }
+
+    @org.springframework.beans.factory.annotation.Autowired
+    private org.springframework.jdbc.core.JdbcTemplate managementJdbc;
+
+    @PutMapping("/questions/{id}/kind")
+    public ResponseEntity<Object> classifyQuestion(@PathVariable long id,@RequestBody Map<String,Object> body) {
+        try {
+            String kind=java.util.Objects.toString(body.get("kind"),"");
+            if(!java.util.Set.of("QUESTION","COMPLAINT").contains(kind))throw new IllegalArgumentException("Invalid question type");
+            return changed(managementJdbc.update("UPDATE product_questions SET kind=?,classified_by=?,classified_at=UTC_TIMESTAMP(),updated_at=UTC_TIMESTAMP() WHERE id=?",kind,com.ninimum.api.warehouse.WarehouseService.actor(),id));
+        } catch(Exception ex) {return fail(ex,"classifyQuestion");}
     }
 
     @GetMapping("/customers")
@@ -348,10 +381,11 @@ public class AdminManagementController extends BaseController {
     public ResponseEntity<Object> questions(
             @RequestParam(required = false) String search,
             @RequestParam(required = false) String status,
+            @RequestParam(required = false) String kind,
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(name = "page_size", defaultValue = "20") int pageSize) {
         try {
-            return ok(service.getQuestions(search, status, page, pageSize));
+            return ok(service.getFilteredQuestions(search,status,kind,page,pageSize));
         } catch (Exception ex) {
             return fail(ex, "questions");
         }

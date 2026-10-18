@@ -21,6 +21,12 @@ public class AddProductParam {
     private String barcode;
     private String brand;
 
+    private java.math.BigDecimal cost_price;
+    private Integer min_stock_quantity;
+    private Integer shelf_life_days;
+    private String storage_temperature;
+    private String ingredients;
+    private String age_range;
     private Double price;
     private Double subscription_price;
 

@@ -20,6 +20,8 @@ public class DeliveryAppService implements IDeliveryAppService {
 
     private final DeliveryAppMapper mapper;
     private final PasswordEncoder passwordEncoder;
+    private final com.ninimum.api.deliveryapp.dispatch.CourierDispatch dispatch;
+    private final com.ninimum.api.security.login.LoginAttempts loginAttempts;
     private final com.ninimum.api.deliveryapp.service.ReturnPhotoService returnPhotos;
     private final com.ninimum.api.deliveryapp.service.PartialReturnService partialReturns;
     private final com.ninimum.api.warehouse.WarehouseAppService warehouseApp;
@@ -33,6 +35,10 @@ public class DeliveryAppService implements IDeliveryAppService {
             throw new Exception("Courier ID and password are required");
         }
 
+        loginAttempts.verify("COURIER",workerId,()->{
+            DeliveryAppWorkerAuthDto candidate=mapper.getWorkerAuthByWorkerId(workerId.trim());
+            return candidate!=null&&"ACTIVE".equalsIgnoreCase(candidate.getStatus())&&passwordEncoder.matches(password,candidate.getPasswordHash());
+        });
         DeliveryAppWorkerAuthDto auth = mapper.getWorkerAuthByWorkerId(workerId.trim());
         if (auth == null || !"ACTIVE".equalsIgnoreCase(auth.getStatus())) {
             throw new Exception("Delivery worker not found or inactive");
@@ -77,7 +83,7 @@ public class DeliveryAppService implements IDeliveryAppService {
             String phone = param.getPhoneNumber().trim();
             param.setPhoneNumber(phone.isEmpty() ? null : phone);
         }
-        param.setPassword(passwordEncoder.encode(param.getPassword()));
+        param.setPassword(passwordEncoder.encode(com.ninimum.api.security.login.StaffPasswordPolicy.require(param.getPassword())));
 
         if (mapper.createWorker(param) != 1) {
             throw new Exception("Could not create delivery worker");
@@ -102,15 +108,15 @@ public class DeliveryAppService implements IDeliveryAppService {
         DeliveryAppWorkerDto worker = getWorker(workerId);
         mapper.syncPaidOrders();
         var dashboard=mapper.getDashboard(worker.getId());
-        if(warehouseApp.isEnabled()) dashboard.setAvailableCount((int)mapper.getAvailableJobs().stream().filter(j -> warehouseApp.canDeliver(j.getOrderId())).count());
+        dashboard.setAvailableCount((int)mapper.getAvailableJobs().stream().filter(j -> warehouseApp.canDeliver(j.getOrderId())&&dispatch.visible(j.getJobId(),worker.getId())).count());
         return dashboard;
     }
 
     @Override
     public List<DeliveryAppJobDto> getAvailableJobs(String workerId) throws Exception {
-        getWorker(workerId);
+        var worker=getWorker(workerId);
         mapper.syncPaidOrders();
-        return mapper.getAvailableJobs().stream().filter(j -> warehouseApp.canDeliver(j.getOrderId())).toList();
+        return mapper.getAvailableJobs().stream().filter(j -> warehouseApp.canDeliver(j.getOrderId())&&dispatch.visible(j.getJobId(),worker.getId())).toList();
     }
 
     @Override
@@ -130,14 +136,9 @@ public class DeliveryAppService implements IDeliveryAppService {
         if (jobId == null) throw new Exception("jobId is required");
         DeliveryAppWorkerDto worker = getWorker(workerId);
 
-        // Self-heal customer order status from the courier job. This is important
-        // for jobs that were already ACCEPTED before the synchronization change
-        // was deployed. Opening the delivery detail immediately brings Ninimum
-        // to the correct step: ACCEPTED -> READY, ON_THE_WAY -> ON_THE_WAY.
-        mapper.syncOrderStatusFromJob(jobId);
-
         DeliveryAppJobDto job = mapper.getJobDetail(jobId, worker.getId());
         if (job == null) throw new Exception("Delivery job not found");
+        if("WAITING_ASSIGNMENT".equals(job.getJobStatus())&&!dispatch.visible(jobId,worker.getId()))throw new org.springframework.security.access.AccessDeniedException("This delivery offer is not assigned to you");
         // Do not expose evidence to an unassigned courier browsing available deliveries.
         job.setPartialReturn(partialReturns.details(job.getOrderId()));
         if (job.getPartialReturn()!=null || java.util.Set.of("RETURNING", "RETURNED").contains(job.getOrderStatus()))
@@ -162,11 +163,13 @@ public class DeliveryAppService implements IDeliveryAppService {
         if (jobId == null) throw new Exception("jobId is required");
         DeliveryAppWorkerDto worker = getWorker(workerId);
         warehouseApp.requireReadyJob(jobId);
+        dispatch.requireOffer(jobId,worker.getId());
         int updated = mapper.claimJob(jobId, worker.getId());
         if (updated == 0) throw new Exception("This delivery was already taken by another courier");
 
         // ACCEPTED maps to READY in the customer order, which Ninimum
         // displays as the third step: "Yetkazishga tayyor".
+        dispatch.accepted(jobId,worker.getId());
         mapper.syncOrderStatusFromJob(jobId);
 
         mapper.addTracking(jobId, worker.getId(), "ACCEPTED", "Delivery accepted by courier");
@@ -185,10 +188,12 @@ public class DeliveryAppService implements IDeliveryAppService {
         for (Long jobId : param.getJobIds().stream().filter(java.util.Objects::nonNull).distinct().sorted().toList()) {
             if (jobId == null) continue;
             warehouseApp.requireReadyJob(jobId);
-        int updated = mapper.claimJob(jobId, worker.getId());
+            dispatch.requireOffer(jobId,worker.getId());
+            int updated = mapper.claimJob(jobId, worker.getId());
             if (updated == 0) {
                 throw new Exception("One of the selected deliveries was already taken by another courier");
             }
+            dispatch.accepted(jobId,worker.getId());
             mapper.syncOrderStatusFromJob(jobId);
             mapper.addTracking(jobId, worker.getId(), "ACCEPTED", "Delivery accepted by courier as part of a delivery route");
             claimed += updated;
@@ -212,6 +217,7 @@ public class DeliveryAppService implements IDeliveryAppService {
             if (!"ACCEPTED".equals(current)) {
                 throw new Exception("All selected deliveries must be accepted before starting the route");
             }
+            warehouseApp.issueInventoryForJob(jobId);
             int updated = mapper.updateJobStatus(jobId, worker.getId(), "ON_THE_WAY", null);
             if (updated == 0) throw new Exception("Could not start one of the selected deliveries");
             mapper.updateOrderStatusForJob(jobId, "ON_THE_WAY");
@@ -252,6 +258,7 @@ public class DeliveryAppService implements IDeliveryAppService {
             throw new Exception("Invalid delivery status transition: " + current + " -> " + next);
         }
 
+        if("ON_THE_WAY".equals(next))warehouseApp.issueInventoryForJob(param.getJobId());
         int updated = mapper.updateJobStatus(param.getJobId(), worker.getId(), next, param.getNote());
         if (updated == 0) throw new Exception("Could not update delivery status");
 

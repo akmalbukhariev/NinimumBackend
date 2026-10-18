@@ -27,6 +27,7 @@ import java.util.List;
 public class PaymentController extends BaseController {
 
     private final IPaymentService paymentService;
+    private final com.ninimum.api.security.CurrentCustomer customer;
 
     @PostConstruct
     public void init() {
@@ -45,6 +46,7 @@ public class PaymentController extends BaseController {
         VersionResponseResult result;
 
         try {
+            param.setUser_id(customer.id());
             List<PaymentCardDto> cards = paymentService.getPaymentCardList(param);
             result = setResult(Result.SUCCESS, cards);
         } catch (Exception ex) {
@@ -67,6 +69,7 @@ public class PaymentController extends BaseController {
         VersionResponseResult result;
 
         try {
+            param.setUserId(customer.id());
             PaymentCardDto card = paymentService.getPaymentDetail(param);
             result = setResult(Result.SUCCESS, card);
         } catch (Exception ex) {
@@ -89,6 +92,7 @@ public class PaymentController extends BaseController {
         VersionResponseResult result;
 
         try {
+            param.setUser_id(customer.id());
             int resultNum = paymentService.createPaymentCard(param);
 
             if (resultNum != 0) {
@@ -117,6 +121,7 @@ public class PaymentController extends BaseController {
         VersionResponseResult result;
 
         try {
+            param.setUser_id(customer.id());
             int resultNum = paymentService.deletePaymentCard(param);
 
             if (resultNum != 0) {
@@ -145,6 +150,7 @@ public class PaymentController extends BaseController {
         VersionResponseResult result;
 
         try {
+            param.setUser_id(customer.id());
             int resultNum = paymentService.setDefaultPaymentCard(param);
 
             if (resultNum != 0) {
@@ -173,6 +179,7 @@ public class PaymentController extends BaseController {
         VersionResponseResult result;
 
         try {
+            param.setUser_id(customer.id());
             int count = paymentService.hasPaymentCard(param);
             result = setResult(Result.SUCCESS, count > 0);
         } catch (Exception ex) {

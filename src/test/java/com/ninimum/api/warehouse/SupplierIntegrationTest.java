@@ -19,25 +19,71 @@ class SupplierIntegrationTest {
         String url=System.getProperty("supplier.test.jdbc");
         if(!url.matches("jdbc:mariadb://127\\.0\\.0\\.1:[0-9]+/supplier_test"))throw new IllegalArgumentException("Isolated local supplier_test only");
         var ds=new DriverManagerDataSource(url,"root","");jdbc=new JdbcTemplate(ds);tx=new TransactionTemplate(new DataSourceTransactionManager(ds));
-        for(String t:List.of("supplier_payment_records","supplier_invoices","suppliers","warehouse_receipt_items","warehouse_receipts","warehouse_locations","warehouse_stock_movements","products"))jdbc.execute("DROP TABLE IF EXISTS "+t);
+        for(String t:List.of("warehouse_receipt_counts","supplier_payment_records","supplier_invoices","suppliers","warehouse_receipt_items","warehouse_receipts","warehouse_locations","warehouse_stock_movements","products"))jdbc.execute("DROP TABLE IF EXISTS "+t);
         jdbc.execute("CREATE TABLE products(id BIGINT PRIMARY KEY,name VARCHAR(100),stock_quantity INT,is_active BOOLEAN,updated_at DATETIME)");
-        jdbc.execute("CREATE TABLE warehouse_locations(id BIGINT PRIMARY KEY,code VARCHAR(50),is_active BOOLEAN)");
+        jdbc.execute("CREATE TABLE warehouse_locations(id BIGINT AUTO_INCREMENT PRIMARY KEY,code VARCHAR(50),name VARCHAR(160),type VARCHAR(20) NOT NULL DEFAULT 'SHELF',is_active BOOLEAN DEFAULT TRUE,created_by VARCHAR(160),created_at DATETIME)");
         jdbc.execute("CREATE TABLE warehouse_receipts(id BIGINT AUTO_INCREMENT PRIMARY KEY,supplier_name VARCHAR(160),invoice_number VARCHAR(80),note VARCHAR(500),status VARCHAR(30),created_by VARCHAR(160),created_at DATETIME,posted_by VARCHAR(160),posted_at DATETIME,reversed_by VARCHAR(160),reversed_at DATETIME,reversal_reason VARCHAR(500))");
         jdbc.execute("CREATE TABLE warehouse_receipt_items(id BIGINT AUTO_INCREMENT PRIMARY KEY,receipt_id BIGINT,product_id BIGINT,product_name VARCHAR(100),quantity INT,location_id BIGINT)");
         jdbc.execute("CREATE TABLE warehouse_stock_movements(id BIGINT AUTO_INCREMENT PRIMARY KEY,product_id BIGINT,product_name VARCHAR(100),kind VARCHAR(40),quantity_change BIGINT,stock_after BIGINT,reference VARCHAR(160),actor VARCHAR(160),note VARCHAR(500),event_key VARCHAR(200) UNIQUE,created_at DATETIME)");
-        jdbc.update("INSERT INTO products VALUES(1,'Test product',0,1,NOW())");jdbc.update("INSERT INTO warehouse_locations VALUES(1,'A1',1)");
+        jdbc.update("INSERT INTO products VALUES(1,'Test product',0,1,NOW())");jdbc.update("INSERT INTO warehouse_locations(id,code,is_active) VALUES(1,'A1',1)");
         var script=new ResourceDatabasePopulator(new FileSystemResource("database/migrations/20261015_suppliers.sql"));script.execute(ds);script.execute(ds);
+        new ResourceDatabasePopulator(new FileSystemResource("database/migrations/20261017_receipt_approval.sql")).execute(ds);
+        new ResourceDatabasePopulator(new FileSystemResource("database/migrations/20261017_location_hierarchy.sql")).execute(ds);
+        var metadataMigration=new ResourceDatabasePopulator(new FileSystemResource("database/migrations/20261017_receipt_metadata.sql"));metadataMigration.execute(ds);metadataMigration.execute(ds);
         suppliers=new SupplierService(jdbc);warehouse=new WarehouseService(jdbc);ReflectionTestUtils.setField(warehouse,"enabled",true);
     }
+    long post(long id) {
+        var context=org.springframework.security.core.context.SecurityContextHolder.getContext();
+        var previous=context.getAuthentication();
+        context.setAuthentication(new org.springframework.security.authentication.UsernamePasswordAuthenticationToken("owner",null,List.of(new org.springframework.security.core.authority.SimpleGrantedAuthority("SUPER_ADMIN"))));
+        try{return warehouse.postReceipt(id,Map.of("counts",List.of(Map.of("product_id",1,"quantity",2))));}finally{context.setAuthentication(previous);}
+    }
+    @Test void receiptNeedsBlindCountAndSeparateApproverExceptOwner() {
+        var context=org.springframework.security.core.context.SecurityContextHolder.getContext();
+        context.setAuthentication(new org.springframework.security.authentication.UsernamePasswordAuthenticationToken("creator",null,List.of(new org.springframework.security.core.authority.SimpleGrantedAuthority("ADMIN"))));
+        try {
+            long supplier=supplier(),r=receipt(supplier,"BLIND");
+            assertThrows(WarehouseException.class,()->tx.execute(s->warehouse.postReceipt(r,Map.of("counts",List.of(Map.of("product_id",1,"quantity",2))))));
+            var draft=warehouse.receipt(r);assertFalse(((List<Map<String,Object>>)draft.get("items")).get(0).containsKey("quantity"));
+            context.setAuthentication(new org.springframework.security.authentication.UsernamePasswordAuthenticationToken("checker",null,List.of(new org.springframework.security.core.authority.SimpleGrantedAuthority("ADMIN"))));
+            assertThrows(WarehouseException.class,()->tx.execute(s->warehouse.postReceipt(r,Map.of())));
+            assertThrows(WarehouseException.class,()->tx.execute(s->warehouse.postReceipt(r,Map.of("counts",List.of(Map.of("product_id",1,"quantity",3))))));
+            assertEquals(0,jdbc.queryForObject("SELECT stock_quantity FROM products WHERE id=1",Integer.class));
+            tx.execute(s->warehouse.postReceipt(r,Map.of("counts",List.of(Map.of("product_id",1,"quantity",2)))));
+            assertEquals("checker",jdbc.queryForObject("SELECT counted_by FROM warehouse_receipt_counts WHERE receipt_id=?",String.class,r));
+        }finally{context.setAuthentication(null);}
+    }
+    @Test void locationHierarchyAcceptsZoneRowBinAndRejectsWrongParents() {
+        long zone=tx.execute(s->warehouse.createLocation(Map.of("code","Z1","name","Zone","type","RECEIVING","hierarchy_level","ZONE")));
+        long row=tx.execute(s->warehouse.createLocation(Map.of("code","R1","name","Row","type","COLD_STORAGE","hierarchy_level","ROW","parent_id",zone)));
+        long bin=tx.execute(s->warehouse.createLocation(Map.of("code","B1","name","Bin","type","PICKING","hierarchy_level","BIN","parent_id",row)));
+        assertEquals("Z1 / R1 / B1",warehouse.locations().stream().filter(v->((Number)v.get("id")).longValue()==bin).findFirst().orElseThrow().get("path"));
+        assertThrows(WarehouseException.class,()->tx.execute(s->warehouse.createLocation(Map.of("code","BAD","name","Bad","type","SHELF","hierarchy_level","BIN","parent_id",zone))));
+        assertThrows(WarehouseException.class,()->tx.execute(s->warehouse.createLocation(Map.of("code","BAD2","name","Bad","type","SHELF","hierarchy_level","ROW"))));
+        long supplier=supplier();
+        assertThrows(WarehouseException.class,()->tx.execute(s->warehouse.createReceipt(Map.of("supplier_id",supplier,"invoice_number","ZONE","invoice_amount","1000","invoice_date","2026-10-01","items",List.of(Map.of("product_id",1,"quantity",2,"location_id",zone,"unit_price","500","expiry_date",java.time.LocalDate.now().plusYears(1).toString()))))));
+    }
+    @Test void receiptMetadataConvertsBlocksAndCannotApproveExpiredDraftOrEditPostedReceipt() {
+        long supplier=supplier();
+        long id=tx.execute(s->warehouse.createReceipt(Map.of("supplier_id",supplier,"invoice_number","BLOCKS","invoice_amount","1000","invoice_date","2026-10-01","items",List.of(Map.of("product_id",1,"quantity",1,"input_unit","BLOCK","units_per_block",2,"location_id",1,"unit_price","500","expiry_date",java.time.LocalDate.now().plusYears(1).toString())))));
+        assertEquals(2,jdbc.queryForObject("SELECT quantity FROM warehouse_receipt_items WHERE receipt_id=?",Integer.class,id));
+        jdbc.update("UPDATE warehouse_receipt_items SET expiry_date='2000-01-01' WHERE receipt_id=?",id);
+        assertThrows(WarehouseException.class,()->tx.execute(s->post(id)));
+        assertEquals(0,jdbc.queryForObject("SELECT stock_quantity FROM products WHERE id=1",Integer.class));
+        tx.executeWithoutResult(s->warehouse.updateReceiptMetadata(id,1,Map.of("unit_price","450.50","expiry_date",java.time.LocalDate.now().plusYears(1).toString(),"batch_number","LOT-A")));
+        tx.execute(s->post(id));assertEquals(2,jdbc.queryForObject("SELECT stock_quantity FROM products WHERE id=1",Integer.class));
+        assertThrows(WarehouseException.class,()->tx.executeWithoutResult(s->warehouse.updateReceiptMetadata(id,1,Map.of("unit_price","1","expiry_date",java.time.LocalDate.now().plusYears(1).toString()))));
+        assertEquals(new BigDecimal("450.50"),jdbc.queryForObject("SELECT unit_price FROM warehouse_receipt_items WHERE receipt_id=?",BigDecimal.class,id));
+    }
     long supplier(){return tx.execute(s->suppliers.save(null,Map.of("name","  Supplier  ","payment_term_days",7)));}
-    long receipt(long supplier,String invoice){return tx.execute(s->warehouse.createReceipt(Map.of("supplier_id",supplier,"invoice_number",invoice,"invoice_amount","1000.00","invoice_date","2026-10-01","items",List.of(Map.of("product_id",1,"quantity",2,"location_id",1)))));}
+    long receipt(long supplier,String invoice){return tx.execute(s->warehouse.createReceipt(Map.of("supplier_id",supplier,"invoice_number",invoice,"invoice_amount","1000.00","invoice_date","2026-10-01","items",List.of(Map.of("product_id",1,"quantity",2,"location_id",1,"unit_price","500","expiry_date",java.time.LocalDate.now().plusYears(1).toString())))));}
     Map<String,Object> payment(long receipt,String amount,String reference){return Map.of("receipt_id",receipt,"amount",amount,"reference",reference,"paid_date","2026-10-02");}
     BigDecimal balance(long supplier){return new BigDecimal(suppliers.detail(supplier).get("outstanding_amount").toString());}
     @Test void completeReceiptRecordPaymentReconcileAndVoidFlow() {
         long id=supplier(),receipt=receipt(id,"INV-1");assertEquals("Supplier",suppliers.detail(id).get("name"));
         assertEquals(0,balance(id).signum());
         assertEquals("2026-10-08",jdbc.queryForObject("SELECT CAST(due_date AS CHAR) FROM supplier_invoices WHERE receipt_id=?",String.class,receipt));
-        tx.execute(s->warehouse.postReceipt(receipt));tx.execute(s->warehouse.postReceipt(receipt));
+        tx.execute(s->post(receipt));tx.execute(s->post(receipt));
         assertEquals(2,jdbc.queryForObject("SELECT stock_quantity FROM products WHERE id=1",Integer.class));
         assertEquals(0,balance(id).compareTo(new BigDecimal("1000")));
         long p=tx.execute(s->suppliers.recordPayment(id,payment(receipt,"400","BANK-1")));
@@ -64,7 +110,7 @@ class SupplierIntegrationTest {
     @Test void draftCannotReceivePaymentAndReversalRetainsCreditAndHistory() {
         long id=supplier(),r=receipt(id,"INV-1");
         assertThrows(WarehouseException.class,()->tx.execute(s->suppliers.recordPayment(id,payment(r,"100","DRAFT"))));
-        tx.execute(s->warehouse.postReceipt(r));tx.execute(s->suppliers.recordPayment(id,payment(r,"100","BANK")));
+        tx.execute(s->post(r));tx.execute(s->suppliers.recordPayment(id,payment(r,"100","BANK")));
         tx.execute(s->warehouse.reverseReceipt(r,"Returned to supplier"));
         assertEquals(0,balance(id).compareTo(new BigDecimal("-100")));
         assertEquals(0,jdbc.queryForObject("SELECT stock_quantity FROM products WHERE id=1",Integer.class));
@@ -80,8 +126,26 @@ class SupplierIntegrationTest {
         assertThrows(WarehouseException.class,()->SupplierService.invoiceDate("2026-02-30"));
         assertThrows(WarehouseException.class,()->suppliers.calendar("2026-10-20","2026-10-01"));
     }
+    @Test void settledInvoiceIsNotOverdueAndVoidRestoresOverdueStatus() {
+        long id=supplier(),r=receipt(id,"INV-OVERDUE");
+        jdbc.update("UPDATE supplier_invoices SET due_date=DATE(UTC_TIMESTAMP()+INTERVAL 5 HOUR)-INTERVAL 1 DAY WHERE receipt_id=?",r);
+        assertEquals(0,overdue(id));
+        tx.execute(s->post(r));
+        assertEquals(1,overdue(id));
+        long payment=tx.execute(s->suppliers.recordPayment(id,payment(r,"1000","SETTLED")));
+        assertEquals(0,overdue(id));
+        tx.executeWithoutResult(s->suppliers.voidPayment(id,payment,"Test correction"));
+        assertEquals(1,overdue(id));
+        tx.execute(s->warehouse.reverseReceipt(r,"Test reversal"));
+        assertEquals(0,overdue(id));
+    }
+    @SuppressWarnings("unchecked")
+    int overdue(long id) {
+        var invoices=(List<Map<String,Object>>)suppliers.detail(id).get("invoices");
+        return ((Number)invoices.get(0).get("overdue")).intValue();
+    }
     @Test void concurrentRecordsCannotOverpayTheInvoice() throws Exception {
-        long id=supplier(),r=receipt(id,"INV-CONCURRENT");tx.execute(s->warehouse.postReceipt(r));
+        long id=supplier(),r=receipt(id,"INV-CONCURRENT");tx.execute(s->post(r));
         var pool=java.util.concurrent.Executors.newFixedThreadPool(2);
         var start=new java.util.concurrent.CountDownLatch(1);
         try {

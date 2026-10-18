@@ -298,4 +298,10 @@
             AND status IN ('DELIVERED', 'CANCELLED')
 
     </update>
+    <select id="getTariffBenefits" resultType="map">
+        SELECT t.use_product_rules,t.free_delivery,t.recurring_order_days FROM user_tariffs u JOIN tariff_plans t ON t.id=u.tariff_plan_id WHERE u.id=#{subscriptionId} AND u.user_id=#{userId} AND u.status='ACTIVE' AND NOW() BETWEEN u.start_date AND u.end_date
+    </select>
+    <select id="getTariffProductDiscount" resultType="int">
+        SELECT b.discount_percent FROM tariff_product_benefits b JOIN user_tariffs u ON u.tariff_plan_id=b.tariff_id WHERE u.id=#{subscriptionId} AND b.product_id=#{productId}
+    </select>
 </mapper>

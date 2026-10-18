@@ -22,6 +22,8 @@ public class WarehouseAppController extends BaseController {
             jwt.generateToken(new UsernamePasswordAuthenticationToken(code,null,List.of(new SimpleGrantedAuthority(Constant.ROLE_WAREHOUSE)))).getAccessToken()));}
         catch(WarehouseException ex) {if ("WAREHOUSE_PREPARATION_DISABLED".equals(ex.getMessage())) throw ex;throw new WarehouseException("WAREHOUSE_LOGIN_FAILED");}
     }
+    @ExceptionHandler(org.springframework.security.authentication.LockedException.class) public Object locked() {return error("LOGIN_LOCKED_15_MINUTES",429);}
+    @ExceptionHandler(org.springframework.security.authentication.BadCredentialsException.class) public Object badPassword() {return error("WAREHOUSE_LOGIN_FAILED",401);}
     @GetMapping("/me") public Object me(Authentication auth) {return ok(service.worker(auth.getName()));}
     @PostMapping("/logout") public Object logout(Authentication auth,@RequestHeader("Authorization") String token) {service.logout(auth.getName(),token.substring(7));return ok(null);}
     @GetMapping("/orders") public Object orders(Authentication auth,@RequestParam(defaultValue="queue") String view,@RequestParam(defaultValue="1") int page) {return ok(service.orders(auth.getName(),view,page,20,false));}

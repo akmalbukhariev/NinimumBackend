@@ -49,6 +49,9 @@ public class ProductQuestionService implements IProductQuestionService {
             return 0;
         }
 
+        String kind=param.getKind()==null?"QUESTION":param.getKind().trim().toUpperCase(java.util.Locale.ROOT);
+        if(!java.util.Set.of("QUESTION","COMPLAINT").contains(kind))throw new IllegalArgumentException("Invalid question type");
+        param.setKind(kind);
         param.setQuestion(question);
         return productQuestionMapper.addQuestion(param);
     }

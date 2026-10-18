@@ -23,26 +23,28 @@ class WarehouseAppIntegrationTest {
         if(!url.matches("jdbc:mariadb://127\\.0\\.0\\.1:[0-9]+/warehouse_test")) throw new IllegalArgumentException("Isolated loopback warehouse_test only");
         var ds=new DriverManagerDataSource(url,"root","");jdbc=new JdbcTemplate(ds);
         jdbc.execute("SET FOREIGN_KEY_CHECKS=0");
-        for(String t:List.of("delivery_partial_return_items","delivery_partial_returns","delivery_return_photos","warehouse_preparation_items","warehouse_preparation_events","warehouse_preparations","warehouse_app_sessions","warehouse_workers","warehouse_app_schema","order_items","orders","delivery_jobs","products")) jdbc.execute("DROP TABLE IF EXISTS "+t);
+        for(String t:List.of("warehouse_order_return_items","warehouse_order_returns","delivery_partial_return_items","delivery_partial_returns","delivery_return_photos","warehouse_preparation_items","warehouse_preparation_events","warehouse_preparations","warehouse_app_sessions","warehouse_workers","warehouse_app_schema","order_items","orders","delivery_jobs","products")) jdbc.execute("DROP TABLE IF EXISTS "+t);
         jdbc.execute("SET FOREIGN_KEY_CHECKS=1");
         jdbc.execute("CREATE TABLE products(id BIGINT PRIMARY KEY,barcode VARCHAR(120),stock_quantity INT)");
-        jdbc.execute("CREATE TABLE orders(id BIGINT PRIMARY KEY,order_number VARCHAR(100),payment_status VARCHAR(20),status VARCHAR(30),ordered_at DATETIME,updated_at DATETIME)");
+        jdbc.execute("CREATE TABLE orders(id BIGINT PRIMARY KEY,order_number VARCHAR(100),payment_status VARCHAR(20),status VARCHAR(30),ordered_at DATETIME,updated_at DATETIME,status_actor VARCHAR(255),status_source VARCHAR(40),status_reason VARCHAR(500))");
         jdbc.execute("CREATE TABLE order_items(id BIGINT PRIMARY KEY,order_id BIGINT,product_id BIGINT,product_name VARCHAR(255),quantity INT,product_image_url VARCHAR(1000))");
         jdbc.execute("CREATE TABLE delivery_jobs(id BIGINT PRIMARY KEY,order_id BIGINT UNIQUE,status VARCHAR(30),note VARCHAR(500))");
         jdbc.update("INSERT INTO products VALUES (1,'123456',10),(2,NULL,7)");
-        jdbc.update("INSERT INTO orders VALUES (1,'ORDER1','PAID','CONFIRMED',NOW(),NOW()),(2,'ORDER2','PENDING','CONFIRMED',NOW(),NOW())");
+        jdbc.update("INSERT INTO orders(id,order_number,payment_status,status,ordered_at,updated_at) VALUES (1,'ORDER1','PAID','CONFIRMED',NOW(),NOW()),(2,'ORDER2','PENDING','CONFIRMED',NOW(),NOW())");
         jdbc.update("INSERT INTO order_items(id,order_id,product_id,product_name,quantity) VALUES (1,1,1,'Milk',2),(2,1,1,'Milk',1),(3,1,2,'Bread',1)");
         jdbc.update("INSERT INTO delivery_jobs(id,order_id,status) VALUES (1,1,'WAITING_ASSIGNMENT')");
-        new ResourceDatabasePopulator(new FileSystemResource("warehouse-step2.sql")).execute(ds);
-        new ResourceDatabasePopulator(new FileSystemResource("database/migrations/20261012_return_photos.sql")).execute(ds);
+        new ResourceDatabasePopulator(new FileSystemResource("src/test/resources/live-schema-fixtures/warehouse-step2.sql")).execute(ds);
+        new ResourceDatabasePopulator(new FileSystemResource("src/test/resources/live-schema-fixtures/return-photos.sql")).execute(ds);
         new org.springframework.jdbc.datasource.init.ResourceDatabasePopulator(new FileSystemResource("database/migrations/20261012_partial_returns.sql")).execute(ds);
         var warehouse=org.mockito.Mockito.mock(WarehouseService.class);org.mockito.Mockito.when(warehouse.isEnabled()).thenReturn(true);
-        var target=new WarehouseAppService(jdbc,PasswordEncoderFactories.createDelegatingPasswordEncoder(),warehouse,new com.ninimum.api.deliveryapp.service.ReturnPhotoService(jdbc));
+        new ResourceDatabasePopulator(new FileSystemResource("database/migrations/20261017_login_protection.sql")).execute(ds);
+        jdbc.update("DELETE FROM login_attempt_state");jdbc.update("DELETE FROM login_attempt_audit");
+        var target=new WarehouseAppService(jdbc,new com.ninimum.api.security.login.LoginAttempts(jdbc,new DataSourceTransactionManager(ds)),PasswordEncoderFactories.createDelegatingPasswordEncoder(),warehouse,new com.ninimum.api.deliveryapp.service.ReturnPhotoService(jdbc));
         ReflectionTestUtils.setField(target,"enabled",true);target.verifySchema();
         var manager=new DataSourceTransactionManager(ds);tx=new TransactionTemplate(manager);
         var factory=new ProxyFactory(target);factory.setProxyTargetClass(true);factory.addAdvice(new TransactionInterceptor(manager,new AnnotationTransactionAttributeSource()));app=(WarehouseAppService)factory.getProxy();
-        app.createWorker(Map.of("worker_code","WH001","full_name","Worker one","password","sample-password"));
-        app.createWorker(Map.of("worker_code","WH002","full_name","Worker two","password","sample-password"));
+        app.createWorker(Map.of("worker_code","WH001","full_name","Worker one","password","Sample-Pass9!"));
+        app.createWorker(Map.of("worker_code","WH002","full_name","Worker two","password","Sample-Pass9!"));
     }
     void checkMilk(int qty) {app.check(1,"WH001",Map.of("product_id",1,"quantity",qty,"barcode","123456"));}
     void complete() {app.claim(1,"WH001");checkMilk(3);app.check(1,"WH001",Map.of("product_id",2,"quantity",1,"reason","No barcode on this product"));app.ready(1,"WH001");}
@@ -85,7 +87,7 @@ class WarehouseAppIntegrationTest {
     }
     @Test void completedOrderIsReadyOnceAndDoesNotConsumeStockAgain() {
         complete();app.ready(1,"WH001");
-        assertTrue(app.canDeliver(1));assertEquals("PREPARING",jdbc.queryForObject("SELECT status FROM orders WHERE id=1",String.class));
+        assertTrue(app.canDeliver(1));assertEquals("READY",jdbc.queryForObject("SELECT status FROM orders WHERE id=1",String.class));
         assertEquals(1,jdbc.queryForObject("SELECT COUNT(*) FROM warehouse_preparation_events WHERE kind='READY'",Integer.class));
         assertEquals(10,jdbc.queryForObject("SELECT stock_quantity FROM products WHERE id=1",Integer.class));
         tx.executeWithoutResult(s->app.requireReadyJob(1));
@@ -109,11 +111,12 @@ class WarehouseAppIntegrationTest {
         fails("WAREHOUSE_ORDER_UNAVAILABLE",()->tx.executeWithoutResult(s->app.requireReadyJob(1)));
     }
     @Test void loginReplacesOldSessionAndDeactivationRevokesIt() {
-        app.login("wh001","sample-password",c->"token1");assertTrue(app.isCurrent("WH001","token1"));
-        app.login("WH001","sample-password",c->"token2");assertFalse(app.isCurrent("WH001","token1"));assertTrue(app.isCurrent("WH001","token2"));
+        app.login("wh001","Sample-Pass9!",c->"token1");assertTrue(app.isCurrent("WH001","token1"));
+        app.login("WH001","Sample-Pass9!",c->"token2");assertFalse(app.isCurrent("WH001","token1"));assertTrue(app.isCurrent("WH001","token2"));
         long id=jdbc.queryForObject("SELECT id FROM warehouse_workers WHERE worker_code='WH001'",Long.class);
         app.updateWorker(id,Map.of("status","INACTIVE"));assertFalse(app.isCurrent("WH001","token2"));
-        fails("WAREHOUSE_LOGIN_FAILED",()->app.login("WH001","sample-password",c->"token3"));
+        // Login lockout now rejects inactive workers first; the controller still maps this to WAREHOUSE_LOGIN_FAILED (401).
+        assertThrows(org.springframework.security.authentication.BadCredentialsException.class,()->app.login("WH001","Sample-Pass9!",c->"token3"));
     }
     @Test void queueMineHistoryAndMigrationAreConsistent() {
         assertEquals(1L,app.orders("WH001","queue",1,20,false).get("total"));
@@ -121,7 +124,7 @@ class WarehouseAppIntegrationTest {
         assertEquals(1L,app.orders("WH001","mine",1,20,false).get("total"));
         checkMilk(3);app.check(1,"WH001",Map.of("product_id",2,"quantity",1,"reason","No barcode"));app.ready(1,"WH001");
         assertEquals(1L,app.orders("WH001","history",1,20,false).get("total"));
-        new ResourceDatabasePopulator(new FileSystemResource("warehouse-step2.sql")).execute(jdbc.getDataSource());assertTrue(app.canDeliver(1));
+        new ResourceDatabasePopulator(new FileSystemResource("src/test/resources/live-schema-fixtures/warehouse-step2.sql")).execute(jdbc.getDataSource());assertTrue(app.canDeliver(1));
     }
     @Test void courierMustRecheckReadyAfterConcurrentAdminReset() throws Exception {
         complete();

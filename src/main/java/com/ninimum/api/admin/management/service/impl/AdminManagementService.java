@@ -11,6 +11,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.Base64;
+import java.util.Objects;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -53,14 +54,20 @@ public class AdminManagementService implements IAdminManagementService {
 
     @Override
     public Map<String, Object> getOrders(String search, String status, int page, int pageSize) {
+        return getFilteredOrders(search,status,null,null,null,page,pageSize);
+    }
+
+    @Override
+    public Map<String,Object> getFilteredOrders(String search,String status,String paymentStatus,String from,String to,int page,int pageSize) {
+        var filters=com.ninimum.api.admin.management.service.OrderListFilters.parse(paymentStatus,from,to);
         page = page(page);
         pageSize = size(pageSize);
         int offset = (page - 1) * pageSize;
         String cleanedSearch = clean(search);
         String cleanedStatus = clean(status);
         return pageResult(
-                mapper.getOrders(cleanedSearch, cleanedStatus, offset, pageSize),
-                mapper.countOrders(cleanedSearch, cleanedStatus),
+                mapper.getOrders(cleanedSearch, cleanedStatus, filters.paymentStatus(), filters.fromUtc(), filters.toUtc(), offset, pageSize),
+                mapper.countOrders(cleanedSearch, cleanedStatus, filters.paymentStatus(), filters.fromUtc(), filters.toUtc()),
                 page,
                 pageSize
         );
@@ -74,6 +81,7 @@ public class AdminManagementService implements IAdminManagementService {
         result.put("items", mapper.getOrderItems(id));
         result.put("payments", mapper.getOrderPayments(id));
         result.put("status_history", mapper.getOrderStatusHistory(id));
+        result.put("step_history", mapper.getOrderStepHistory(id));
         if(result.get("order")!=null) result.put("partial_return",partialReturns.details(id));
         if (result.get("order") != null) result.put("return_photo", returnPhotos.forOrder(id));
         return result;
@@ -123,11 +131,32 @@ public class AdminManagementService implements IAdminManagementService {
         return result;
     }
 
+    @Override public java.util.List<CamelCaseMap> getProductPriceHistory(long id){return mapper.getPriceHistory(id);}
     @Override
+    @Transactional
     public int updateProduct(long id, Map<String, Object> body) {
+        body=new LinkedHashMap<>(body);
+        com.ninimum.api.product.validation.ProductMetadata.normalize(body);
         warehouse.requireDocumentStock(body);
-        body.put("id", id);
-        return mapper.updateProduct(body);
+        var before=mapper.lockProductPrices(id);
+        if(before==null)return 0;
+        var changes=new java.util.ArrayList<Map<String,Object>>();
+        String reason=Objects.toString(body.get("price_change_reason"),"").trim();
+        if(reason.length()>500)throw new IllegalArgumentException("Price reason is too long");
+        for(String field:List.of("price","subscription_price","cost_price"))if(body.containsKey(field)) {
+            java.math.BigDecimal oldAmount=before.get(field)==null?null:new java.math.BigDecimal(before.get(field).toString());
+            java.math.BigDecimal newAmount=body.get(field)==null?null:new java.math.BigDecimal(body.get(field).toString()).setScale(2,java.math.RoundingMode.UNNECESSARY);
+            if(!field.equals("cost_price")&&(newAmount==null?field.equals("price"):newAmount.signum()<=0||newAmount.compareTo(new java.math.BigDecimal("9999999999.99"))>0))throw new IllegalArgumentException("Invalid product price");
+            body.put(field,newAmount);
+            boolean same=oldAmount==null?newAmount==null:newAmount!=null&&oldAmount.compareTo(newAmount)==0;
+            if(!same){var change=new LinkedHashMap<String,Object>();change.put("product_id",id);change.put("field_name",field);change.put("old_amount",oldAmount);change.put("new_amount",newAmount);changes.add(change);}
+        }
+        var auth=org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
+        boolean staff=auth!=null&&auth.getAuthorities().stream().noneMatch(a->"SUPER_ADMIN".equals(a.getAuthority()));
+        if(!changes.isEmpty()&&staff&&reason.isEmpty())throw new IllegalArgumentException("A reason is required for price changes");
+        body.put("id", id);int changed=mapper.updateProduct(body);
+        if(changed>0)for(var change:changes){change.put("reason",reason);change.put("changed_by",com.ninimum.api.warehouse.WarehouseService.actor());mapper.insertPriceHistory(change);}
+        return changed;
     }
 
     @Override
@@ -275,10 +304,49 @@ public class AdminManagementService implements IAdminManagementService {
         return mapper.updateCategory(data);
     }
 
+    @Override
+    public String uploadCategoryImage(Map<String,Object> body) throws Exception {
+        String encoded=Objects.toString(body.get("base64"), "");
+        if(encoded.isBlank() || encoded.length()>2800000) throw new IllegalArgumentException("Image must be at most 2 MB");
+        byte[] bytes=Base64.getDecoder().decode(encoded);
+        if(bytes.length>2*1024*1024) throw new IllegalArgumentException("Image must be at most 2 MB");
+        try(var input=javax.imageio.ImageIO.createImageInputStream(new java.io.ByteArrayInputStream(bytes))) {
+            var readers=javax.imageio.ImageIO.getImageReaders(input);
+            if(!readers.hasNext()) throw new IllegalArgumentException("Unsupported image");
+            var reader=readers.next();
+            try {
+                reader.setInput(input);
+                if((long)reader.getWidth(0)*reader.getHeight(0)>16000000) throw new IllegalArgumentException("Image dimensions too large");
+                var image=reader.read(0);
+                var output=new java.io.ByteArrayOutputStream();
+                try { if(!javax.imageio.ImageIO.write(image,"png",output)) throw new IllegalArgumentException("Unsupported image"); }
+                finally { image.flush(); }
+                return fileService.saveProductImage(output.toByteArray(),"category.png");
+            } finally { reader.dispose(); }
+        }
+    }
+
     private void validateCategory(Long id, Map<String, Object> data) {
+        for(String key:List.of("name_uz","name_ru")) if(data.containsKey(key)) {
+            String value=clean(data.get(key)==null?null:data.get(key).toString());
+            if(value!=null && value.length()>255) throw new IllegalArgumentException("Category name too long");
+            data.put(key,value);
+        }
+        if(data.containsKey("image_url")) {
+            String image=Objects.toString(data.get("image_url"),"").trim();
+            if(!image.isEmpty() && !image.matches("products/[A-Za-z0-9._-]+")) {
+                var uri=java.net.URI.create(image);
+                if(!("https".equals(uri.getScheme()) || "http".equals(uri.getScheme())) || uri.getHost()==null || uri.getUserInfo()!=null)
+                    throw new IllegalArgumentException("Invalid category image URL");
+            }
+            if(image.length()>2000) throw new IllegalArgumentException("Image URL too long");
+            data.put("image_url",image);
+        }
+
         if (id == null || data.containsKey("name")) {
             String name = clean(data.get("name") == null ? null : data.get("name").toString());
             if (name == null) throw new IllegalArgumentException("Category name is required");
+            if(name.length()>255) throw new IllegalArgumentException("Category name too long");
             data.put("name", name);
         }
         var parents = new java.util.HashMap<Long, Long>();
@@ -407,6 +475,7 @@ public class AdminManagementService implements IAdminManagementService {
             warehouseApp.requireReadyJob(id);
         body.put("id", id);
         int result = mapper.updateDeliveryJob(body);
+        if(result>0&&"ON_THE_WAY".equals(body.get("status")))warehouseApp.issueInventoryForJob(id);
         if (result == 0 && "FAILED".equals(body.get("status")))
             throw new IllegalArgumentException("Delivery changed; refresh the order");
         if (result > 0) {
@@ -418,6 +487,10 @@ public class AdminManagementService implements IAdminManagementService {
                 catch (Exception ex) { throw new IllegalStateException("RETURN_PHOTO_INVALID", ex); }
             }
             mapper.syncOrderFromDeliveryJob(id);
+            String step = body.get("status") == null ? "ACCEPTED" : body.get("status").toString();
+            String message = "Changed by admin " + com.ninimum.api.audit.OrderAuditActor.current()
+                    + (body.get("note") == null ? "" : ": " + body.get("note"));
+            mapper.addDeliveryTracking(id, step, message.length() > 500 ? message.substring(0, 500) : message);
         }
         return result;
     }
@@ -443,14 +516,20 @@ public class AdminManagementService implements IAdminManagementService {
 
     @Override
     public Map<String, Object> getQuestions(String search, String status, int page, int pageSize) {
+        return getFilteredQuestions(search,status,null,page,pageSize);
+    }
+    @Override
+    public Map<String,Object> getFilteredQuestions(String search,String status,String kind,int page,int pageSize) {
+        kind=clean(kind);
+        if(kind!=null&&!java.util.Set.of("QUESTION","COMPLAINT").contains(kind))throw new IllegalArgumentException("Invalid question type");
         page = page(page);
         pageSize = size(pageSize);
         int offset = (page - 1) * pageSize;
         String cleanedSearch = clean(search);
         String cleanedStatus = clean(status);
         return pageResult(
-                mapper.getQuestions(cleanedSearch, cleanedStatus, offset, pageSize),
-                mapper.countQuestions(cleanedSearch, cleanedStatus),
+                mapper.getQuestions(cleanedSearch, cleanedStatus, kind, offset, pageSize),
+                mapper.countQuestions(cleanedSearch, cleanedStatus, kind),
                 page,
                 pageSize
         );

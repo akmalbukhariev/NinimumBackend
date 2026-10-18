@@ -32,7 +32,9 @@ public class DeliveryService implements IDeliveryService {
     @org.springframework.transaction.annotation.Transactional(rollbackFor=Exception.class)
     public int updateDeliveryStatus(UpdateDeliveryStatusParam param) throws Exception {
         if(!java.util.Set.of("CANCELLED","FAILED").contains(java.util.Objects.toString(param.getDeliveryStatus(),""))) warehouseApp.requireReadyLegacy(param.getDeliveryId());
-        return this.deliveryMapper.updateDeliveryStatus(param);
+        int changed=this.deliveryMapper.updateDeliveryStatus(param);
+        if(changed>0&&"ON_THE_WAY".equals(param.getDeliveryStatus()))warehouseApp.issueInventoryForLegacy(param.getDeliveryId());
+        return changed;
     }
 
     @Override

@@ -28,13 +28,14 @@ class RefundMonitorIntegrationTest {
         String url=System.getProperty("refund.test.jdbc");
         if(!url.matches("jdbc:mariadb://127\\.0\\.0\\.1:[0-9]+/refund_test")) throw new IllegalArgumentException("Dedicated local database only");
         var ds=new DriverManagerDataSource(url,"root","");jdbc=new JdbcTemplate(ds);
-        for(String table:new String[]{"payment_refund_checks","payments","order_status_history","orders","users","products"}) jdbc.execute("DROP TABLE IF EXISTS "+table);
+        for(String table:new String[]{"delivery_partial_return_items","delivery_partial_returns","payment_refund_checks","payments","order_status_history","orders","users","products"}) jdbc.execute("DROP TABLE IF EXISTS "+table);
         jdbc.execute("CREATE TABLE users(id BIGINT PRIMARY KEY,first_name TEXT,last_name TEXT,phone_number TEXT,address TEXT)");
         jdbc.execute("CREATE TABLE orders(id BIGINT PRIMARY KEY,user_id BIGINT,status VARCHAR(30),payment_status VARCHAR(30),cancelled_at DATETIME,delivery_address TEXT,status_actor TEXT,status_source TEXT,updated_at DATETIME)");
         jdbc.execute("CREATE TABLE order_status_history(id BIGINT AUTO_INCREMENT PRIMARY KEY,order_id BIGINT,to_status VARCHAR(30),changed_at DATETIME)");
         jdbc.execute("CREATE TABLE payments(id BIGINT PRIMARY KEY,provider VARCHAR(20),provider_transaction_id VARCHAR(100),order_id BIGINT,user_tariff_id BIGINT,amount INT,amount_tiyin BIGINT,status VARCHAR(30),payme_create_time BIGINT,payme_perform_time BIGINT,payme_cancel_time BIGINT,payme_reason INT,updated_at DATETIME)");
         jdbc.execute("CREATE TABLE products(id BIGINT PRIMARY KEY,stock_quantity INT)");
-        jdbc.execute(Files.readString(Path.of("database/migrations/20261011_refund_monitor.sql")));
+        new org.springframework.jdbc.datasource.init.ResourceDatabasePopulator(new FileSystemResource("src/test/resources/live-schema-fixtures/refund-monitor.sql")).execute(ds);
+        new org.springframework.jdbc.datasource.init.ResourceDatabasePopulator(new FileSystemResource("database/migrations/20261012_partial_returns.sql")).execute(ds);
         jdbc.update("INSERT INTO orders(id,status,payment_status) VALUES(73,'RETURNING','PAID')");
         jdbc.update("INSERT INTO order_status_history(order_id,to_status,changed_at) VALUES(73,'RETURNING',UTC_TIMESTAMP()-INTERVAL 25 HOUR)");
         jdbc.update("INSERT INTO payments(id,provider,provider_transaction_id,order_id,amount,amount_tiyin,status,payme_perform_time) VALUES(9,'PAYME','receipt',73,1300,130000,'PAID',1000)");

@@ -87,6 +87,7 @@ management:
 
 # Enable only after warehouse-step1.sql has been installed.
 warehouse:
+  inventory-enabled: ${WAREHOUSE_INVENTORY_ENABLED:false}
   enabled: true
 
   # Install warehouse-step2.sql before activating the worker app and courier gate.

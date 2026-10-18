@@ -14,6 +14,7 @@ public class CreateOrderParam {
     private Integer subtotalPrice;
     private Integer discountPrice;
     private Integer totalPrice;
+    private Integer quotedTotal;
     private Long tariffSubscriptionId;
     private List<CreateOrderProductParam> products;
 }

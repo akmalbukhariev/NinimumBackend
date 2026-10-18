@@ -36,10 +36,16 @@ import java.util.List;
 public class OrderController extends BaseController {
 
     private final IOrderService orderService;
+    private final com.ninimum.api.security.CurrentCustomer customer;
 
     @PostConstruct
     public void init() {
         setApiVersion(Constant.api_version);
+    }
+
+    @PostMapping("/quote") public ResponseEntity<Object> quote(@RequestBody CreateOrderParam param) throws Exception {
+        param.setUserId(customer.id());
+        return ResponseEntity.ok(setResult(Result.SUCCESS,orderService.quote(param)));
     }
 
     @Operation(
@@ -55,6 +61,7 @@ public class OrderController extends BaseController {
         VersionResponseResult result = null;
 
         try {
+            param.setUserId(customer.id());
             List<OrderDto> orders = this.orderService.getOrderList(param);
             result = this.setResult(Result.SUCCESS, orders);
         } catch (Exception ex) {
@@ -78,6 +85,7 @@ public class OrderController extends BaseController {
         VersionResponseResult result = null;
 
         try {
+            param.setUserId(customer.id());
             List<OrderDetailDto> orderDetails = this.orderService.getOrderDetail(param);
             result = this.setResult(Result.SUCCESS, orderDetails);
         } catch (Exception ex) {
@@ -101,6 +109,7 @@ public class OrderController extends BaseController {
         VersionResponseResult result = null;
 
         try {
+            param.setUserId(customer.id());
             int resultNum = this.orderService.createOrder(param);
 
             if (resultNum != 0) {
@@ -109,6 +118,8 @@ public class OrderController extends BaseController {
                 result = this.setResult(Result.SERVER_ERROR);
             }
 
+        } catch (com.ninimum.api.order.service.impl.PriceChangedException ex) {
+            result=this.setResult(Result.FAILED);result.setResultCode("PRICE_CHANGED");result.setResultMsg("Refresh the order price before checkout");
         } catch (StockUnavailableException ex) {
             result = new StockUnavailableResponse(this.setResult(Result.SERVER_ERROR), ex);
         } catch (Exception ex) {
@@ -132,6 +143,7 @@ public class OrderController extends BaseController {
         VersionResponseResult result = null;
 
         try {
+            param.setUserId(customer.id());
             int resultNum = this.orderService.cancelOrder(param);
 
             if (resultNum != 0) {
@@ -161,6 +173,7 @@ public class OrderController extends BaseController {
         VersionResponseResult result;
 
         try {
+            param.setUserId(customer.id());
             int resultNum = this.orderService.cancelUnpaidOrder(param);
 
             result = resultNum != 0
@@ -187,6 +200,7 @@ public class OrderController extends BaseController {
         VersionResponseResult result = null;
 
         try {
+            param.setUserId(customer.id());
             OrderCountDto orderCount = this.orderService.getOrderCount(param);
             result = this.setResult(Result.SUCCESS, orderCount);
         } catch (Exception ex) {
@@ -210,6 +224,7 @@ public class OrderController extends BaseController {
         VersionResponseResult result;
 
         try {
+            param.setUserId(customer.id());
             PaymentStatusDto paymentStatus = orderService.getOrderPaymentStatus(param);
 
             result = setResult(Result.SUCCESS,paymentStatus);
@@ -236,6 +251,7 @@ public class OrderController extends BaseController {
         VersionResponseResult result;
 
         try {
+            param.setUserId(customer.id());
             OrderProcessDto orderProcess = orderService.getOrderProcess(param);
 
             result = setResult(Result.SUCCESS, orderProcess);
@@ -263,6 +279,7 @@ public class OrderController extends BaseController {
         VersionResponseResult result;
 
         try {
+            param.setUserId(customer.id());
             int resultNum = orderService.deleteOrderHistory(param);
 
             if (resultNum != 0) {

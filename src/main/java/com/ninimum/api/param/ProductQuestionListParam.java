@@ -5,4 +5,5 @@ import lombok.Data;
 @Data
 public class ProductQuestionListParam extends PageSizeParam {
     private Long product_id;
+    private Long viewer_id;
 }

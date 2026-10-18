@@ -22,6 +22,8 @@ public interface OrderMapper {
     int isActiveTariffSubscription(CreateOrderParam param) throws Exception;
     Long getActiveTariffSubscriptionId(@Param("userId") Long userId) throws Exception;
     ProductCheckoutPriceDto getProductCheckoutPrice(@Param("productId") Long productId) throws Exception;
+    java.util.Map<String,Object> getTariffBenefits(@Param("subscriptionId") Long subscriptionId,@Param("userId") Long userId);
+    Integer getTariffProductDiscount(@Param("subscriptionId") Long subscriptionId,@Param("productId") Long productId);
     int cancelDeliveryJobs(@org.apache.ibatis.annotations.Param("orderId") Long orderId);
     int cancelOrder(CancelOrderParam param) throws Exception;
     int cancelUnpaidOrder(CancelOrderParam param) throws Exception;

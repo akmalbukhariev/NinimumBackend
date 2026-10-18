@@ -7,5 +7,7 @@ public class ProductCategoryDto {
     private Long categoryId;
     private Long parentId;
     private String categoryName;
+    private String categoryNameUz;
+    private String categoryNameRu;
     private String categoryImageUrl;
 }

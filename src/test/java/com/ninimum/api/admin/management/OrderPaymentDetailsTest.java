@@ -33,6 +33,7 @@ class OrderPaymentDetailsTest {
         verify(mapper).getOrderItems(52L);
         verify(mapper).getOrderPayments(52L);
         verify(mapper).getOrderStatusHistory(52L);
+        verify(mapper).getOrderStepHistory(52L);
         verifyNoMoreInteractions(mapper);
     }
     @Test void unpaidOrderHasAnEmptyPaymentList() {

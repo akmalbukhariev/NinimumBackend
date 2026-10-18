@@ -37,6 +37,7 @@ class AdminPermissionsTest {
     @Configuration @EnableWebMvc
     static class Fixture {
         @Bean JwtTokenProvider jwt() { return mock(JwtTokenProvider.class); }
+        @Bean com.ninimum.api.security.login.LoginAttempts loginAttempts() { return mock(com.ninimum.api.security.login.LoginAttempts.class); }
         @Bean com.ninimum.api.warehouse.WarehouseAppService warehouseApp() { return mock(com.ninimum.api.warehouse.WarehouseAppService.class); }
         @Bean AdminSessionService admins() { return mock(AdminSessionService.class); }
         @Bean DeliverySessionService deliveries() { return mock(DeliverySessionService.class); }
@@ -45,9 +46,9 @@ class AdminPermissionsTest {
         @Bean Endpoints endpoints() { return new Endpoints(); }
     }
     @RestController static class Endpoints {
-        @RequestMapping({"/ninimum/api/v1/admin/register", "/ninimum/api/v1/admin/management/admins",
+        @RequestMapping({"/ninimum/api/v1/appConfig/getAppConfig", "/ninimum/api/v1/admin/register", "/ninimum/api/v1/admin/management/admins",
                 "/ninimum/api/v1/admin/management/settings", "/ninimum/api/v1/admin/management/order-timers", "/ninimum/api/v1/admin/management/orders/problems", "/ninimum/api/v1/admin/warehouse/locations", "/ninimum/api/v1/admin/warehouse/status", "/ninimum/api/v1/admin/management/categories",
-                "/ninimum/api/v1/admin/management/orders", "/ninimum/api/v1/admin/management/products",
+                "/ninimum/api/v1/admin/management/orders", "/ninimum/api/v1/admin/management/products", "/ninimum/api/v1/admin/management/customers/1",
                 "/ninimum/api/v1/admin/management/delivery/jobs", "/ninimum/api/v1/admin/me", "/ninimum/api/v1/warehouse-app/me", "/ninimum/api/v1/warehouse-app/login"})
         public String ok() { return "ok"; }
     }
@@ -67,6 +68,16 @@ class AdminPermissionsTest {
         when(sessions.isCurrent("test", "token")).thenReturn(true);
         CamelCaseMap profile = new CamelCaseMap(); profile.put("status", "ACTIVE"); profile.put("role", role);
         when(details.getAdminByLoginId("test")).thenReturn(profile);
+    }
+    @Test void anonymousCanReadApplicationConfigButCannotChangeSettings() throws Exception {
+        mvc.perform(get("/ninimum/api/v1/appConfig/getAppConfig")).andExpect(status().isOk());
+        mvc.perform(put("/ninimum/api/v1/admin/management/settings")).andExpect(status().isForbidden());
+    }
+    @Test void customerCardsAreOwnerOnly() throws Exception {
+        login("ADMIN");
+        mvc.perform(get("/ninimum/api/v1/admin/management/customers/1").header("Authorization","Bearer token")).andExpect(status().isForbidden());
+        login("SUPER_ADMIN");
+        mvc.perform(get("/ninimum/api/v1/admin/management/customers/1").header("Authorization","Bearer token")).andExpect(status().isOk());
     }
     @Test void restrictedAdminCannotManageAdminsOrSettings() throws Exception {
         login("ADMIN");

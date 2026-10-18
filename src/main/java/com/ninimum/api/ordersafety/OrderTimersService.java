@@ -33,12 +33,15 @@ public class OrderTimersService {
         for(String key:List.of("unpaid_minutes","queue_minutes","preparation_minutes","courier_wait_minutes","delivery_minutes","question_minutes")) {
             int n=integer(body.get(key));if(n<1 || n>43200) throw new IllegalArgumentException("Timer must be 1–43200 minutes");value.put(key,n);
         }
+        int complaint=integer(body.containsKey("complaint_minutes")?body.get("complaint_minutes"):settings().get("complaint_minutes"));
+        if(complaint<1||complaint>43200)throw new IllegalArgumentException("Invalid complaint timer");
+        value.put("complaint_minutes",complaint);
         int enabled=integer(body.get("expiry_enabled"));if(enabled!=0 && enabled!=1) throw new IllegalArgumentException("Invalid expiry setting");
         value.put("working_days",integer(body.get("working_days")));new WorkingHours(value);
         transaction.executeWithoutResult(tx->{
             jdbc.queryForMap("SELECT id FROM order_timer_settings WHERE id=1 FOR UPDATE");
-            jdbc.update("UPDATE order_timer_settings SET expiry_enabled=?,unpaid_minutes=?,queue_minutes=?,preparation_minutes=?,courier_wait_minutes=?,delivery_minutes=?,question_minutes=?,working_days=?,working_start=?,working_end=?,updated_by=?,updated_at=UTC_TIMESTAMP() WHERE id=1",
-                enabled,value.get("unpaid_minutes"),value.get("queue_minutes"),value.get("preparation_minutes"),value.get("courier_wait_minutes"),value.get("delivery_minutes"),value.get("question_minutes"),value.get("working_days"),value.get("working_start"),value.get("working_end"),OrderAuditActor.current());
+            jdbc.update("UPDATE order_timer_settings SET expiry_enabled=?,unpaid_minutes=?,queue_minutes=?,preparation_minutes=?,courier_wait_minutes=?,delivery_minutes=?,question_minutes=?,complaint_minutes=?,working_days=?,working_start=?,working_end=?,updated_by=?,updated_at=UTC_TIMESTAMP() WHERE id=1",
+                enabled,value.get("unpaid_minutes"),value.get("queue_minutes"),value.get("preparation_minutes"),value.get("courier_wait_minutes"),value.get("delivery_minutes"),value.get("question_minutes"),value.get("complaint_minutes"),value.get("working_days"),value.get("working_start"),value.get("working_end"),OrderAuditActor.current());
             event("SETTINGS",1,"TIMERS","UPDATED",OrderAuditActor.current(),Instant.now());
         });
     }
@@ -87,9 +90,12 @@ public class OrderTimersService {
                 Instant since=instant(partial.get("since"));
                 if(since!=null) open("ORDER",((Number)partial.get("order_id")).longValue(),"REFUND_PENDING","DELIVERED","OWNER",since,Math.max(0,Duration.between(since,now).toMinutes()),now,active);
             }
-            for(var question:jdbc.queryForList("SELECT id,DATE_FORMAT(created_at,'%Y-%m-%dT%H:%i:%sZ') since FROM product_questions WHERE is_active=1 AND status<>'ANSWERED' AND (answer IS NULL OR TRIM(answer)='')")) {
+            for(var question:jdbc.queryForList("SELECT id,kind,DATE_FORMAT(created_at,'%Y-%m-%dT%H:%i:%sZ') since FROM product_questions WHERE is_active=1 AND status<>'ANSWERED' AND (answer IS NULL OR TRIM(answer)='')")) {
                 Instant since=instant(question.get("since"));if(since==null) continue;long elapsed=hours.minutes(since,now);
-                if(elapsed>=integer(config.get("question_minutes"))) open("QUESTION",((Number)question.get("id")).longValue(),"UNANSWERED_QUESTION",null,"SUPPORT",since,elapsed,now,active);
+                if(elapsed>=QuestionResponsePolicy.minutes(config,String.valueOf(question.get("kind")))) open("QUESTION",((Number)question.get("id")).longValue(),"UNANSWERED_QUESTION",null,"SUPPORT",since,elapsed,now,active);
+            }
+            for(var offer:jdbc.queryForList("SELECT j.order_id,DATE_FORMAT(f.updated_at,'%Y-%m-%dT%H:%i:%sZ') since FROM courier_dispatch_offers f JOIN delivery_jobs j ON j.id=f.job_id JOIN orders o ON o.id=j.order_id WHERE f.status='ESCALATED' AND j.delivery_worker_id IS NULL AND o.payment_status='PAID' AND o.status='READY'")) {
+                Instant since=instant(offer.get("since"));if(since!=null)open("ORDER",((Number)offer.get("order_id")).longValue(),"COURIER_REASSIGN","READY","DISPATCHER",since,Math.max(0,Duration.between(since,now).toMinutes()),now,active);
             }
             for(var old:jdbc.queryForList("SELECT entity_type,entity_id,kind FROM order_problem_alerts WHERE resolved_at IS NULL")) {
                 String type=String.valueOf(old.get("entity_type")),kind=String.valueOf(old.get("kind"));long id=((Number)old.get("entity_id")).longValue();
