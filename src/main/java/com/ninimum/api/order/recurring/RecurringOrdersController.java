@@ -9,6 +9,8 @@ public class RecurringOrdersController extends BaseController {
  @PostMapping("/preview") public Object preview(@RequestBody Map<String,Object> body)throws Exception{return setResult(Result.SUCCESS,service.preview(customer.id(),number(body.get("source_order_id"))));}
  @PostMapping("/save") public Object save(@RequestBody Map<String,Object> body)throws Exception{service.save(customer.id(),number(body.get("source_order_id")),number(body.get("max_total")),Boolean.TRUE.equals(body.get("consent")));return setResult(Result.SUCCESS);}
  @PostMapping("/{id}/pause") public Object pause(@PathVariable long id)throws Exception{service.pause(customer.id(),id);return setResult(Result.SUCCESS);}
+ @PostMapping("/{id}/resume") public Object resume(@PathVariable long id)throws Exception{service.resume(customer.id(),id);return setResult(Result.SUCCESS);}
  private static long number(Object value){try{return new java.math.BigDecimal(String.valueOf(value)).longValueExact();}catch(Exception ex){throw new IllegalArgumentException("Invalid number");}}
- @ExceptionHandler(IllegalArgumentException.class) public Object invalid(IllegalArgumentException ex){var result=setResult(Result.FAILED);result.setResultMsg(ex.getMessage());return result;}
+ /** Stock and price checks from the order quote are shown to the customer as a normal message. */
+ @ExceptionHandler({IllegalArgumentException.class,com.ninimum.api.order.service.StockUnavailableException.class,com.ninimum.api.order.service.impl.PriceChangedException.class}) public Object invalid(Exception ex){var result=setResult(Result.FAILED);result.setResultMsg(ex.getMessage()!=null?ex.getMessage():"Narx o‘zgardi. Qayta ko‘rib chiqing.");return result;}
 }

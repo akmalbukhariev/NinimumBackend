@@ -44,6 +44,11 @@ public class RecurringOrders {
  }
  public List<Map<String,Object>> list(long user){return jdbc.queryForList("SELECT r.id,r.source_order_id,r.max_total,r.interval_days,r.status,r.last_order_id,o.status last_order_status,o.payment_status last_payment_status,o.total_price last_total,DATE_FORMAT(r.next_run_at,'%Y-%m-%dT%H:%i:%sZ') next_run_at,(SELECT e.note FROM recurring_order_events e WHERE e.recurring_id=r.id ORDER BY e.id DESC LIMIT 1) last_note FROM recurring_orders r LEFT JOIN orders o ON o.id=r.last_order_id AND o.user_id=r.user_id WHERE r.user_id=? ORDER BY r.id DESC",user);}
  public void pause(long user,long id){tx.executeWithoutResult(t->{if(jdbc.update("UPDATE recurring_orders SET status='PAUSED',updated_at=UTC_TIMESTAMP() WHERE id=? AND user_id=?",id,user)!=1)throw new IllegalArgumentException("Recurring order not found");event(id,"PAUSED",null,"Customer paused recurrence");});}
+ /** Restarts a paused plan; the next draft is due one full interval from now, under the current tariff. */
+ public void resume(long user,long id){int days=interval(user);tx.executeWithoutResult(t->{var rows=jdbc.queryForList("SELECT status FROM recurring_orders WHERE id=? AND user_id=? FOR UPDATE",id,user);
+  if(rows.isEmpty())throw new IllegalArgumentException("Recurring order not found");
+  if(!List.of("PAUSED","NEEDS_REVIEW").contains(String.valueOf(rows.get(0).get("status"))))throw new IllegalArgumentException("Recurring order is not paused");
+  jdbc.update("UPDATE recurring_orders SET status='ACTIVE',interval_days=?,next_run_at=TIMESTAMPADD(DAY,?,UTC_TIMESTAMP()),updated_at=UTC_TIMESTAMP() WHERE id=?",days,days,id);event(id,"RESUMED",null,"Customer resumed recurrence");});}
  @Scheduled(fixedDelayString="${orders.recurring.interval-ms:60000}",initialDelayString="${orders.recurring.initial-delay-ms:120000}")
  public void tick(){try{
   for(Long id:jdbc.queryForList("SELECT id FROM recurring_orders WHERE status='ACTIVE' AND next_run_at<=UTC_TIMESTAMP() ORDER BY next_run_at,id LIMIT 50",Long.class))process(id);

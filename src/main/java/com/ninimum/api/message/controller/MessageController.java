@@ -39,6 +39,22 @@ public class MessageController extends BaseController {
         setApiVersion(Constant.api_version);
     }
 
+    /** One temporary-password SMS per phone per minute and at most five per day (kept in memory). */
+    static final class TempPasswordLimit {
+        private final java.util.Map<String, java.util.ArrayDeque<Long>> sent = new java.util.concurrent.ConcurrentHashMap<>();
+        boolean tryAcquire(String phone) {
+            long now = System.currentTimeMillis();
+            var times = sent.computeIfAbsent(phone, k -> new java.util.ArrayDeque<>());
+            synchronized (times) {
+                while (!times.isEmpty() && now - times.peekFirst() > 86_400_000L) times.pollFirst();
+                if (times.size() >= 5 || (!times.isEmpty() && now - times.peekLast() < 60_000L)) return false;
+                times.addLast(now);
+                return true;
+            }
+        }
+    }
+    private final TempPasswordLimit tempPasswordLimit = new TempPasswordLimit();
+
     @Operation(
             tags = {"Message"},
             summary = "1. Send a message",
@@ -82,6 +98,11 @@ public class MessageController extends BaseController {
             }
 
             String phoneNumber = param.getPhone_number().trim();
+            if (!tempPasswordLimit.tryAcquire(phoneNumber)) {
+                result = this.setResult(Result.SEND_TEMP_PASSWORD_FAILED);
+                result.setResultMsg("Juda ko‘p urinish. Birozdan keyin qayta urinib ko‘ring.");
+                return new ResponseEntity<>(result, HttpStatus.OK);
+            }
             UserDto user = userService.getUserByPhone(phoneNumber);
 
             if (user == null) {

@@ -116,7 +116,10 @@ public class DeliveryAppService implements IDeliveryAppService {
     public List<DeliveryAppJobDto> getAvailableJobs(String workerId) throws Exception {
         var worker=getWorker(workerId);
         mapper.syncPaidOrders();
-        return mapper.getAvailableJobs().stream().filter(j -> warehouseApp.canDeliver(j.getOrderId())&&dispatch.visible(j.getJobId(),worker.getId())).toList();
+        boolean offers=dispatch.offersEnabled();
+        var jobs=mapper.getAvailableJobs().stream().filter(j -> warehouseApp.canDeliver(j.getOrderId())&&dispatch.visible(j.getJobId(),worker.getId())).toList();
+        jobs.forEach(j -> j.setDispatchOffer(offers));
+        return jobs;
     }
 
     @Override
@@ -155,6 +158,14 @@ public class DeliveryAppService implements IDeliveryAppService {
             job.setProducts(products);
         }
         return job;
+    }
+
+    @Override
+    @Transactional(isolation=org.springframework.transaction.annotation.Isolation.READ_COMMITTED)
+    public void declineOffer(String workerId, Long jobId) throws Exception {
+        if (jobId == null) throw new Exception("jobId is required");
+        DeliveryAppWorkerDto worker = getWorker(workerId);
+        dispatch.declined(jobId, worker.getId());
     }
 
     @Override

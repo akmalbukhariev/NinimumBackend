@@ -111,6 +111,12 @@ public class DeliveryAppController extends BaseController {
         return execute(() -> { service.claimJob(auth.getName(), param.getJobId()); return null; });
     }
 
+    @Operation(summary = "Decline a delivery offer", security = @SecurityRequirement(name = "bearerAuth"))
+    @PutMapping("/decline")
+    public ResponseEntity<Object> decline(Authentication auth, @RequestBody DeliveryAppJobParam param) {
+        return execute(() -> { service.declineOffer(auth.getName(), param.getJobId()); return null; });
+    }
+
     @Operation(summary = "Claim multiple available deliveries", security = @SecurityRequirement(name = "bearerAuth"))
     @PutMapping("/claim-batch")
     public ResponseEntity<Object> claimBatch(Authentication auth, @RequestBody DeliveryAppBatchJobParam param) {

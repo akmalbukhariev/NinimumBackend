@@ -15,6 +15,7 @@ public class CourierDispatch {
  private final JdbcTemplate jdbc;private final TransactionTemplate tx;private boolean warned;
  public CourierDispatch(JdbcTemplate jdbc,PlatformTransactionManager manager){this.jdbc=jdbc;tx=new TransactionTemplate(manager);tx.setIsolationLevel(TransactionDefinition.ISOLATION_READ_COMMITTED);}
  public Map<String,Object> settings(){return jdbc.queryForMap("SELECT enabled,accept_minutes,updated_by,updated_at FROM courier_dispatch_settings WHERE id=1");}
+ public boolean offersEnabled(){return enabled();}
  private boolean enabled(){return jdbc.queryForObject("SELECT enabled FROM courier_dispatch_settings WHERE id=1",Integer.class)==1;}
  public void save(Map<String,Object> body){
   int minutes;try{minutes=new java.math.BigDecimal(String.valueOf(body.get("accept_minutes"))).intValueExact();}catch(Exception ex){throw new IllegalArgumentException("Invalid acceptance timeout");}
@@ -32,6 +33,13 @@ public class CourierDispatch {
   jdbc.queryForMap("SELECT id FROM delivery_jobs WHERE id=? FOR UPDATE",job);
   var rows=jdbc.queryForList("SELECT worker_id,status,expires_at>UTC_TIMESTAMP() valid FROM courier_dispatch_offers WHERE job_id=? FOR UPDATE",job);
   if(rows.size()!=1||!"OFFERED".equals(rows.get(0).get("status"))||!Objects.equals(((Number)rows.get(0).get("worker_id")).longValue(),worker)||!truth(rows.get(0).get("valid")))throw new AccessDeniedException("This offer expired or belongs to another courier");
+ }
+ /** The courier turns the offer down; the next scan offers the job to another courier. */
+ public void declined(long job,long worker){
+  var rows=jdbc.queryForList("SELECT attempt FROM courier_dispatch_offers WHERE job_id=? AND worker_id=? AND status='OFFERED' AND expires_at>UTC_TIMESTAMP() FOR UPDATE",job,worker);
+  if(rows.isEmpty())throw new AccessDeniedException("This offer expired or belongs to another courier");
+  jdbc.update("UPDATE courier_dispatch_offers SET status='EXPIRED',expires_at=UTC_TIMESTAMP(),updated_at=UTC_TIMESTAMP() WHERE job_id=?",job);
+  event(job,((Number)rows.get(0).get("attempt")).intValue(),worker,"DECLINED",actor(),"Courier declined the offer");
  }
  public void accepted(long job,long worker){
   var rows=jdbc.queryForList("SELECT attempt FROM courier_dispatch_offers WHERE job_id=? AND worker_id=? AND status='OFFERED' FOR UPDATE",job,worker);

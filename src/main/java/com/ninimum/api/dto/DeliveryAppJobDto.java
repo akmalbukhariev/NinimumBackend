@@ -18,6 +18,8 @@ public class DeliveryAppJobDto {
     private String jobStatus;
     private String orderStatus;
     private String paymentStatus;
+    /** True when automatic courier offers are on, so the courier may decline this job. */
+    private Boolean dispatchOffer;
     private BigDecimal totalPrice;
     private Integer productCount;
     private String createdAt;

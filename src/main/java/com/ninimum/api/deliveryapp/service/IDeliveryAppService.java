@@ -19,6 +19,7 @@ public interface IDeliveryAppService {
     List<DeliveryAppJobDto> getHistoryJobs(String workerId) throws Exception;
     DeliveryAppJobDto getJobDetail(String workerId, Long jobId) throws Exception;
     int claimJob(String workerId, Long jobId) throws Exception;
+    void declineOffer(String workerId, Long jobId) throws Exception;
     int claimJobs(String workerId, DeliveryAppBatchJobParam param) throws Exception;
     int startJobs(String workerId, DeliveryAppBatchJobParam param) throws Exception;
     int updateStatus(String workerId, DeliveryAppStatusParam param) throws Exception;

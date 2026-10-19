@@ -307,11 +307,14 @@ public class UserController extends BaseController {
             hidden = false,
             responses = { @ApiResponse(responseCode = "200", description = "success") }
     )
-    @PutMapping(value = "/forgotPassword", headers = { "Content-type=application/json" })
-    public ResponseEntity<Object> forgotPassword(@RequestBody ForgotPasswordParam param) {
+    @RequestMapping(value = "/forgotPassword", method = { RequestMethod.PUT, RequestMethod.POST }, headers = { "Content-type=application/json" })
+    public ResponseEntity<Object> forgotPassword(@Parameter(hidden = true) @AuthenticationPrincipal UserDetails principal, @RequestBody ForgotPasswordParam param) {
         VersionResponseResult result = null;
 
         try {
+            // Only the signed-in customer's own password can be set; the phone number in the body is ignored.
+            if (principal == null || param == null) return new ResponseEntity<>(this.setResult(Result.AUTHENTICATION_ERROR), HttpStatus.OK);
+            param.setPhoneNumber(principal.getUsername());
             int resultNum = this.userService.forgotPassword(param);
 
             if (resultNum != 0) {
