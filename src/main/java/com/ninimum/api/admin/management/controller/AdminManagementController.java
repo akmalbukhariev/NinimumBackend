@@ -231,6 +231,28 @@ public class AdminManagementController extends BaseController {
         } catch(Exception ex) {return fail(ex,"classifyQuestion");}
     }
 
+    @org.springframework.beans.factory.annotation.Autowired
+    private com.ninimum.api.admin.management.service.CustomerMergeService customerMerges;
+
+    /** M11: active accounts whose phone numbers are the same number in different forms. */
+    @GetMapping("/customers/duplicates")
+    public ResponseEntity<Object> customerDuplicates() {
+        try { return ok(customerMerges.duplicates()); }
+        catch(Exception ex) { return fail(ex,"customerDuplicates"); }
+    }
+
+    /** M11: moves everything from merge_user_id to {id} and closes merge_user_id (owner only). */
+    @PostMapping("/customers/{id}/merge")
+    public ResponseEntity<Object> mergeCustomer(@PathVariable long id,@RequestBody Map<String,Object> body) {
+        try {
+            Object other=body.containsKey("merge_user_id")?body.get("merge_user_id"):body.get("mergeUserId");
+            long mergeId=other instanceof Number?((Number)other).longValue():Long.parseLong(java.util.Objects.toString(other,"0"));
+            return ok(customerMerges.merge(id,mergeId,java.util.Objects.toString(body.get("reason"),"")));
+        }
+        catch(NumberFormatException ex) { return fail(new com.ninimum.api.warehouse.WarehouseException("CUSTOMER_MERGE_INVALID"),"mergeCustomer"); }
+        catch(Exception ex) { return fail(ex,"mergeCustomer"); }
+    }
+
     @GetMapping("/customers")
     public ResponseEntity<Object> customers(
             @RequestParam(required = false) String search,

@@ -98,7 +98,7 @@ public class MessageController extends BaseController {
             }
 
             String phoneNumber = param.getPhone_number().trim();
-            if (!tempPasswordLimit.tryAcquire(phoneNumber)) {
+            if (!tempPasswordLimit.tryAcquire(com.ninimum.api.common.PhoneNumbers.sms(phoneNumber))) {
                 result = this.setResult(Result.SEND_TEMP_PASSWORD_FAILED);
                 result.setResultMsg("Juda ko‘p urinish. Birozdan keyin qayta urinib ko‘ring.");
                 return new ResponseEntity<>(result, HttpStatus.OK);
@@ -110,13 +110,14 @@ public class MessageController extends BaseController {
                 return new ResponseEntity<>(result, HttpStatus.OK);
             }
 
-            String tempPassword = service.sendTemporaryPassword(phoneNumber);
+            String tempPassword = service.sendTemporaryPassword(com.ninimum.api.common.PhoneNumbers.sms(user.getPhone_number()));
 
             if (tempPassword == null) {
                 result = this.setResult(Result.SEND_TEMP_PASSWORD_FAILED);
             } else {
                 ForgotPasswordParam forgotParam = new ForgotPasswordParam();
-                forgotParam.setPhoneNumber(phoneNumber);
+                // The account's stored number, which may differ from the form the customer typed (M11).
+                forgotParam.setPhoneNumber(user.getPhone_number());
                 forgotParam.setTempPassword(tempPassword);
 
                 int updated = userService.forgotPassword(forgotParam);

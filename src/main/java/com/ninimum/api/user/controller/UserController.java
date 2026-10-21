@@ -32,6 +32,7 @@ import javax.annotation.PostConstruct;
 public class UserController extends BaseController {
 
     private final IUserService userService;
+    private static final String INVALID_PHONE_MESSAGE = "Telefon raqami noto‘g‘ri. Masalan: +998901234567";
 
     @PostConstruct
     public void init() {
@@ -58,6 +59,10 @@ public class UserController extends BaseController {
 
             if (userInfo != null) {
                 result = this.setResult(Result.USER_EXIST);
+            }
+            else if (com.ninimum.api.common.PhoneNumbers.normalize(param.getPhone_number()) == null) {
+                result = this.setResult(Result.FAILED);
+                result.setResultMsg(INVALID_PHONE_MESSAGE);
             }
             else {
 
@@ -340,10 +345,22 @@ public class UserController extends BaseController {
             security = { @SecurityRequirement(name = "bearerAuth") }
     )
     @PutMapping(value = "/changePhoneNumber", headers = { "Content-type=application/json" })
-    public ResponseEntity<Object> changePhoneNumber(@RequestBody ChangePhoneNumberParam param) {
+    public ResponseEntity<Object> changePhoneNumber(@RequestBody ChangePhoneNumberParam param,
+            @Parameter(hidden = true) @AuthenticationPrincipal UserDetails userDetails) {
         VersionResponseResult result = null;
 
         try {
+            UserDto userInfo = userDetails == null ? null : this.userService.getUserByPhone(userDetails.getUsername());
+            if (userInfo == null) {
+                return new ResponseEntity<>(this.setResult(Result.AUTHENTICATION_ERROR), HttpStatus.OK);
+            }
+            if (com.ninimum.api.common.PhoneNumbers.normalize(param.getPhoneNumber()) == null) {
+                result = this.setResult(Result.FAILED);
+                result.setResultMsg(INVALID_PHONE_MESSAGE);
+                return new ResponseEntity<>(result, HttpStatus.OK);
+            }
+            // Never trust a userId supplied by the mobile client.
+            param.setUserId(userInfo.getId());
             int resultNum = this.userService.changePhoneNumber(param);
 
             if (resultNum != 0) {

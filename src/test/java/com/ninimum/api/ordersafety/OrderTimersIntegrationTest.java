@@ -115,4 +115,35 @@ class OrderTimersIntegrationTest {
         assertEquals(0,jdbc.queryForObject("SELECT COUNT(*) FROM order_problem_alerts WHERE resolved_at IS NULL",Integer.class));
         assertEquals(1,jdbc.queryForObject("SELECT COUNT(*) FROM order_problem_events WHERE event='RESOLVED'",Integer.class));
     }
+    @Test void inventoryBatchesRaiseExpiryAlertsOnlyWhenInventoryIsOnAndOnlyForTheOwner() {
+        for(String table:new String[]{"inventory_settings","inventory_batches","inventory_products","warehouse_locations"})jdbc.execute("DROP TABLE IF EXISTS "+table);
+        jdbc.execute("ALTER TABLE products ADD COLUMN name VARCHAR(100)");
+        jdbc.execute("CREATE TABLE warehouse_locations(id BIGINT PRIMARY KEY,code VARCHAR(40))");jdbc.update("INSERT INTO warehouse_locations VALUES(1,'A-01')");
+        jdbc.execute("CREATE TABLE inventory_products(product_id BIGINT PRIMARY KEY)");jdbc.update("INSERT INTO inventory_products VALUES(12)");
+        jdbc.execute("CREATE TABLE inventory_settings(id INT PRIMARY KEY,expiry_warning_days INT NOT NULL DEFAULT 30)");jdbc.update("INSERT INTO inventory_settings(id) VALUES(1)");
+        jdbc.execute("CREATE TABLE inventory_batches(id BIGINT PRIMARY KEY,product_id BIGINT,location_id BIGINT,batch_number VARCHAR(100),expiry_date DATE,physical_quantity BIGINT)");
+        jdbc.update("INSERT INTO products(id,stock_quantity,name) VALUES(13,1,'Untracked')");jdbc.update("UPDATE products SET name='Milk' WHERE id=12");
+        // Today in Tashkent is 2026-10-11 (now is 05:00 UTC).
+        jdbc.update("INSERT INTO inventory_batches VALUES(1,12,1,'L1','2026-10-10',3),(2,12,1,'L2','2026-10-11',2),(3,12,1,'L3','2026-10-20',5),(4,12,1,'L4','2026-12-31',5),(5,12,1,'L5','2026-10-05',0),(6,12,1,'L6',NULL,4),(7,13,1,'L7','2026-10-01',1)");
+        service.scan(now);
+        assertEquals(0,jdbc.queryForObject("SELECT COUNT(*) FROM order_problem_alerts WHERE entity_type='BATCH'",Integer.class));
+        org.springframework.test.util.ReflectionTestUtils.setField(service,"warehouseEnabled",true);org.springframework.test.util.ReflectionTestUtils.setField(service,"inventoryEnabled",true);
+        service.scan(now);service.scan(now);
+        assertEquals(java.util.List.of("1:STOCK_EXPIRED","2:STOCK_EXPIRED","3:STOCK_EXPIRING"),jdbc.queryForList("SELECT CONCAT(entity_id,':',kind) FROM order_problem_alerts WHERE entity_type='BATCH' AND resolved_at IS NULL ORDER BY entity_id",String.class));
+        assertEquals("2026-09-19 19:00:00",jdbc.queryForObject("SELECT DATE_FORMAT(state_since,'%Y-%m-%d %H:%i:%s') FROM order_problem_alerts WHERE entity_id=3 AND entity_type='BATCH'",String.class));
+        assertEquals(3,jdbc.queryForObject("SELECT COUNT(*) FROM order_problem_events WHERE entity_type='BATCH' AND event='OPENED'",Integer.class));
+        assertEquals(0,((Number)service.problems(1,20,false).get("total")).intValue());assertFalse(service.summary().containsKey("stock_expired"));
+        var auth=new org.springframework.security.authentication.UsernamePasswordAuthenticationToken("owner",null,java.util.List.of(new org.springframework.security.core.authority.SimpleGrantedAuthority("SUPER_ADMIN")));
+        org.springframework.security.core.context.SecurityContextHolder.getContext().setAuthentication(auth);
+        try {
+            var summary=service.summary();assertEquals(2,summary.get("stock_expired"));assertEquals(1,summary.get("stock_expiring"));
+            @SuppressWarnings("unchecked") var items=(java.util.List<java.util.Map<String,Object>>)service.problems(1,20,false).get("items");
+            var expiring=items.stream().filter(r->"STOCK_EXPIRING".equals(r.get("kind"))).findFirst().orElseThrow();
+            assertEquals("Milk",expiring.get("product_name"));assertEquals("L3",expiring.get("batch_number"));assertEquals("2026-10-20",expiring.get("expiry_date"));assertEquals("A-01",expiring.get("location_code"));
+            jdbc.update("UPDATE inventory_batches SET physical_quantity=0 WHERE id=1");jdbc.update("UPDATE inventory_settings SET expiry_warning_days=5 WHERE id=1");
+            service.scan(now);
+            assertEquals(java.util.List.of("2:STOCK_EXPIRED"),jdbc.queryForList("SELECT CONCAT(entity_id,':',kind) FROM order_problem_alerts WHERE entity_type='BATCH' AND resolved_at IS NULL ORDER BY entity_id",String.class));
+            assertEquals(2,jdbc.queryForObject("SELECT COUNT(*) FROM order_problem_events WHERE entity_type='BATCH' AND event='RESOLVED'",Integer.class));
+        } finally { org.springframework.security.core.context.SecurityContextHolder.clearContext(); }
+    }
 }

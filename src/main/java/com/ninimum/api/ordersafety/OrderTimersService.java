@@ -20,6 +20,9 @@ public class OrderTimersService {
     private final JdbcTemplate jdbc;
     private final TransactionTemplate transaction;
     private boolean schemaWarning;
+    private static final ZoneId TASHKENT=ZoneId.of("Asia/Tashkent");
+    @org.springframework.beans.factory.annotation.Value("${warehouse.enabled:false}") private boolean warehouseEnabled;
+    @org.springframework.beans.factory.annotation.Value("${warehouse.inventory-enabled:false}") private boolean inventoryEnabled;
     public OrderTimersService(JdbcTemplate jdbc,PlatformTransactionManager manager) {
         this.jdbc=jdbc;transaction=new TransactionTemplate(manager);
         transaction.setIsolationLevel(TransactionDefinition.ISOLATION_READ_COMMITTED);
@@ -97,6 +100,7 @@ public class OrderTimersService {
             for(var offer:jdbc.queryForList("SELECT j.order_id,DATE_FORMAT(f.updated_at,'%Y-%m-%dT%H:%i:%sZ') since FROM courier_dispatch_offers f JOIN delivery_jobs j ON j.id=f.job_id JOIN orders o ON o.id=j.order_id WHERE f.status='ESCALATED' AND j.delivery_worker_id IS NULL AND o.payment_status='PAID' AND o.status='READY'")) {
                 Instant since=instant(offer.get("since"));if(since!=null)open("ORDER",((Number)offer.get("order_id")).longValue(),"COURIER_REASSIGN","READY","DISPATCHER",since,Math.max(0,Duration.between(since,now).toMinutes()),now,active);
             }
+            if(warehouseEnabled&&inventoryEnabled) batchExpiry(now,active);
             for(var old:jdbc.queryForList("SELECT entity_type,entity_id,kind FROM order_problem_alerts WHERE resolved_at IS NULL")) {
                 String type=String.valueOf(old.get("entity_type")),kind=String.valueOf(old.get("kind"));long id=((Number)old.get("entity_id")).longValue();
                 if(!active.contains(type+":"+id+":"+kind)) {
@@ -106,6 +110,18 @@ public class OrderTimersService {
             }
             jdbc.update("UPDATE order_timer_settings SET last_scanned_at=? WHERE id=1",timestamp(now));
         });
+    }
+    /** Inventory: a batch with stock that is past its expiry date, or expires within the warning period (Tashkent dates). */
+    private void batchExpiry(Instant now,Set<String> active) {
+        int warning=integer(jdbc.queryForObject("SELECT expiry_warning_days FROM inventory_settings WHERE id=1",Integer.class));
+        for(var batch:jdbc.queryForList("SELECT b.id,DATE_FORMAT(b.expiry_date,'%Y-%m-%d') expiry_date,DATEDIFF(b.expiry_date,DATE(CONVERT_TZ(?,'+00:00','+05:00'))) days_left "+
+                "FROM inventory_batches b JOIN inventory_products i ON i.product_id=b.product_id WHERE b.physical_quantity>0 AND b.expiry_date IS NOT NULL "+
+                "AND b.expiry_date<=DATE(CONVERT_TZ(?,'+00:00','+05:00'))+INTERVAL ? DAY",timestamp(now),timestamp(now),warning)) {
+            // Expired from the expiry date itself, as BatchStock stops selling it; expiring from the start of the warning period.
+            boolean expired=((Number)batch.get("days_left")).longValue()<=0;
+            Instant since=LocalDate.parse(String.valueOf(batch.get("expiry_date"))).minusDays(expired?0:warning).atStartOfDay(TASHKENT).toInstant();
+            open("BATCH",((Number)batch.get("id")).longValue(),expired?"STOCK_EXPIRED":"STOCK_EXPIRING",null,"WAREHOUSE",since,Math.max(0,Duration.between(since,now).toMinutes()),now,active);
+        }
     }
     private void expire(Map<String,Object> config,WorkingHours hours,Instant now) {
         for(var row:jdbc.queryForList("SELECT id,DATE_FORMAT(ordered_at,'%Y-%m-%dT%H:%i:%sZ') since FROM orders WHERE status='PENDING' AND payment_status='PENDING' ORDER BY id")) {
@@ -139,12 +155,31 @@ public class OrderTimersService {
         var result=new LinkedHashMap<String,Object>();
         String where=" WHERE 1=1"+(history?"":" AND resolved_at IS NULL")+(owner()?"":" AND entity_type='ORDER'");
         result.put("total",jdbc.queryForObject("SELECT COUNT(*) FROM order_problem_alerts"+where,Integer.class));
-        result.put("items",jdbc.queryForList("SELECT entity_type,entity_id,kind,order_status,responsible,elapsed_minutes,DATE_FORMAT(state_since,'%Y-%m-%dT%H:%i:%sZ') state_since,DATE_FORMAT(opened_at,'%Y-%m-%dT%H:%i:%sZ') opened_at,DATE_FORMAT(resolved_at,'%Y-%m-%dT%H:%i:%sZ') resolved_at FROM order_problem_alerts"+where+" ORDER BY resolved_at IS NULL DESC,opened_at DESC,entity_id DESC LIMIT ? OFFSET ?",size,(page-1)*size));
+        var items=jdbc.queryForList("SELECT entity_type,entity_id,kind,order_status,responsible,elapsed_minutes,DATE_FORMAT(state_since,'%Y-%m-%dT%H:%i:%sZ') state_since,DATE_FORMAT(opened_at,'%Y-%m-%dT%H:%i:%sZ') opened_at,DATE_FORMAT(resolved_at,'%Y-%m-%dT%H:%i:%sZ') resolved_at FROM order_problem_alerts"+where+" ORDER BY resolved_at IS NULL DESC,opened_at DESC,entity_id DESC LIMIT ? OFFSET ?",size,(page-1)*size);
+        batchDetails(items);
+        result.put("items",items);
         result.put("page",page);result.put("page_size",size);return result;
     }
+    /** Product, batch, bin and stock for batch alerts, so the list can say what to remove or sell first. */
+    private void batchDetails(List<Map<String,Object>> items) {
+        var ids=items.stream().filter(r->"BATCH".equals(r.get("entity_type"))).map(r->((Number)r.get("entity_id")).longValue()).distinct().toList();
+        if(ids.isEmpty())return;
+        var details=new HashMap<Long,Map<String,Object>>();
+        for(var d:jdbc.queryForList("SELECT b.id,p.name product_name,b.batch_number,DATE_FORMAT(b.expiry_date,'%Y-%m-%d') expiry_date,b.physical_quantity,l.code location_code FROM inventory_batches b "+
+                "JOIN products p ON p.id=b.product_id JOIN warehouse_locations l ON l.id=b.location_id WHERE b.id IN ("+String.join(",",Collections.nCopies(ids.size(),"?"))+")",ids.toArray()))
+            details.put(((Number)d.get("id")).longValue(),d);
+        for(var r:items) {
+            var d="BATCH".equals(r.get("entity_type"))?details.get(((Number)r.get("entity_id")).longValue()):null;
+            if(d!=null)for(String key:List.of("product_name","batch_number","expiry_date","physical_quantity","location_code"))r.put(key,d.get(key));
+        }
+    }
     public Map<String,Object> summary() {
-        return Map.of("total",jdbc.queryForObject("SELECT COUNT(*) FROM order_problem_alerts WHERE resolved_at IS NULL"+(owner()?"":" AND entity_type='ORDER'"),Integer.class),
-                "last_scan",Objects.toString(jdbc.queryForObject("SELECT DATE_FORMAT(last_scanned_at,'%Y-%m-%dT%H:%i:%sZ') FROM order_timer_settings WHERE id=1",String.class),""));
+        var result=new LinkedHashMap<String,Object>();
+        result.put("total",jdbc.queryForObject("SELECT COUNT(*) FROM order_problem_alerts WHERE resolved_at IS NULL"+(owner()?"":" AND entity_type='ORDER'"),Integer.class));
+        result.put("last_scan",Objects.toString(jdbc.queryForObject("SELECT DATE_FORMAT(last_scanned_at,'%Y-%m-%dT%H:%i:%sZ') FROM order_timer_settings WHERE id=1",String.class),""));
+        if(owner())for(String kind:List.of("STOCK_EXPIRED","STOCK_EXPIRING"))
+            result.put(kind.toLowerCase(),jdbc.queryForObject("SELECT COUNT(*) FROM order_problem_alerts WHERE resolved_at IS NULL AND entity_type='BATCH' AND kind=?",Integer.class,kind));
+        return result;
     }
     private static boolean owner() {
         var auth=SecurityContextHolder.getContext().getAuthentication();

@@ -34,7 +34,14 @@ public class InventoryService {
  public Map<String,Object> movements(Long product,int page){enabled();int p=Math.max(1,Math.min(page,1000000));String where=product==null?" WHERE 1=1":" WHERE m.product_id=?";if(!owner())where+=" AND NOT EXISTS(SELECT 1 FROM inventory_bin_locks k WHERE k.location_id=m.location_id)";Object[] count=product==null?new Object[]{}:new Object[]{product};Object[] list=product==null?new Object[]{(p-1)*50}:new Object[]{product,(p-1)*50};
   return Map.of("items",jdbc.queryForList("SELECT m.*,DATE_FORMAT(m.created_at,'%Y-%m-%dT%H:%i:%sZ') created_at FROM inventory_movements m"+where+" ORDER BY m.id DESC LIMIT 50 OFFSET ?",list),"total",jdbc.queryForObject("SELECT COUNT(*) FROM inventory_movements m"+where,Long.class,count),"page",p,"page_size",50);
  }
- public Map<String,Object> documents(int page){enabled();int p=Math.max(1,Math.min(page,1000000));return Map.of("items",jdbc.queryForList("SELECT id,kind,status,product_id,location_id,reason,created_by,approved_by,cost_total,DATE_FORMAT(created_at,'%Y-%m-%dT%H:%i:%sZ') created_at FROM inventory_documents ORDER BY id DESC LIMIT 50 OFFSET ?",(p-1)*50),"total",jdbc.queryForObject("SELECT COUNT(*) FROM inventory_documents",Long.class),"page",p,"page_size",50);}
+ public Map<String,Object> documents(int page){return documents(page,null,null);}
+ /** Optional kind/status filters let the warehouse app list only the open counts. */
+ public Map<String,Object> documents(int page,String kind,String status){enabled();int p=Math.max(1,Math.min(page,1000000));
+  var where=new StringBuilder(" WHERE 1=1");var args=new ArrayList<Object>();
+  if(kind!=null&&!kind.isBlank()){where.append(" AND d.kind=?");args.add(kind);}if(status!=null&&!status.isBlank()){where.append(" AND d.status=?");args.add(status);}
+  var list=new ArrayList<>(args);list.add((p-1)*50);
+  return Map.of("items",jdbc.queryForList("SELECT d.id,d.kind,d.status,d.product_id,d.location_id,l.code location_code,d.reason,d.created_by,d.approved_by,d.cost_total,DATE_FORMAT(d.created_at,'%Y-%m-%dT%H:%i:%sZ') created_at FROM inventory_documents d LEFT JOIN warehouse_locations l ON l.id=d.location_id"+where+" ORDER BY d.id DESC LIMIT 50 OFFSET ?",list.toArray()),
+   "total",jdbc.queryForObject("SELECT COUNT(*) FROM inventory_documents d"+where,Long.class,args.toArray()),"page",p,"page_size",50);}
  public Map<String,Object> document(long id){enabled();var r=new LinkedHashMap<>(jdbc.queryForMap("SELECT * FROM inventory_documents WHERE id=?",id));var payload=decode(r.remove("payload"));if(!owner()&&Set.of("OPENING","RELEASE").contains(String.valueOf(r.get("kind"))))throw new org.springframework.security.access.AccessDeniedException("Owner only");
   if("COUNT".equals(r.get("kind"))&&("DRAFT".equals(r.get("status"))||(!owner()&&"COUNTED".equals(r.get("status")))))for(Object item:(List<?>)payload.get("lines")){((Map<?,?>)item).remove("expected_quantity");}
   r.put("payload",payload);return r;
@@ -57,8 +64,10 @@ public class InventoryService {
    if("TRANSFER".equals(kind)){scanBin(location,body.get("source_code"));scanProduct(product,Objects.toString(body.get("scanned_barcode"),""),body.get("scan_override_reason"));scanBin(positive(body.get("destination_id")),body.get("destination_code"));}
    if("RELEASE".equals(kind))metadata(body,1);
   }else if("COUNT".equals(kind)){
-   location=positive(body.get("location_id"));var products=jdbc.queryForList("SELECT DISTINCT product_id FROM inventory_batches WHERE location_id=? AND physical_quantity>0 ORDER BY product_id",Long.class,location);for(long id:products)stock().lockProduct(id);
+   location=body.get("location_id")==null||String.valueOf(body.get("location_id")).isBlank()?binByCode(body.get("source_code")):positive(body.get("location_id"));var products=jdbc.queryForList("SELECT DISTINCT product_id FROM inventory_batches WHERE location_id=? AND physical_quantity>0 ORDER BY product_id",Long.class,location);for(long id:products)stock().lockProduct(id);
    stock().requireBin(location);scanBin(location,body.get("source_code"));var lines=jdbc.queryForList("SELECT b.id batch_id,b.product_id,p.name product_name,b.batch_number,b.expiry_date,b.physical_quantity expected_quantity,b.reserved_quantity,p.barcode FROM inventory_batches b JOIN products p ON p.id=b.product_id WHERE b.location_id=? AND b.physical_quantity>0 ORDER BY b.product_id,b.id FOR UPDATE",location);
+   // A count of a bin without batch stock would be empty and lock the bin for nothing.
+   if(lines.isEmpty())throw new WarehouseException("INVENTORY_BIN_EMPTY");
    if(lines.stream().anyMatch(b->BatchStock.n(b,"reserved_quantity")>0))throw new WarehouseException("INVENTORY_RESERVED_STOCK");payload.put("lines",lines);
   }else throw new WarehouseException("WAREHOUSE_INVALID_INPUT");
   jdbc.update("INSERT INTO inventory_documents(kind,product_id,location_id,reason,payload,expected_stock,created_by,created_at) VALUES(?,?,?,?,?,?,?,UTC_TIMESTAMP())",kind,product,location,why,encode(payload),expected,actor());long id=jdbc.queryForObject("SELECT LAST_INSERT_ID()",Long.class);
@@ -120,6 +129,8 @@ public class InventoryService {
   }
   jdbc.update("UPDATE inventory_documents SET status='POSTED',approved_by=?,approved_at=UTC_TIMESTAMP(),payload=?,cost_total=? WHERE id=?",actor(),encode(p),cost,id);return document(id);
  }
+ /** The warehouse app starts a count by scanning the bin label only. */
+ private long binByCode(Object scanned){var ids=jdbc.queryForList("SELECT id FROM warehouse_locations WHERE code=?",Long.class,WarehouseService.text(scanned,40,true).toUpperCase(Locale.ROOT));if(ids.isEmpty())throw new WarehouseException("INVENTORY_BIN_MISMATCH");return ids.get(0);}
  private void scanBin(long location,Object scanned){String code=WarehouseService.text(scanned,40,true).toUpperCase(Locale.ROOT);String expected=jdbc.queryForObject("SELECT code FROM warehouse_locations WHERE id=?",String.class,location);if(!Objects.equals(expected,code))throw new WarehouseException("INVENTORY_BIN_MISMATCH");}
  private void scanProduct(long product,String scanned,Object override){String code=jdbc.queryForObject("SELECT barcode FROM products WHERE id=?",String.class,product);if(code==null||code.isBlank()){reason(override);return;}if(!code.equals(scanned==null?"":scanned.trim()))throw new WarehouseException("WAREHOUSE_BARCODE_MISMATCH");}
  @Transactional public Object submitCount(long id,Map<String,Object> body){
@@ -127,6 +138,8 @@ public class InventoryService {
   var p=decode(d.get("payload"));var lines=(List<Map<String,Object>>)p.get("lines");if(!(body.get("counts") instanceof List<?> counts)||counts.size()!=lines.size())throw new WarehouseException("WAREHOUSE_BLIND_COUNT_REQUIRED");
   var seen=new HashSet<Long>();boolean variance=false;
   for(Object item:counts){if(!(item instanceof Map<?,?> m))throw new WarehouseException("WAREHOUSE_INVALID_INPUT");long batch=positive(m.get("batch_id")),qty=nonnegative(m.get("quantity"));if(!seen.add(batch))throw new WarehouseException("WAREHOUSE_INVALID_INPUT");var line=lines.stream().filter(r->positive(r.get("batch_id"))==batch).findFirst().orElseThrow(()->new WarehouseException("WAREHOUSE_INVALID_INPUT"));scanProduct(positive(line.get("product_id")),Objects.toString(m.get("scanned_barcode"),""),body.get("scan_override_reason"));line.put("counted_quantity",qty);if(qty!=nonnegative(line.get("expected_quantity")))variance=true;}
+  // The counter does not see the expected quantity; a clear code lets the app ask for the reason.
+  if(variance&&Objects.toString(body.get("variance_reason"),"").isBlank())throw new WarehouseException("INVENTORY_VARIANCE_REASON_REQUIRED");
   if(variance)reason(body.get("variance_reason"));p.put("counts",counts);p.put("variance_reason",body.get("variance_reason"));p.put("scan_override_reason",body.get("scan_override_reason"));
   jdbc.update("UPDATE inventory_documents SET status='COUNTED',payload=?,counted_by=?,counted_at=UTC_TIMESTAMP() WHERE id=?",encode(p),actor(),id);return document(id);
  }

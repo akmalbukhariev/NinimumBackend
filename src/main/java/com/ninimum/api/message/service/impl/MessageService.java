@@ -48,12 +48,16 @@ public class MessageService implements IMessageService {
         responseNumber.setCode(Constant.NO_CODE);
 
         CamelCaseMap camelTestPhone = testPhoneMapper.selectTestPhone(param.getPhone_number());
+        String smsPhone = com.ninimum.api.common.PhoneNumbers.sms(param.getPhone_number());
+        if (camelTestPhone == null && smsPhone != null && !smsPhone.equals(param.getPhone_number())) {
+            camelTestPhone = testPhoneMapper.selectTestPhone(smsPhone);
+        }
         //responseNumber.setCode("1111");
         //return responseNumber;
 
         if (camelTestPhone != null) {
             TestPhoneDto testPhoneDto = camelTestPhone.toObject(TestPhoneDto.class);
-            if (Objects.equals(testPhoneDto.getPhone(), param.getPhone_number()) && testPhoneDto.isUse()) {
+            if ((Objects.equals(testPhoneDto.getPhone(), param.getPhone_number()) || Objects.equals(testPhoneDto.getPhone(), smsPhone)) && testPhoneDto.isUse()) {
                 responseNumber.setCode(testPhoneDto.getCode());
                 return responseNumber; // stop here, don’t send SMS
             }
@@ -172,7 +176,7 @@ public class MessageService implements IMessageService {
         */
 
         MultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
-        body.add("mobile_phone", param.getPhone_number());
+        body.add("mobile_phone", com.ninimum.api.common.PhoneNumbers.sms(param.getPhone_number()));
         body.add("message", VERIFICATION_TEXT + code);
         body.add("from", "4546");
         body.add("callback_url", "http://0000.uz/test.php");

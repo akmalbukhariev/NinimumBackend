@@ -35,6 +35,9 @@ public class UserService implements IUserService {
 
     @Override
     public int register(RegisterUserParam param) throws Exception {
+        String phone = com.ninimum.api.common.PhoneNumbers.normalize(param.getPhone_number());
+        if (phone == null) throw new IllegalArgumentException("Invalid phone number");
+        param.setPhone_number(phone);
         String str_pwd = pwEncoder.encode(param.getPassword());
         param.setPassword(str_pwd);
         return mapper.insertUser(param);
@@ -144,7 +147,9 @@ public class UserService implements IUserService {
             throw new Exception("User ID and phone number are required");
         }
 
-        param.setPhoneNumber(param.getPhoneNumber().trim());
+        String phone = com.ninimum.api.common.PhoneNumbers.normalize(param.getPhoneNumber());
+        if (phone == null) throw new IllegalArgumentException("Invalid phone number");
+        param.setPhoneNumber(phone);
 
         if (this.mapper.countOtherUserByPhone(param) > 0) {
             throw new Exception("Phone number already exists");
