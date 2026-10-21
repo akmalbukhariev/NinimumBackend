@@ -11,6 +11,7 @@ public class InventoryController extends BaseController {
  @GetMapping("/status") public Object status(){return setResult(Result.SUCCESS,service.status());}
  @GetMapping("/balances") public Object balances(@RequestParam(required=false,name="product_id")Long product,@RequestParam(required=false,name="location_id")Long location,@RequestParam(defaultValue="1")int page){return safe(service.balances(product,location,page));}
  @GetMapping("/movements") public Object movements(@RequestParam(required=false,name="product_id")Long product,@RequestParam(defaultValue="1")int page){return setResult(Result.SUCCESS,service.movements(product,page));}
+ @GetMapping("/bin") public Object bin(@RequestParam String code){return safe(service.bin(code));}
  @GetMapping("/expiry") public Object expiry(@RequestParam(defaultValue="30")int days){return safe(service.expiry(days));}
  @GetMapping("/documents") public Object documents(@RequestParam(defaultValue="1")int page,@RequestParam(required=false)String kind,@RequestParam(required=false)String status){return safe(service.documents(page,kind,status));}
  @GetMapping("/documents/{id}") public Object document(@PathVariable long id){return safe(service.document(id));}

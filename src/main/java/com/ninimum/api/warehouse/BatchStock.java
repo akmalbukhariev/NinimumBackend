@@ -77,6 +77,18 @@ public final class BatchStock {
    }
   }
  }
+ /** Owner correction back before pickup: issued goods are in the warehouse again and stay reserved for the order. */
+ public void unissue(long order,String actor){
+  var products=jdbc.queryForList("SELECT DISTINCT product_id FROM inventory_allocations WHERE order_id=? AND issued_quantity>0 ORDER BY product_id",Long.class,order);
+  for(long product:products){lockProduct(product);
+   for(var a:jdbc.queryForList("SELECT * FROM inventory_allocations WHERE order_id=? AND product_id=? AND issued_quantity>0 ORDER BY batch_id FOR UPDATE",order,product)){
+    long qty=n(a,"issued_quantity"),id=n(a,"batch_id");
+    requireBin(((Number)jdbc.queryForMap("SELECT location_id FROM inventory_batches WHERE id=? FOR UPDATE",id).get("location_id")).longValue());
+    jdbc.update("UPDATE inventory_batches SET physical_quantity=physical_quantity+?,reserved_quantity=reserved_quantity+? WHERE id=?",qty,qty,id);
+    jdbc.update("UPDATE inventory_allocations SET issued_quantity=0 WHERE order_id=? AND batch_id=?",order,id);event(id,qty,qty,"UNISSUE","ORDER-"+order,actor,"Owner correction",null);
+   }
+  }
+ }
  public void requireFresh(long order){
   if(jdbc.queryForObject("SELECT COUNT(*) FROM inventory_allocations a JOIN inventory_batches b ON b.id=a.batch_id JOIN warehouse_locations l ON l.id=b.location_id WHERE a.order_id=? AND a.quantity>a.issued_quantity+a.released_quantity AND NOT("+ELIGIBLE+")",Integer.class,order)>0)throw new WarehouseException("INVENTORY_BATCH_NOT_SELLABLE");
  }

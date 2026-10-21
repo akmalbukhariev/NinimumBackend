@@ -83,6 +83,35 @@ class InventoryIntegrationTest {
         assertEquals(0,new BigDecimal("5.4000").compareTo(jdbc.queryForObject("SELECT unit_cost_snapshot FROM order_items WHERE order_id=7",BigDecimal.class)));
     }
 
+    @Test void ownerCorrectionBeforePickupPutsIssuedGoodsBackSoARefundRestoresAllStock(){
+        open();
+        jdbc.update("INSERT INTO orders(id,order_number,payment_status,status) VALUES(7,'N7','PAID','CONFIRMED')");
+        jdbc.update("INSERT INTO order_items(order_id,product_id,product_name,quantity) VALUES(7,1,'Milk',8)");
+        tx.executeWithoutResult(t->{warehouse.lockStock(1);jdbc.update("UPDATE products SET stock_quantity=stock_quantity-8 WHERE id=1");warehouse.recordChange(1,-8,"SALE","ORDER-7","test","Paid order","sale:7");});
+        tx.executeWithoutResult(t->warehouse.issueOrderStock(7));
+        assertEquals(2,physical());
+        tx.executeWithoutResult(t->new BatchStock(jdbc).unissue(7,"owner"));
+        assertEquals(10,physical());assertEquals(8,jdbc.queryForObject("SELECT SUM(reserved_quantity) FROM inventory_batches",Long.class));assertEquals(2,stock());
+        tx.executeWithoutResult(t->{warehouse.lockStock(1);jdbc.update("UPDATE products SET stock_quantity=stock_quantity+8 WHERE id=1");warehouse.recordChange(1,8,"PAYMENT_REFUND","ORDER-7","test","Refund","refund:7");});
+        assertEquals(10,stock());assertEquals(10,physical());assertEquals(0,jdbc.queryForObject("SELECT SUM(reserved_quantity) FROM inventory_batches",Long.class));
+    }
+
+    @Test void warehouseWorkerMovesStockBetweenBinsWithScans(){
+        open();
+        SecurityContextHolder.getContext().setAuthentication(new UsernamePasswordAuthenticationToken("W01",null,List.of(new SimpleGrantedAuthority("WAREHOUSE"))));
+        @SuppressWarnings("unchecked") var batches=(List<Map<String,Object>>)inventory.bin("a-01").get("batches");
+        assertEquals(1,batches.size());long batch=((Number)batches.get(0).get("id")).longValue();assertEquals("4780001",batches.get(0).get("barcode"));
+        var proof=Map.<String,Object>of("source_code","A-01","scanned_barcode","4780001","destination_code","C-01");
+        var body=new HashMap<String,Object>(proof);body.putAll(Map.of("kind","TRANSFER","reason","Fridge space","batch_id",batch,"quantity",2,"destination_id",cold));
+        long id=inventory.create(body);
+        inventory.approve(id,proof);
+        assertEquals("POSTED",jdbc.queryForObject("SELECT status FROM inventory_documents WHERE id=?",String.class,id));
+        assertEquals(4,jdbc.queryForObject("SELECT SUM(physical_quantity) FROM inventory_batches WHERE location_id=?",Long.class,bin));
+        assertEquals(6,jdbc.queryForObject("SELECT SUM(physical_quantity) FROM inventory_batches WHERE location_id=?",Long.class,cold));
+        assertEquals(10,stock());assertEquals(10,physical());
+        assertEquals("INVENTORY_BIN_MISMATCH",assertThrows(WarehouseException.class,()->inventory.bin("NOPE")).getMessage());
+    }
+
     @Test void writeOffNeedsAPhotoAndRemovesStockAtBatchCost(){
         open();
         long batch=jdbc.queryForObject("SELECT id FROM inventory_batches WHERE batch_number='L1'",Long.class);

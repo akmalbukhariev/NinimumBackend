@@ -132,6 +132,8 @@ public class InventoryService {
   }
   jdbc.update("UPDATE inventory_documents SET status='POSTED',approved_by=?,approved_at=UTC_TIMESTAMP(),payload=?,cost_total=? WHERE id=?",actor(),encode(p),cost,id);return document(id);
  }
+ /** Warehouse app: a scanned bin and its batches, for transfers and write-offs. */
+ public Map<String,Object> bin(String code){enabled();long id=binByCode(code);return Map.of("location",jdbc.queryForMap("SELECT id,code,name,type FROM warehouse_locations WHERE id=?",id),"batches",balances(null,id,1).get("items"));}
  /** The warehouse app starts a count by scanning the bin label only. */
  private long binByCode(Object scanned){var ids=jdbc.queryForList("SELECT id FROM warehouse_locations WHERE code=?",Long.class,WarehouseService.text(scanned,40,true).toUpperCase(Locale.ROOT));if(ids.isEmpty())throw new WarehouseException("INVENTORY_BIN_MISMATCH");return ids.get(0);}
  private void scanBin(long location,Object scanned){String code=WarehouseService.text(scanned,40,true).toUpperCase(Locale.ROOT);String expected=jdbc.queryForObject("SELECT code FROM warehouse_locations WHERE id=?",String.class,location);if(!Objects.equals(expected,code))throw new WarehouseException("INVENTORY_BIN_MISMATCH");}

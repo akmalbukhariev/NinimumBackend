@@ -17,6 +17,7 @@ import java.util.Objects;
 @RequiredArgsConstructor
 public class OrderCorrectionService {
     private final JdbcTemplate jdbc;
+    @org.springframework.beans.factory.annotation.Autowired(required=false) private com.ninimum.api.warehouse.WarehouseService warehouse;
     private static final List<String> STAGES=List.of("CONFIRMED","PREPARING","READY","ON_THE_WAY","DELIVERED");
 
     @Transactional(isolation=Isolation.READ_COMMITTED)
@@ -67,6 +68,9 @@ public class OrderCorrectionService {
             jdbc.update("UPDATE warehouse_preparations SET status='PICKING',note=NULL,ready_at=NULL,updated_at=UTC_TIMESTAMP() WHERE order_id=?",id);
         }
         if(!packing.isEmpty()) jdbc.update("INSERT INTO warehouse_preparation_events(order_id,actor,kind,note,created_at) VALUES (?,?, 'OWNER_CORRECTION',?,UTC_TIMESTAMP())",id,auth.getName(),reason);
+        // Back before pickup: goods issued at "on the way" are in the warehouse again (batch inventory).
+        if(warehouse!=null&&warehouse.isInventoryEnabled()&&List.of("ON_THE_WAY","DELIVERED").contains(current)&&!"ON_THE_WAY".equals(target))
+            new com.ninimum.api.warehouse.BatchStock(jdbc).unissue(id,auth.getName());
         jdbc.update("UPDATE orders SET status=?,delivered_at=NULL,status_actor=?,status_source='OWNER_CORRECTION',status_reason=?,updated_at=NOW() WHERE id=?",target,OrderAuditActor.current(),reason,id);
     }
 }
