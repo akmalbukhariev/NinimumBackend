@@ -17,7 +17,8 @@ public class InventoryService {
  private BatchStock stock(){return new BatchStock(jdbc);}
  private void enabled(){if(!warehouse.isInventoryEnabled())throw new WarehouseException("INVENTORY_NOT_ENABLED");}
  private String actor(){return WarehouseService.actor();}
- private boolean owner(){var a=SecurityContextHolder.getContext().getAuthentication();return a!=null&&a.getAuthorities().stream().anyMatch(r->"SUPER_ADMIN".equals(r.getAuthority()));}
+ /** The owner, or (M14) a staff member the owner gave the approve permission. */
+ private boolean owner(){return com.ninimum.api.admin.access.StaffAccess.can(com.ninimum.api.admin.access.StaffAccess.APPROVE);}
  private long positive(Object v){return WarehouseService.positive(v);}
  private long nonnegative(Object v){try{long n=new BigDecimal(String.valueOf(v)).longValueExact();if(n<0||n>Integer.MAX_VALUE)throw new ArithmeticException();return n;}catch(Exception ex){throw new WarehouseException("WAREHOUSE_INVALID_INPUT");}}
  private String reason(Object v){return WarehouseService.text(v,500,true);}
@@ -51,7 +52,8 @@ public class InventoryService {
   if(!owner()&&Set.of("OPENING","RELEASE").contains(kind))throw new org.springframework.security.access.AccessDeniedException("Owner approval required");
   if("WRITEOFF".equals(kind)){
    String code=WarehouseService.text(body.get("reason_code"),30,true);if(!Set.of("EXPIRED","WAREHOUSE_DAMAGE","DELIVERY_DAMAGE","LOST","SAMPLE","INTERNAL","OTHER").contains(code))throw new WarehouseException("WAREHOUSE_INVALID_INPUT");
-   byte[] photo=ReceiptImage.decode(body.get("photo_base64"));if(photo==null)throw new WarehouseException("INVENTORY_PHOTO_REQUIRED");payload.remove("photo_base64");payload.put("photo_data","data:image/png;base64,"+Base64.getEncoder().encodeToString(photo));
+   // Q-5: write-off photo (switchable).
+   byte[] photo=ReceiptImage.decode(body.get("photo_base64"));if(photo==null&&com.ninimum.api.admin.access.StrictRules.on("Q-5"))throw new WarehouseException("INVENTORY_PHOTO_REQUIRED");payload.remove("photo_base64");if(photo!=null)payload.put("photo_data","data:image/png;base64,"+Base64.getEncoder().encodeToString(photo));
   }
   Long product=null,location=null,expected=null;
   if("OPENING".equals(kind)){
@@ -84,7 +86,8 @@ public class InventoryService {
  }
  @Transactional public Object approve(long id,Map<String,Object> confirmation){
   enabled();var d=jdbc.queryForMap("SELECT * FROM inventory_documents WHERE id=? FOR UPDATE",id);if("POSTED".equals(d.get("status")))return document(id);if(!Set.of("DRAFT","COUNTED").contains(String.valueOf(d.get("status"))))throw new WarehouseException("WAREHOUSE_INVALID_STATE");
-  if(!owner()&&actor().equals(d.get("created_by"))&&!"TRANSFER".equals(d.get("kind")))throw new WarehouseException("WAREHOUSE_SEPARATE_APPROVER_REQUIRED");
+  // Q-6: a write-off is approved by someone else (switchable); other documents keep the separate approver for staff.
+  if(actor().equals(d.get("created_by"))&&("WRITEOFF".equals(d.get("kind"))?com.ninimum.api.admin.access.StrictRules.on("Q-6"):!owner()&&!"TRANSFER".equals(d.get("kind"))))throw new WarehouseException("WAREHOUSE_SEPARATE_APPROVER_REQUIRED");
   var p=decode(d.get("payload"));String kind=String.valueOf(d.get("kind")),reference="INV-"+id,why=String.valueOf(d.get("reason"));BigDecimal cost=BigDecimal.ZERO;
   if(!owner()&&Set.of("OPENING","WRITEOFF","RELEASE","COUNT").contains(kind))throw new org.springframework.security.access.AccessDeniedException("Owner approval required");
   if("OPENING".equals(kind)){
@@ -103,7 +106,7 @@ public class InventoryService {
    var lines=(List<Map<String,Object>>)p.get("lines");if(counts.size()!=lines.size())throw new WarehouseException("WAREHOUSE_BLIND_COUNT_REQUIRED");
    for(var line:lines){long batch=positive(line.get("batch_id")),product=positive(line.get("product_id"));stock().lockProduct(product);stock().refresh(product);var b=jdbc.queryForMap("SELECT * FROM inventory_batches WHERE id=? FOR UPDATE",batch);
     if(!counts.containsKey(batch)||BatchStock.n(b,"reserved_quantity")!=0||BatchStock.n(b,"physical_quantity")!=nonnegative(line.get("expected_quantity")))throw new WarehouseException("INVENTORY_STOCK_CHANGED");
-    scanProduct(product,scanCodes.get(batch),confirmation.get("scan_override_reason"));long delta=counts.get(batch)-BatchStock.n(b,"physical_quantity");if(delta!=0){reason(confirmation.get("variance_reason"));boolean saleable=stock().eligible(batch);jdbc.update("UPDATE inventory_batches SET physical_quantity=?,accounted_quantity=? WHERE id=?",counts.get(batch),saleable?counts.get(batch):0,batch);if(saleable){stock().adjustFree(product,delta);warehouse.recordInventoryAdjustment(product,delta,"COUNT",reference,why);}stock().event(batch,delta,0,"COUNT",reference,actor(),reason(confirmation.get("variance_reason")),device(p));}
+    scanProduct(product,scanCodes.get(batch),confirmation.get("scan_override_reason"));long delta=counts.get(batch)-BatchStock.n(b,"physical_quantity");if(delta!=0){if(com.ninimum.api.admin.access.StrictRules.on("Q-8"))reason(confirmation.get("variance_reason"));boolean saleable=stock().eligible(batch);jdbc.update("UPDATE inventory_batches SET physical_quantity=?,accounted_quantity=? WHERE id=?",counts.get(batch),saleable?counts.get(batch):0,batch);if(saleable){stock().adjustFree(product,delta);warehouse.recordInventoryAdjustment(product,delta,"COUNT",reference,why);}stock().event(batch,delta,0,"COUNT",reference,actor(),reason(confirmation.get("variance_reason")),device(p));}
     line.put("counted_quantity",counts.get(batch));if(b.get("unit_cost")==null)cost=null;else if(cost!=null)cost=cost.add(new BigDecimal(String.valueOf(b.get("unit_cost"))).multiply(BigDecimal.valueOf(delta)));
    }
    p.put("variance_reason",confirmation.get("variance_reason"));jdbc.update("DELETE FROM inventory_bin_locks WHERE location_id=? AND document_id=?",d.get("location_id"),id);
@@ -139,17 +142,19 @@ public class InventoryService {
   var seen=new HashSet<Long>();boolean variance=false;
   for(Object item:counts){if(!(item instanceof Map<?,?> m))throw new WarehouseException("WAREHOUSE_INVALID_INPUT");long batch=positive(m.get("batch_id")),qty=nonnegative(m.get("quantity"));if(!seen.add(batch))throw new WarehouseException("WAREHOUSE_INVALID_INPUT");var line=lines.stream().filter(r->positive(r.get("batch_id"))==batch).findFirst().orElseThrow(()->new WarehouseException("WAREHOUSE_INVALID_INPUT"));scanProduct(positive(line.get("product_id")),Objects.toString(m.get("scanned_barcode"),""),body.get("scan_override_reason"));line.put("counted_quantity",qty);if(qty!=nonnegative(line.get("expected_quantity")))variance=true;}
   // The counter does not see the expected quantity; a clear code lets the app ask for the reason.
-  if(variance&&Objects.toString(body.get("variance_reason"),"").isBlank())throw new WarehouseException("INVENTORY_VARIANCE_REASON_REQUIRED");
-  if(variance)reason(body.get("variance_reason"));p.put("counts",counts);p.put("variance_reason",body.get("variance_reason"));p.put("scan_override_reason",body.get("scan_override_reason"));
+  // Q-8: a count difference needs a reason (switchable).
+  boolean needReason=variance&&com.ninimum.api.admin.access.StrictRules.on("Q-8");
+  if(needReason&&Objects.toString(body.get("variance_reason"),"").isBlank())throw new WarehouseException("INVENTORY_VARIANCE_REASON_REQUIRED");
+  if(needReason)reason(body.get("variance_reason"));p.put("counts",counts);p.put("variance_reason",body.get("variance_reason"));p.put("scan_override_reason",body.get("scan_override_reason"));
   jdbc.update("UPDATE inventory_documents SET status='COUNTED',payload=?,counted_by=?,counted_at=UTC_TIMESTAMP() WHERE id=?",encode(p),actor(),id);return document(id);
  }
  public Map<String,Object> settings(){enabled();return jdbc.queryForMap("SELECT * FROM inventory_settings WHERE id=1");}
- @Transactional public void saveSettings(Map<String,Object> body){enabled();if(!owner())throw new org.springframework.security.access.AccessDeniedException("Owner only");
+ @Transactional public void saveSettings(Map<String,Object> body){enabled();if(!com.ninimum.api.admin.access.StaffAccess.isOwner())throw new org.springframework.security.access.AccessDeniedException("Owner only");
   BigDecimal percent;int days;try{percent=new BigDecimal(String.valueOf(body.get("writeoff_warning_percent"))).setScale(2,java.math.RoundingMode.UNNECESSARY);days=new BigDecimal(String.valueOf(body.get("expiry_warning_days"))).intValueExact();}catch(Exception ex){throw new WarehouseException("WAREHOUSE_INVALID_INPUT");}
   if(percent.signum()<0||percent.compareTo(new BigDecimal("100"))>0||days<1||days>365)throw new WarehouseException("WAREHOUSE_INVALID_INPUT");
   jdbc.update("UPDATE inventory_settings SET writeoff_warning_percent=?,expiry_warning_days=?,updated_by=?,updated_at=UTC_TIMESTAMP() WHERE id=1",percent,days,actor());
  }
- public Map<String,Object> writeoffSummary(){enabled();if(!owner())throw new org.springframework.security.access.AccessDeniedException("Owner only");
+ public Map<String,Object> writeoffSummary(){enabled();if(!com.ninimum.api.admin.access.StaffAccess.isOwner())throw new org.springframework.security.access.AccessDeniedException("Owner only");
   String start="CONVERT_TZ(DATE_FORMAT(CONVERT_TZ(UTC_TIMESTAMP(),'+00:00','+05:00'),'%Y-%m-01'),'+05:00','+00:00')";
   BigDecimal written=jdbc.queryForObject("SELECT COALESCE(SUM(cost_total),0) FROM inventory_documents WHERE kind='WRITEOFF' AND status='POSTED' AND approved_at>="+start,BigDecimal.class);
   BigDecimal sales=jdbc.queryForObject("SELECT COALESCE(SUM(GREATEST(0,o.total_price-COALESCE((SELECT r.refund_amount FROM delivery_partial_returns r WHERE r.order_id=o.id),0))),0) FROM orders o WHERE o.status='DELIVERED' AND o.payment_status='PAID' AND o.delivered_at>="+start,BigDecimal.class);

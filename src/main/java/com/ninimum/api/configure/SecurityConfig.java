@@ -61,14 +61,8 @@ public class SecurityConfig {
                 .antMatchers("/ninimum/api/v1/warehouse-app/**").hasAuthority(Constant.ROLE_WAREHOUSE)
                 .antMatchers("/ninimum/api/v1/delivery-app/login").permitAll()
                 .antMatchers("/ninimum/api/v1/admin/management/orders/*/correction").hasAuthority(Constant.ROLE_SUPER_ADMIN)
-                .antMatchers("/ninimum/api/v1/admin/warehouse/status", "/ninimum/api/v1/admin/me",
-                        "/ninimum/api/v1/admin/management/orders", "/ninimum/api/v1/admin/management/orders/**",
-                        "/ninimum/api/v1/admin/management/products", "/ninimum/api/v1/admin/management/products/**",
-                        "/ninimum/api/v1/admin/management/categories", "/ninimum/api/v1/admin/management/categories/**",
-                        "/ninimum/api/v1/admin/management/delivery/**",
-                        "/ninimum/api/v1/admin/product/**", "/ninimum/api/v1/admin/category/**")
-                        .hasAnyAuthority(Constant.ROLE_ADMIN, Constant.ROLE_SUPER_ADMIN)
-                .antMatchers("/ninimum/api/v1/admin/**").hasAuthority(Constant.ROLE_SUPER_ADMIN)
+                // M14: staff (ADMIN) reach the admin API; JwtAuthenticationFilter checks each call against StaffAccess permissions.
+                .antMatchers("/ninimum/api/v1/admin/**").hasAnyAuthority(Constant.ROLE_ADMIN, Constant.ROLE_SUPER_ADMIN)
                 .antMatchers("/ninimum/api/v1/delivery-app/admin/**").hasAnyAuthority(Constant.ROLE_ADMIN, Constant.ROLE_SUPER_ADMIN)
                 .antMatchers("/ninimum/api/v1/delivery-app/**").hasAuthority(Constant.ROLE_DELIVERY)
 

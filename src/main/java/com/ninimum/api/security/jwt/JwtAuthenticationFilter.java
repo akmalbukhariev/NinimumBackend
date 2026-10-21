@@ -88,6 +88,22 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 }
 
                 Authentication authentication = jwtTokenProvider.getAuthentication(token);
+                if (Constant.ROLE_ADMIN.equals(role)) {
+                    // M14: staff permissions come from the account on every request, so owner changes apply at once.
+                    var permissions = com.ninimum.api.admin.access.StaffAccess.effective(
+                            (String) admin.get("staff_role"), (String) admin.get("permissions_added"), (String) admin.get("permissions_removed"));
+                    String required = com.ninimum.api.admin.access.StaffAccess.required(request.getMethod(), request.getRequestURI());
+                    if ((request.getRequestURI().startsWith("/ninimum/api/v1/admin/") || request.getRequestURI().startsWith("/ninimum/api/v1/delivery-app/admin/"))
+                            && !com.ninimum.api.admin.access.StaffAccess.allows(permissions, required)) {
+                        log.warn("Admin permission denied: {} {} {}", loginId, request.getMethod(), request.getRequestURI());
+                        sendErrorResponse(response, HttpServletResponse.SC_FORBIDDEN, "ADMIN_PERMISSION_DENIED", "Bu amal uchun ruxsatingiz yo‘q.", null);
+                        return;
+                    }
+                    var authorities = new java.util.ArrayList<org.springframework.security.core.GrantedAuthority>(authentication.getAuthorities());
+                    for (String p : permissions) authorities.add(new org.springframework.security.core.authority.SimpleGrantedAuthority(com.ninimum.api.admin.access.StaffAccess.PREFIX + p));
+                    authorities.add(new org.springframework.security.core.authority.SimpleGrantedAuthority(com.ninimum.api.admin.access.StaffAccess.LOADED));
+                    authentication = new org.springframework.security.authentication.UsernamePasswordAuthenticationToken(authentication.getPrincipal(), authentication.getCredentials(), authorities);
+                }
                 SecurityContextHolder.getContext().setAuthentication(authentication);
                 filterChain.doFilter(request, response);
                 return;

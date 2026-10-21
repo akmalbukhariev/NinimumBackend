@@ -73,6 +73,18 @@ class AdminPermissionsTest {
         mvc.perform(get("/ninimum/api/v1/appConfig/getAppConfig")).andExpect(status().isOk());
         mvc.perform(put("/ninimum/api/v1/admin/management/settings")).andExpect(status().isForbidden());
     }
+    // M14: staff roles are checked by the JWT filter against StaffAccess.
+    @Test void staffRolesFollowTheirPermissions() throws Exception {
+        login("ADMIN"); ((CamelCaseMap) details.getAdminByLoginId("test")).put("staff_role", "OPERATOR");
+        mvc.perform(get("/ninimum/api/v1/admin/management/customers/1").header("Authorization","Bearer token")).andExpect(status().isOk());
+        mvc.perform(get("/ninimum/api/v1/admin/warehouse/locations").header("Authorization","Bearer token"))
+                .andExpect(status().isForbidden()).andExpect(content().string(org.hamcrest.Matchers.containsString("ADMIN_PERMISSION_DENIED")));
+        login("ADMIN"); ((CamelCaseMap) details.getAdminByLoginId("test")).put("staff_role", "OBSERVER");
+        mvc.perform(get("/ninimum/api/v1/admin/management/customers/1").header("Authorization","Bearer token")).andExpect(status().isOk());
+        mvc.perform(put("/ninimum/api/v1/admin/management/customers/1").header("Authorization","Bearer token")).andExpect(status().isForbidden());
+        login("ADMIN"); var p=(CamelCaseMap) details.getAdminByLoginId("test"); p.put("staff_role","OBSERVER"); p.put("permissions_removed","customers.view");
+        mvc.perform(get("/ninimum/api/v1/admin/management/customers/1").header("Authorization","Bearer token")).andExpect(status().isForbidden());
+    }
     @Test void customerCardsAreOwnerOnly() throws Exception {
         login("ADMIN");
         mvc.perform(get("/ninimum/api/v1/admin/management/customers/1").header("Authorization","Bearer token")).andExpect(status().isForbidden());

@@ -67,7 +67,7 @@ class ReleaseBatchIntegrationTest {
   var context=org.springframework.security.core.context.SecurityContextHolder.getContext();
   context.setAuthentication(new org.springframework.security.authentication.UsernamePasswordAuthenticationToken("operator",null,List.of(new org.springframework.security.core.authority.SimpleGrantedAuthority("ADMIN"))));
   try {
-   assertThrows(IllegalArgumentException.class,()->admin.updateProduct(1,new HashMap<>(Map.of("price","120"))));
+   assertEquals("PRICE_REASON_REQUIRED",assertThrows(com.ninimum.api.warehouse.WarehouseException.class,()->admin.updateProduct(1,new HashMap<>(Map.of("price","120")))).getMessage());
    assertEquals(new BigDecimal("100.00"),jdbc.queryForObject("SELECT price FROM products WHERE id=1",BigDecimal.class));
    admin.updateProduct(1,new HashMap<>(Map.of("price","120.50","price_change_reason","Supplier cost changed")));
    admin.updateProduct(1,new HashMap<>(Map.of("price","120.5")));

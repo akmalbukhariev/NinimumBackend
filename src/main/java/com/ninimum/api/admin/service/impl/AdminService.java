@@ -47,6 +47,10 @@ public class AdminService implements IAdminService {
         CamelCaseMap profile = new CamelCaseMap();
         profile.putAll(found);
         profile.remove("password");
+        // M14: the web admin shows only the pages these permissions allow.
+        profile.put("permissions", Constant.ROLE_SUPER_ADMIN.equals(found.get("role"))
+                ? com.ninimum.api.admin.access.StaffAccess.ALL
+                : com.ninimum.api.admin.access.StaffAccess.effective((String) found.get("staff_role"), (String) found.get("permissions_added"), (String) found.get("permissions_removed")));
         return profile;
     }
 
@@ -59,7 +63,8 @@ public class AdminService implements IAdminService {
         dashboard.put("recent_orders", adminMapper.getDashboardRecentOrders());
         dashboard.put("low_stock_products", adminMapper.getDashboardLowStockProducts());
         var auth=org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
-        boolean owner=auth!=null&&auth.getAuthorities().stream().anyMatch(a->Constant.ROLE_SUPER_ADMIN.equals(a.getAuthority()));
+        // M14: money figures for the owner and for staff the owner gave the money permission.
+        boolean owner=auth!=null&&com.ninimum.api.admin.access.StaffAccess.can(com.ninimum.api.admin.access.StaffAccess.MONEY);
         if(!owner){
             Map<String,Object> summary=new LinkedHashMap<>((Map<String,Object>)dashboard.get("summary"));
             for(String key:java.util.List.of("revenue","paid_undelivered","subscription_receipts","supplier_due_week"))summary.put(key,null);

@@ -5,7 +5,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import java.util.Map;
 @RestController @lombok.RequiredArgsConstructor
 @RequestMapping({"/ninimum/api/v1/admin/warehouse/inventory","/ninimum/api/v1/warehouse-app/inventory"})
-@PreAuthorize("hasAnyAuthority('SUPER_ADMIN','WAREHOUSE')")
+@PreAuthorize("hasAnyAuthority('SUPER_ADMIN','ADMIN','WAREHOUSE')")
 public class InventoryController extends BaseController {
  private final InventoryService service;
  @GetMapping("/status") public Object status(){return setResult(Result.SUCCESS,service.status());}
@@ -21,7 +21,7 @@ public class InventoryController extends BaseController {
  @GetMapping("/settings") @PreAuthorize("hasAuthority('SUPER_ADMIN')") public Object settings(){return setResult(Result.SUCCESS,service.settings());}
  @PutMapping("/settings") @PreAuthorize("hasAuthority('SUPER_ADMIN')") public Object settings(@RequestBody Map<String,Object> body){service.saveSettings(body);return setResult(Result.SUCCESS);}
  @GetMapping("/writeoff-summary") @PreAuthorize("hasAuthority('SUPER_ADMIN')") public Object writeoffSummary(){return setResult(Result.SUCCESS,service.writeoffSummary());}
- private Object safe(Object value){var a=org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();boolean owner=a!=null&&a.getAuthorities().stream().anyMatch(r->"SUPER_ADMIN".equals(r.getAuthority()));return setResult(Result.SUCCESS,owner?value:hideCosts(value));}
+ private Object safe(Object value){var a=org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();boolean owner=a!=null&&a.getAuthorities().stream().anyMatch(r->"SUPER_ADMIN".equals(r.getAuthority()));boolean money=owner||a!=null&&a.getAuthorities().stream().anyMatch(r->"ADMIN".equals(r.getAuthority()))&&com.ninimum.api.admin.access.StaffAccess.can(com.ninimum.api.admin.access.StaffAccess.MONEY);return setResult(Result.SUCCESS,money?value:hideCosts(value));}
  private Object hideCosts(Object value){
   if(value instanceof Map<?,?> map){var copy=new java.util.LinkedHashMap<String,Object>();for(var e:map.entrySet()){String key=String.valueOf(e.getKey());if(!java.util.Set.of("unit_cost","unit_price","cost_total","unit_cost_snapshot","expected_stock").contains(key)&&!(map.get("count_document")!=null&&java.util.Set.of("physical_quantity","reserved_quantity","available_quantity").contains(key)))copy.put(key,hideCosts(e.getValue()));}return copy;}
   if(value instanceof Iterable<?> list){var copy=new java.util.ArrayList<Object>();for(Object child:list)copy.add(hideCosts(child));return copy;}return value;

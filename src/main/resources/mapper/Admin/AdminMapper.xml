@@ -3,13 +3,8 @@
 <mapper namespace="com.ninimum.api.admin.service.AdminMapper">
 
     <select id="getAdminByLoginId" resultType="com.ninimum.api.camelcase.CamelCaseMap">
-        SELECT
-            id,
-            login_id,
-            password,
-            name,
-            role,
-            status
+        <!-- SELECT *: staff_role and permission columns (M14) are read when the migration has added them. -->
+        SELECT *
         FROM admin_users
         WHERE login_id = #{login_id}
         LIMIT 1

@@ -153,7 +153,7 @@ public class OrderTimersService {
     public Map<String,Object> problems(int page,int size,boolean history) {
         size=Math.min(100,Math.max(1,size));page=Math.max(1,page);
         var result=new LinkedHashMap<String,Object>();
-        String where=" WHERE 1=1"+(history?"":" AND resolved_at IS NULL")+(owner()?"":" AND entity_type='ORDER'");
+        String where=" WHERE 1=1"+(history?"":" AND resolved_at IS NULL")+visibleTypes();
         result.put("total",jdbc.queryForObject("SELECT COUNT(*) FROM order_problem_alerts"+where,Integer.class));
         var items=jdbc.queryForList("SELECT entity_type,entity_id,kind,order_status,responsible,elapsed_minutes,DATE_FORMAT(state_since,'%Y-%m-%dT%H:%i:%sZ') state_since,DATE_FORMAT(opened_at,'%Y-%m-%dT%H:%i:%sZ') opened_at,DATE_FORMAT(resolved_at,'%Y-%m-%dT%H:%i:%sZ') resolved_at FROM order_problem_alerts"+where+" ORDER BY resolved_at IS NULL DESC,opened_at DESC,entity_id DESC LIMIT ? OFFSET ?",size,(page-1)*size);
         batchDetails(items);
@@ -175,11 +175,19 @@ public class OrderTimersService {
     }
     public Map<String,Object> summary() {
         var result=new LinkedHashMap<String,Object>();
-        result.put("total",jdbc.queryForObject("SELECT COUNT(*) FROM order_problem_alerts WHERE resolved_at IS NULL"+(owner()?"":" AND entity_type='ORDER'"),Integer.class));
+        result.put("total",jdbc.queryForObject("SELECT COUNT(*) FROM order_problem_alerts WHERE resolved_at IS NULL"+visibleTypes(),Integer.class));
         result.put("last_scan",Objects.toString(jdbc.queryForObject("SELECT DATE_FORMAT(last_scanned_at,'%Y-%m-%dT%H:%i:%sZ') FROM order_timer_settings WHERE id=1",String.class),""));
-        if(owner())for(String kind:List.of("STOCK_EXPIRED","STOCK_EXPIRING"))
+        if(com.ninimum.api.admin.access.StaffAccess.can("inventory.view"))for(String kind:List.of("STOCK_EXPIRED","STOCK_EXPIRING"))
             result.put(kind.toLowerCase(),jdbc.queryForObject("SELECT COUNT(*) FROM order_problem_alerts WHERE resolved_at IS NULL AND entity_type='BATCH' AND kind=?",Integer.class,kind));
         return result;
+    }
+    /** M14: staff see order problems, batch alerts with inventory access and question alerts with reviews access. */
+    private static String visibleTypes() {
+        if(owner())return "";
+        String types="'ORDER'";
+        if(com.ninimum.api.admin.access.StaffAccess.can("inventory.view"))types+=",'BATCH'";
+        if(com.ninimum.api.admin.access.StaffAccess.can("reviews.view"))types+=",'QUESTION'";
+        return " AND entity_type IN ("+types+")";
     }
     private static boolean owner() {
         var auth=SecurityContextHolder.getContext().getAuthentication();
@@ -187,7 +195,7 @@ public class OrderTimersService {
     }
     public Map<String,Object> events(int page,int size) {
         size=Math.min(100,Math.max(1,size));page=Math.max(1,page);
-        String where=owner()?"":" WHERE entity_type='ORDER'";
+        String where=" WHERE 1=1"+visibleTypes();
         return Map.of("total",jdbc.queryForObject("SELECT COUNT(*) FROM order_problem_events"+where,Integer.class),
           "items",jdbc.queryForList("SELECT entity_type,entity_id,kind,event,actor,DATE_FORMAT(occurred_at,'%Y-%m-%dT%H:%i:%sZ') occurred_at FROM order_problem_events"+where+" ORDER BY id DESC LIMIT ? OFFSET ?",size,(page-1)*size),"page",page,"page_size",size);
     }

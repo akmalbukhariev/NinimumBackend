@@ -94,7 +94,9 @@ public class AdminManagementService implements IAdminManagementService {
         String paymentStatus = clean((String) body.get("payment_status"));
         if ("CANCELLED".equals(status)) {
             String reason = clean((String) body.get("cancel_reason"));
-            if (reason == null || reason.isBlank()) throw new IllegalArgumentException("Cancellation reason is required");
+            // Q-9: cancellation reason (switchable for staff and owner).
+            if ((reason == null || reason.isBlank()) && com.ninimum.api.admin.access.StrictRules.on("Q-9")) throw new IllegalArgumentException("Cancellation reason is required");
+            if (reason == null) reason = "";
             int changed = mapper.cancelOrder(id, reason);
             if (changed != 1) throw new IllegalArgumentException("This order cannot be cancelled");
             mapper.syncDeliveryJobFromOrder(id, "CANCELLED");
@@ -153,7 +155,10 @@ public class AdminManagementService implements IAdminManagementService {
         }
         var auth=org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
         boolean staff=auth!=null&&auth.getAuthorities().stream().noneMatch(a->"SUPER_ADMIN".equals(a.getAuthority()));
-        if(!changes.isEmpty()&&staff&&reason.isEmpty())throw new IllegalArgumentException("A reason is required for price changes");
+        // M14: a signed-in staff member needs the price permission; system calls (no sign-in) behave as before.
+        if(!changes.isEmpty()&&auth!=null&&!com.ninimum.api.admin.access.StaffAccess.can(com.ninimum.api.admin.access.StaffAccess.PRICES))throw new com.ninimum.api.warehouse.WarehouseException("ADMIN_PERMISSION_DENIED");
+        // Q-10: reason for a price change (staff on, owner off by default).
+        if(!changes.isEmpty()&&auth!=null&&com.ninimum.api.admin.access.StrictRules.on("Q-10")&&reason.isEmpty())throw new com.ninimum.api.warehouse.WarehouseException("PRICE_REASON_REQUIRED");
         body.put("id", id);int changed=mapper.updateProduct(body);
         if(changed>0)for(var change:changes){change.put("reason",reason);change.put("changed_by",com.ninimum.api.warehouse.WarehouseService.actor());mapper.insertPriceHistory(change);}
         return changed;
