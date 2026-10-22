@@ -73,6 +73,7 @@ public class SupplierService {
             if(((Number)p.get("receipt_id")).longValue()!=receipt || new BigDecimal(p.get("amount").toString()).compareTo(amount)!=0 || !p.get("paid_date").toString().equals(date.toString()))throw new WarehouseException("SUPPLIER_REFERENCE_CONFLICT");
             return ((Number)p.get("id")).longValue();
         }
+        com.ninimum.api.finance.PeriodClose.guard(date);
         var invoices=jdbc.queryForList("SELECT i.invoice_amount,r.status FROM supplier_invoices i JOIN warehouse_receipts r ON r.id=i.receipt_id WHERE i.supplier_id=? AND i.receipt_id=? FOR UPDATE",supplierId,receipt);
         if(invoices.isEmpty() || !"POSTED".equals(invoices.get(0).get("status")))throw new WarehouseException("WAREHOUSE_INVALID_STATE");
         BigDecimal paid=jdbc.queryForObject("SELECT COALESCE(SUM(amount),0) FROM supplier_payment_records WHERE receipt_id=? AND status='RECORDED'",BigDecimal.class,receipt);
@@ -81,12 +82,20 @@ public class SupplierService {
         var key=new GeneratedKeyHolder();
         jdbc.update(c->{var p=c.prepareStatement("INSERT INTO supplier_payment_records(supplier_id,receipt_id,amount,reference,paid_date,created_by,created_at) VALUES(?,?,?,?,?,?,UTC_TIMESTAMP())",Statement.RETURN_GENERATED_KEYS);
             Object[] args={supplierId,receipt,amount,reference,date,WarehouseService.actor()};for(int i=0;i<args.length;i++)p.setObject(i+1,args[i]);return p;},key);
-        return Objects.requireNonNull(key.getKey()).longValue();
+        long id=Objects.requireNonNull(key.getKey()).longValue();
+        // TZ v10 §9: optionally which money place paid it, so it counts in that place's balance.
+        if(body.get("account_id")!=null&&!String.valueOf(body.get("account_id")).isBlank()){
+            long account=WarehouseService.positive(body.get("account_id"));
+            if(jdbc.update("UPDATE supplier_payment_records r JOIN finance_accounts a ON a.id=? SET r.account_id=a.id WHERE r.id=?",account,id)!=1)throw new WarehouseException("WAREHOUSE_INVALID_INPUT");
+        }
+        return id;
     }
     @Transactional public void voidPayment(long supplierId,long paymentId,String reason) {
         reason=WarehouseService.text(reason,500,true);
         if(jdbc.queryForList("SELECT id FROM suppliers WHERE id=? FOR UPDATE",supplierId).isEmpty())throw new WarehouseException("WAREHOUSE_NOT_FOUND");
-        if(jdbc.queryForList("SELECT id FROM supplier_payment_records WHERE supplier_id=? AND id=? FOR UPDATE",supplierId,paymentId).isEmpty())throw new WarehouseException("WAREHOUSE_NOT_FOUND");
+        var paid=jdbc.queryForList("SELECT paid_date FROM supplier_payment_records WHERE supplier_id=? AND id=? FOR UPDATE",LocalDate.class,supplierId,paymentId);
+        if(paid.isEmpty())throw new WarehouseException("WAREHOUSE_NOT_FOUND");
+        com.ninimum.api.finance.PeriodClose.guard(paid.get(0));
         jdbc.update("UPDATE supplier_payment_records SET status='VOID',void_reason=?,voided_by=?,voided_at=UTC_TIMESTAMP() WHERE id=? AND supplier_id=? AND status='RECORDED'",reason,WarehouseService.actor(),paymentId,supplierId);
     }
     /** Called in the receipt transaction; amounts are recorded, never transferred. */

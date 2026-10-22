@@ -16,7 +16,7 @@ public final class StaffAccess {
     public static final String PREFIX = "PERM:";
     /** Added by the JWT filter with the permissions; an ADMIN without it gets the restricted-admin defaults. */
     public static final String LOADED = PREFIX + "*";
-    public static final String MONEY = "money.view", APPROVE = "approve", PRICES = "prices.edit";
+    public static final String MONEY = "money.view", MONEY_EDIT = "money.edit", APPROVE = "approve", PRICES = "prices.edit";
     /** Any signed-in staff member may call it. */
     public static final String ANY = "";
     public static final List<String> AREAS = List.of("dashboard","problems","orders","customers","products","categories","subscriptions",
@@ -26,14 +26,14 @@ public final class StaffAccess {
     static {
         var all = new ArrayList<String>();
         for (String area : AREAS) { all.add(area + ".view"); all.add(area + ".edit"); }
-        all.addAll(List.of(MONEY, APPROVE, PRICES));
+        all.addAll(List.of(MONEY, MONEY_EDIT, APPROVE, PRICES));
         ALL = List.copyOf(all);
         var roles = new LinkedHashMap<String,Set<String>>();
         // ADMIN: the restricted administrator before M14; keeps exactly the pages and actions it had.
         roles.put("ADMIN", Set.of("problems.view","orders.edit","products.edit","categories.edit","delivery.edit",PRICES));
         var director = new LinkedHashSet<String>();
         for (String area : AREAS) director.add(area + ".edit");
-        director.addAll(List.of(MONEY, APPROVE, PRICES));
+        director.addAll(List.of(MONEY, MONEY_EDIT, APPROVE, PRICES));
         roles.put("DIRECTOR", Set.copyOf(director));
         roles.put("PURCHASING", Set.of("dashboard.view","suppliers.edit","warehouse.edit","inventory.view","products.view","categories.view"));
         roles.put("OPERATOR", Set.of("dashboard.view","problems.view","orders.edit","customers.edit","delivery.edit","reviews.edit","products.view","categories.view"));
@@ -106,6 +106,10 @@ public final class StaffAccess {
         r("/admin/management/promotions/**", "AREA:promotions"), r("/admin/management/banners/**", "AREA:promotions"), r("/admin/management/coupons/**", "AREA:promotions"),
         r("/admin/management/reviews/**", "AREA:reviews"), r("/admin/management/questions/**", "AREA:reviews"),
         r("/admin/management/delivery/**", "AREA:delivery"), r("/delivery-app/admin/**", "AREA:delivery"),
+        // TZ v10 §9: the money section (view = money.view, changes = money.edit).
+        r("/admin/finance/**", "MONEY"),
+        // Reports: any signed-in staff; ReportsService checks the permission of each report.
+        r("/admin/reports/**", "ANY"), r("/admin/reports", "ANY"),
         r("/admin/warehouse/suppliers/**", "AREA:suppliers"),
         r("/admin/warehouse/receipts/*/post", "APPROVE"), r("/admin/warehouse/receipts/*/reverse", "APPROVE"),
         r("/admin/warehouse/inventory/documents/*/approve", "APPROVE"), r("/admin/warehouse/inventory/documents/*/void", "APPROVE"),
@@ -122,6 +126,7 @@ public final class StaffAccess {
             if ("ANY".equals(r)) return ANY;
             if ("OWNER".equals(r)) return null;
             if ("APPROVE".equals(r)) return APPROVE;
+            if ("MONEY".equals(r)) return "GET".equalsIgnoreCase(method) ? MONEY : MONEY_EDIT;
             return r.substring(5) + ("GET".equalsIgnoreCase(method) ? ".view" : ".edit");
         }
         return null;

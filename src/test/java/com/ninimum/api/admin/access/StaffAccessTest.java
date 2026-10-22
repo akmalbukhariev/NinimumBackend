@@ -54,4 +54,16 @@ class StaffAccessTest {
         assertFalse(p.contains("orders.edit"));assertTrue(p.contains("orders.view"), "edit removed, view kept");
         assertEquals(StaffAccess.effective("ADMIN", null, null), StaffAccess.effective(null, null, null), "unknown role falls back to ADMIN");
     }
+
+    // TZ v10 T17: the money section is hidden from operators, warehouse, couriers, purchasing and observers.
+    @Test void onlyOwnerAndDirectorReachTheMoneySection() {
+        for (String role : new String[]{"ADMIN", "OPERATOR", "PURCHASING", "OBSERVER"}) {
+            assertFalse(ok(role, "GET", A+"/finance/accounts"), role);
+            assertFalse(ok(role, "POST", A+"/finance/documents"), role);
+        }
+        assertTrue(ok("DIRECTOR", "GET", A+"/finance/monthly"));
+        assertTrue(ok("DIRECTOR", "POST", A+"/finance/documents"));
+        assertFalse(StaffAccess.allows(StaffAccess.effective("DIRECTOR", null, "money.edit"), StaffAccess.required("POST", A+"/finance/documents")), "view-only money");
+        assertTrue(ok("PURCHASING", "GET", A+"/warehouse/suppliers/money-places"), "place names for supplier payments");
+    }
 }

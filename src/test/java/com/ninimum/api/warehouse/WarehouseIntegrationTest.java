@@ -92,6 +92,45 @@ class WarehouseIntegrationTest {
         assertEquals(15,qty(1));assertEquals(3,count());
         assertEquals("POSTED",service.receipt(id).get("status"));
     }
+    static final String PNG="iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==";
+    void conditionMigration(){
+        jdbc.execute("DROP TABLE IF EXISTS strict_rules_audit");jdbc.execute("DROP TABLE IF EXISTS strict_rules");
+        for(String file:List.of("20261021_strict_rules.sql","20261022_strict_rules_value.sql","20261022_receipt_condition.sql","20261022_receipt_condition.sql"))new ResourceDatabasePopulator(new FileSystemResource("database/migrations/"+file)).execute(ds);
+        new com.ninimum.api.admin.access.StrictRules(jdbc);
+    }
+    <T> T as(String name,String role,java.util.function.Supplier<T> action){
+        var context=org.springframework.security.core.context.SecurityContextHolder.getContext();var previous=context.getAuthentication();
+        context.setAuthentication(new org.springframework.security.authentication.UsernamePasswordAuthenticationToken(name,null,List.of(new org.springframework.security.core.authority.SimpleGrantedAuthority(role))));
+        try{return action.get();}finally{context.setAuthentication(previous);}
+    }
+    @Test void unfitGoodsNeedAPhotoAreRecordedAndNeverBecomeStock() {
+        conditionMigration();long id=receipt(5);
+        var unfit=new HashMap<String,Object>(Map.of("product_id",1,"quantity",3,"unfit_quantity",2,"unfit_condition","DAMAGED"));
+        assertEquals("RECEIPT_PHOTO_REQUIRED",assertThrows(WarehouseException.class,()->as("checker","ADMIN",()->service.postReceipt(id,Map.of("counts",List.of(unfit))))).getMessage());
+        var short1=new HashMap<String,Object>(Map.of("product_id",1,"quantity",3,"unfit_quantity",1,"unfit_condition","DAMAGED","unfit_photo_base64",PNG));
+        assertEquals("WAREHOUSE_COUNT_MISMATCH",assertThrows(WarehouseException.class,()->as("checker","ADMIN",()->service.postReceipt(id,Map.of("counts",List.of(short1))))).getMessage());
+        unfit.put("unfit_photo_base64",PNG);
+        as("checker","ADMIN",()->service.postReceipt(id,Map.of("counts",List.of(unfit))));
+        assertEquals(13,qty(1),"only the 3 fit pieces become stock");
+        @SuppressWarnings("unchecked") var item=((List<Map<String,Object>>)service.receipt(id).get("items")).get(0);
+        assertEquals(3,((Number)item.get("fit_quantity")).intValue());assertEquals(2,((Number)item.get("unfit_quantity")).intValue());
+        assertEquals("DAMAGED",item.get("unfit_condition"));assertTrue(String.valueOf(item.get("unfit_photo_data")).startsWith("data:image/"));
+        service.reverseReceipt(id,"Wrong supplier");
+        assertEquals(10,qty(1),"reversal takes back only what went into stock");
+    }
+    @Test void aPurchasePriceFarFromThePreviousOneNeedsANote() {
+        conditionMigration();post(receipt(5));
+        long location=((Number)jdbc.queryForObject("SELECT id FROM warehouse_locations WHERE code='A-03'",Long.class)).longValue();
+        java.util.function.Function<Map<String,Object>,Map<String,Object>> line=extra->{var m=new HashMap<String,Object>(Map.of("product_id",1,"quantity",1,"location_id",location,"expiry_date",java.time.LocalDate.now().plusYears(1).toString()));m.putAll(extra);return m;};
+        assertEquals("RECEIPT_PRICE_NOTE_REQUIRED",assertThrows(WarehouseException.class,()->service.createReceipt(Map.of("supplier_name","S","items",List.of(line.apply(Map.of("unit_price","13")))))).getMessage());
+        long noted=service.createReceipt(Map.of("supplier_name","S","items",List.of(line.apply(Map.of("unit_price","13","price_note","New supplier price list")))));
+        assertEquals("New supplier price list",jdbc.queryForObject("SELECT price_note FROM warehouse_receipt_items WHERE receipt_id=?",String.class,noted));
+        service.createReceipt(Map.of("supplier_name","S","items",List.of(line.apply(Map.of("unit_price","11")))));
+        var costs=service.previousCosts(List.of(1L,2L));
+        assertEquals(20,costs.get("threshold_percent"));assertEquals(0,new java.math.BigDecimal("10").compareTo((java.math.BigDecimal)((Map<?,?>)costs.get("costs")).get("1")));
+        assertFalse(((Map<?,?>)costs.get("costs")).containsKey("2"));
+        assertEquals(false,as("owner","SUPER_ADMIN",()->service.previousCosts(List.of(1L)).get("note_required")),"Q-4 is off for the owner by default");
+    }
     @Test void reversalPreservesOriginalAndCannotRepeat() {
         long id=receipt(5);post(id);service.reverseReceipt(id,"Wrong invoice");service.reverseReceipt(id,"Retry");
         assertEquals(10,qty(1));assertEquals(4,count());
@@ -177,5 +216,23 @@ class WarehouseIntegrationTest {
         assertNotNull(payments().handleRequest(request("PerformTransaction")).getError());
         assertEquals(10,qty(1));assertEquals(0,qty(2));assertEquals(2,count());
         assertEquals("CREATED",jdbc.queryForObject("SELECT status FROM payments WHERE id=1",String.class));
+    }
+    // Q-16 period closing: closes the books until a date on this test DB; returns a cleanup that reopens everything.
+    Runnable closeUntil(String day){
+        jdbc.execute("DROP TABLE IF EXISTS period_closings");
+        for(String f:List.of("20261021_strict_rules.sql","20261022_period_close.sql"))new ResourceDatabasePopulator(new FileSystemResource("database/migrations/"+f)).execute(jdbc.getDataSource());
+        new com.ninimum.api.finance.PeriodClose(jdbc);
+        jdbc.update("INSERT INTO period_closings(closed_until,changed_by,changed_at) VALUES(?,'test',UTC_TIMESTAMP())",day);
+        return()->jdbc.update("DELETE FROM period_closings");
+    }
+    @Test void closedPeriodBlocksReceiptsAndTheirReversal() {
+        long id=receipt(5);post(id);
+        Runnable reopen=closeUntil(java.time.LocalDate.now(java.time.ZoneId.of("Asia/Tashkent")).toString());
+        try{
+            assertEquals("PERIOD_CLOSED",assertThrows(WarehouseException.class,()->service.reverseReceipt(id,"Wrong invoice")).getMessage());
+            assertEquals("PERIOD_CLOSED",assertThrows(WarehouseException.class,()->service.createReceipt(Map.of("supplier_name","Supplier"))).getMessage());
+            assertEquals(15,qty(1));assertEquals("POSTED",service.receipt(id).get("status"));
+        }finally{reopen.run();}
+        service.reverseReceipt(id,"Wrong invoice");assertEquals(10,qty(1));
     }
 }

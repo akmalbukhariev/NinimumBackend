@@ -21,14 +21,14 @@ public class StrictRules {
     // and Q-14, which stays off until barcodes and scanners are in use (M7/M5 are deferred).
     public static final List<Rule> RULES = List.of(
         new Rule("Q-1","ALWAYS",true,true,null), new Rule("Q-2","ALWAYS",true,true,null),
-        new Rule("Q-3","MISSING",true,false,null), new Rule("Q-4","MISSING",true,false,"20%"),
+        new Rule("Q-3","SWITCH",true,false,null), new Rule("Q-4","SWITCH",true,false,"20"),
         new Rule("Q-5","SWITCH",true,true,null), new Rule("Q-6","SWITCH",true,false,null),
         new Rule("Q-7","LINKED",true,true,null), new Rule("Q-8","SWITCH",true,true,null),
         new Rule("Q-9","SWITCH",true,true,null), new Rule("Q-10","SWITCH",true,false,null),
         new Rule("Q-11","LINKED",true,true,null), new Rule("Q-12","ALWAYS",true,true,null),
         new Rule("Q-13","ALWAYS",true,true,null), new Rule("Q-14","SWITCH",false,false,null),
-        new Rule("Q-15","LINKED",true,true,null), new Rule("Q-16","MISSING",true,true,null),
-        new Rule("Q-17","ALWAYS",true,true,null), new Rule("Q-18","MISSING",true,false,null));
+        new Rule("Q-15","LINKED",true,true,null), new Rule("Q-16","SWITCH",true,true,null),
+        new Rule("Q-17","ALWAYS",true,true,null), new Rule("Q-18","SWITCH",true,false,null));
     private static final Map<String,Rule> BY_CODE = new HashMap<>();
     static { for (Rule r : RULES) BY_CODE.put(r.code(), r); }
 
@@ -49,22 +49,33 @@ public class StrictRules {
         } catch (DataAccessException ex) { /* table not migrated yet: defaults */ }
         return owner ? rule.owner() : rule.staff();
     }
+    /** The rule's setting (Q-4: price difference percent), stored or default. */
+    public static String value(String code) {
+        Rule rule = BY_CODE.get(code);
+        JdbcTemplate db = shared;
+        if (db != null) try {
+            var rows = db.queryForList("SELECT value FROM strict_rules WHERE code=?", code);
+            if (!rows.isEmpty() && rows.get(0).get("value") != null) return String.valueOf(rows.get(0).get("value"));
+        } catch (DataAccessException ex) { /* not migrated yet */ }
+        return rule == null ? null : rule.value();
+    }
     private static boolean truth(Object v) { return v instanceof Boolean b ? b : v instanceof Number n && n.intValue() != 0; }
 
     public List<Map<String,Object>> list() {
         owner();
         var stored = new HashMap<String,Map<String,Object>>();
-        try { for (var row : jdbc.queryForList("SELECT code,staff_enabled,owner_enabled,updated_by,DATE_FORMAT(updated_at,'%Y-%m-%dT%H:%i:%sZ') updated_at FROM strict_rules")) stored.put(String.valueOf(row.get("code")), row); }
+        try { for (var row : jdbc.queryForList("SELECT * FROM strict_rules")) stored.put(String.valueOf(row.get("code")), row); }
         catch (DataAccessException ex) { /* defaults only */ }
         var out = new ArrayList<Map<String,Object>>();
         for (Rule r : RULES) {
             var row = stored.get(r.code());
             var item = new LinkedHashMap<String,Object>();
-            item.put("code", r.code()); item.put("kind", r.kind()); item.put("value", r.value());
+            item.put("code", r.code()); item.put("kind", r.kind()); item.put("value", row != null && row.get("value") != null ? String.valueOf(row.get("value")) : r.value());
             boolean sw = "SWITCH".equals(r.kind()) && row != null;
             item.put("staff_enabled", sw ? truth(row.get("staff_enabled")) : r.staff());
             item.put("owner_enabled", sw ? truth(row.get("owner_enabled")) : r.owner());
-            item.put("updated_by", row == null ? null : row.get("updated_by")); item.put("updated_at", row == null ? null : row.get("updated_at"));
+            item.put("updated_by", row == null ? null : row.get("updated_by"));
+            item.put("updated_at", row == null || row.get("updated_at") == null ? null : row.get("updated_at").toString().replace(' ', 'T') + "Z");
             out.add(item);
         }
         return out;
@@ -76,14 +87,21 @@ public class StrictRules {
         Rule rule = BY_CODE.get(code);
         if (rule == null || !"SWITCH".equals(rule.kind())) throw new WarehouseException("RULE_NOT_SWITCHABLE");
         boolean staff = Boolean.TRUE.equals(body.get("staff_enabled")), owner = Boolean.TRUE.equals(body.get("owner_enabled"));
+        // Only Q-4 has a setting: the price difference percent (1–100).
+        String value = rule.value();
+        if (rule.value() != null) {
+            Object raw = body.containsKey("value") ? body.get("value") : value(code);
+            try { int pct = new java.math.BigDecimal(String.valueOf(raw)).intValueExact(); if (pct < 1 || pct > 100) throw new ArithmeticException(); value = String.valueOf(pct); }
+            catch (RuntimeException ex) { throw new WarehouseException("RULE_INVALID_VALUE"); }
+        }
         String actor = WarehouseService.actor();
         var old = jdbc.queryForList("SELECT staff_enabled,owner_enabled FROM strict_rules WHERE code=? FOR UPDATE", code);
         String before = old.isEmpty() ? "default" : "staff=" + truth(old.get(0).get("staff_enabled")) + " owner=" + truth(old.get(0).get("owner_enabled"));
-        jdbc.update("INSERT INTO strict_rules(code,staff_enabled,owner_enabled,updated_by,updated_at) VALUES(?,?,?,?,UTC_TIMESTAMP()) " +
-                "ON DUPLICATE KEY UPDATE staff_enabled=VALUES(staff_enabled),owner_enabled=VALUES(owner_enabled),updated_by=VALUES(updated_by),updated_at=VALUES(updated_at)",
-                code, staff, owner, actor);
+        jdbc.update("INSERT INTO strict_rules(code,staff_enabled,owner_enabled,value,updated_by,updated_at) VALUES(?,?,?,?,?,UTC_TIMESTAMP()) " +
+                "ON DUPLICATE KEY UPDATE staff_enabled=VALUES(staff_enabled),owner_enabled=VALUES(owner_enabled),value=VALUES(value),updated_by=VALUES(updated_by),updated_at=VALUES(updated_at)",
+                code, staff, owner, value, actor);
         jdbc.update("INSERT INTO strict_rules_audit(code,changed_by,old_value,new_value,changed_at) VALUES(?,?,?,?,UTC_TIMESTAMP())",
-                code, actor, before, "staff=" + staff + " owner=" + owner);
+                code, actor, before, "staff=" + staff + " owner=" + owner + (value == null ? "" : " value=" + value));
     }
 
     private static void owner() { if (!StaffAccess.isOwner()) throw new AccessDeniedException("Owner only"); }

@@ -35,6 +35,7 @@ public class WarehouseController extends BaseController {
     }
     @GetMapping("/receipts") public Object receipts(@RequestParam(defaultValue="1") int page,
             @RequestParam(defaultValue="20",name="page_size") int size) { return ok(service.receipts(page,size)); }
+    @GetMapping("/receipts/previous-costs") public Object previousCosts(@RequestParam(name="product_ids") java.util.List<Long> products) { return ok(service.previousCosts(products)); }
     @GetMapping("/receipts/{id}") public Object receipt(@PathVariable long id) { return ok(service.receipt(id)); }
     @PostMapping("/receipts") public Object createReceipt(@RequestBody Map<String,Object> body) { return ok(service.createReceipt(body)); }
     @PutMapping("/receipts/{id}/items/{product}/metadata") public Object updateReceiptMetadata(@PathVariable long id,@PathVariable long product,@RequestBody Map<String,Object> body) { service.updateReceiptMetadata(id,product,body);return ok(null); }

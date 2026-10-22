@@ -27,7 +27,7 @@ class StrictRulesIntegrationTest {
     }
     @AfterEach void clear(){SecurityContextHolder.clearContext();}
     void as(String role){SecurityContextHolder.getContext().setAuthentication(new UsernamePasswordAuthenticationToken("owner",null,List.of(new SimpleGrantedAuthority(role))));}
-    void migrate(){var m=new ResourceDatabasePopulator(new FileSystemResource("database/migrations/20261021_strict_rules.sql"));m.execute(jdbc.getDataSource());m.execute(jdbc.getDataSource());}
+    void migrate(){for(String f:List.of("20261021_strict_rules.sql","20261022_strict_rules_value.sql","20261021_strict_rules.sql","20261022_strict_rules_value.sql"))new ResourceDatabasePopulator(new FileSystemResource("database/migrations/"+f)).execute(jdbc.getDataSource());}
 
     @Test void withoutTheTableTheDefaultsKeepTodaysBehaviour() {
         as("ADMIN");assertTrue(StrictRules.on("Q-10"));assertTrue(StrictRules.on("Q-6"));assertFalse(StrictRules.on("Q-14"));
@@ -44,6 +44,8 @@ class StrictRulesIntegrationTest {
         assertEquals(false,row.get("staff_enabled"));assertEquals(true,row.get("owner_enabled"));assertEquals("owner",row.get("updated_by"));
         assertEquals("staff=true owner=false",jdbc.queryForObject("SELECT old_value FROM strict_rules_audit WHERE code='Q-10'",String.class));
         assertEquals(18,rules.list().size());
+        rules.update("Q-4",Map.of("staff_enabled",true,"owner_enabled",false,"value",30));assertEquals("30",StrictRules.value("Q-4"));
+        assertEquals("RULE_INVALID_VALUE",assertThrows(WarehouseException.class,()->rules.update("Q-4",Map.of("staff_enabled",true,"value",0))).getMessage());
     }
 
     @Test void onlyTheOwnerChangesRulesAndOnlySwitchableOnes() {
@@ -51,7 +53,7 @@ class StrictRulesIntegrationTest {
         assertThrows(AccessDeniedException.class,()->rules.list());
         assertThrows(AccessDeniedException.class,()->rules.update("Q-10",Map.of("staff_enabled",false)));
         as("SUPER_ADMIN");
-        for(String code:List.of("Q-1","Q-3","Q-11","Q-99"))
+        for(String code:List.of("Q-1","Q-12","Q-11","Q-99"))
             assertEquals("RULE_NOT_SWITCHABLE",assertThrows(WarehouseException.class,()->rules.update(code,Map.of("staff_enabled",false))).getMessage());
     }
 }

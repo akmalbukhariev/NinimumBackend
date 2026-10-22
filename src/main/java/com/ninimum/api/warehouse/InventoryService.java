@@ -48,7 +48,7 @@ public class InventoryService {
   r.put("payload",payload);return r;
  }
  @Transactional public long create(Map<String,Object> body){
-  enabled();String kind=WarehouseService.text(body.get("kind"),30,true),why=reason(body.get("reason"));var payload=new LinkedHashMap<String,Object>(body);payload.remove("reason");
+  enabled();com.ninimum.api.finance.PeriodClose.guardToday();String kind=WarehouseService.text(body.get("kind"),30,true),why=reason(body.get("reason"));var payload=new LinkedHashMap<String,Object>(body);payload.remove("reason");
   if(!owner()&&Set.of("OPENING","RELEASE").contains(kind))throw new org.springframework.security.access.AccessDeniedException("Owner approval required");
   if("WRITEOFF".equals(kind)){
    String code=WarehouseService.text(body.get("reason_code"),30,true);if(!Set.of("EXPIRED","WAREHOUSE_DAMAGE","DELIVERY_DAMAGE","LOST","SAMPLE","INTERNAL","OTHER").contains(code))throw new WarehouseException("WAREHOUSE_INVALID_INPUT");
@@ -85,7 +85,7 @@ public class InventoryService {
   if(active>0)throw new WarehouseException("INVENTORY_LEGACY_ORDERS_ACTIVE");
  }
  @Transactional public Object approve(long id,Map<String,Object> confirmation){
-  enabled();var d=jdbc.queryForMap("SELECT * FROM inventory_documents WHERE id=? FOR UPDATE",id);if("POSTED".equals(d.get("status")))return document(id);if(!Set.of("DRAFT","COUNTED").contains(String.valueOf(d.get("status"))))throw new WarehouseException("WAREHOUSE_INVALID_STATE");
+  enabled();var d=jdbc.queryForMap("SELECT * FROM inventory_documents WHERE id=? FOR UPDATE",id);if("POSTED".equals(d.get("status")))return document(id);com.ninimum.api.finance.PeriodClose.guardToday();if(!Set.of("DRAFT","COUNTED").contains(String.valueOf(d.get("status"))))throw new WarehouseException("WAREHOUSE_INVALID_STATE");
   // Q-6: a write-off is approved by someone else (switchable); other documents keep the separate approver for staff.
   if(actor().equals(d.get("created_by"))&&("WRITEOFF".equals(d.get("kind"))?com.ninimum.api.admin.access.StrictRules.on("Q-6"):!owner()&&!"TRANSFER".equals(d.get("kind"))))throw new WarehouseException("WAREHOUSE_SEPARATE_APPROVER_REQUIRED");
   var p=decode(d.get("payload"));String kind=String.valueOf(d.get("kind")),reference="INV-"+id,why=String.valueOf(d.get("reason"));BigDecimal cost=BigDecimal.ZERO;

@@ -160,4 +160,23 @@ class SupplierIntegrationTest {
             assertEquals(1,successes);assertEquals(0,balance(id).compareTo(new BigDecimal("300")));
         } finally {pool.shutdownNow();}
     }
+    // Q-16 period closing: closes the books until a date on this test DB; returns a cleanup that reopens everything.
+    Runnable closeUntil(String day){
+        jdbc.execute("DROP TABLE IF EXISTS period_closings");
+        for(String f:List.of("20261021_strict_rules.sql","20261022_period_close.sql"))new ResourceDatabasePopulator(new FileSystemResource("database/migrations/"+f)).execute(jdbc.getDataSource());
+        new com.ninimum.api.finance.PeriodClose(jdbc);
+        jdbc.update("INSERT INTO period_closings(closed_until,changed_by,changed_at) VALUES(?,'test',UTC_TIMESTAMP())",day);
+        return()->jdbc.update("DELETE FROM period_closings");
+    }
+    @Test void closedPeriodBlocksSupplierPaymentsAndVoids() {
+        long id=supplier(),receipt=receipt(id,"INV-Q16");tx.execute(s->post(receipt));
+        long p=tx.execute(s->suppliers.recordPayment(id,payment(receipt,"100","BANK-Q16")));
+        Runnable reopen=closeUntil("2026-10-05");
+        try{
+            assertEquals("PERIOD_CLOSED",assertThrows(WarehouseException.class,()->tx.executeWithoutResult(s->suppliers.voidPayment(id,p,"Wrong"))).getMessage());
+            assertEquals("PERIOD_CLOSED",assertThrows(WarehouseException.class,()->tx.execute(s->suppliers.recordPayment(id,payment(receipt,"50","BANK-Q16B")))).getMessage());
+            assertEquals("RECORDED",jdbc.queryForObject("SELECT status FROM supplier_payment_records WHERE id=?",String.class,p));
+        }finally{reopen.run();}
+        tx.executeWithoutResult(s->suppliers.voidPayment(id,p,"Wrong"));
+    }
 }

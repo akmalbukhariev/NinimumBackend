@@ -64,6 +64,10 @@ public class WarehouseService {
         if (s.length() > max || (required && s.isEmpty())) throw new WarehouseException("WAREHOUSE_INVALID_INPUT");
         return s;
     }
+    static long nonnegative(Object value) {
+        try { long n=new BigDecimal(String.valueOf(value)).longValueExact(); if(n<0||n>Integer.MAX_VALUE) throw new NumberFormatException(); return n; }
+        catch (Exception ex) { throw new WarehouseException("WAREHOUSE_INVALID_INPUT"); }
+    }
     static long positive(Object value) {
         try {
             long n = new BigDecimal(String.valueOf(value)).longValueExact();
@@ -152,6 +156,17 @@ public class WarehouseService {
         if(image instanceof byte[])result.put("invoice_image_data","data:image/png;base64,"+Base64.getEncoder().encodeToString((byte[])image));
         result.put("items",jdbc.queryForList("SELECT i.id,i.product_id,i.product_name,i.quantity,i.location_id,i.unit_price,DATE_FORMAT(i.manufacture_date,'%Y-%m-%d') AS manufacture_date,DATE_FORMAT(i.expiry_date,'%Y-%m-%d') AS expiry_date,i.input_unit,i.input_quantity,i.units_per_block,i.batch_number,l.code AS location_code " +
                 "FROM warehouse_receipt_items i JOIN warehouse_locations l ON l.id=i.location_id WHERE i.receipt_id=? ORDER BY i.id",id));
+        // Q-4 notes (column added by 20261022_receipt_condition.sql; skipped before that migration).
+        try{var notes=new HashMap<Long,Object>();for(var n:jdbc.queryForList("SELECT product_id,price_note FROM warehouse_receipt_items WHERE receipt_id=? AND price_note IS NOT NULL",id))notes.put(((Number)n.get("product_id")).longValue(),n.get("price_note"));
+            for(var item:(List<Map<String,Object>>)result.get("items"))if(notes.containsKey(((Number)item.get("product_id")).longValue()))item.put("price_note",notes.get(((Number)item.get("product_id")).longValue()));}
+        catch(org.springframework.dao.DataAccessException ex){/* not migrated yet */}
+        if(!"DRAFT".equals(result.get("status"))) {
+            var counted=new HashMap<Long,Map<String,Object>>();
+            for(var c:jdbc.queryForList("SELECT * FROM warehouse_receipt_counts WHERE receipt_id=?",id))counted.put(((Number)c.get("product_id")).longValue(),c);
+            for(var item:(List<Map<String,Object>>)result.get("items")){var c=counted.get(((Number)item.get("product_id")).longValue());if(c==null)continue;
+                item.put("fit_quantity",c.get("counted_quantity"));item.put("unfit_quantity",c.get("unfit_quantity"));item.put("unfit_condition",c.get("unfit_condition"));
+                if(c.get("unfit_photo") instanceof byte[] photo)item.put("unfit_photo_data","data:image/jpeg;base64,"+Base64.getEncoder().encodeToString(photo));}
+        }
         if("DRAFT".equals(result.get("status"))) {
             for(var item:(List<Map<String,Object>>)result.get("items")){item.remove("quantity");item.remove("input_quantity");}
         }
@@ -160,6 +175,7 @@ public class WarehouseService {
 
     @Transactional public long createReceipt(Map<String,Object> body) {
         requireEnabled();
+        com.ninimum.api.finance.PeriodClose.guardToday();
         Long supplierId = body.get("supplier_id")==null ? null : positive(body.get("supplier_id"));
         Map<String,Object> registeredSupplier = supplierId==null ? null : one("SELECT name,payment_term_days FROM suppliers WHERE id=? AND is_active=1 FOR UPDATE",supplierId);
         String supplier = registeredSupplier==null ? text(body.get("supplier_name"),160,true) : String.valueOf(registeredSupplier.get("name"));
@@ -181,7 +197,10 @@ public class WarehouseService {
             ReceiptMetadata metadata=ReceiptMetadata.parse(item,java.time.Clock.systemUTC());
             long qty=metadata.pieces();
             if (!seen.add(product)) throw new WarehouseException("WAREHOUSE_DUPLICATE_PRODUCT");
-            lines.add(Map.of("product_id",product,"quantity",qty,"location_id",location,"metadata",metadata));
+            // Q-4: a purchase price far from the previous one needs a note.
+            String priceNote=text(item.get("price_note"),500,false);
+            if(priceNote.isEmpty()&&priceJump(product,metadata.unitPrice())&&com.ninimum.api.admin.access.StrictRules.on("Q-4"))throw new WarehouseException("RECEIPT_PRICE_NOTE_REQUIRED");
+            lines.add(Map.of("product_id",product,"quantity",qty,"location_id",location,"metadata",metadata,"price_note",priceNote));
         }
         lines.sort(Comparator.comparingLong(x -> ((Number)x.get("product_id")).longValue()));
         long id = insert("INSERT INTO warehouse_receipts(supplier_name,invoice_number,note,status,created_by,created_at,invoice_image) " +
@@ -191,12 +210,35 @@ public class WarehouseService {
             if (!active(product.get("is_active"))) throw new WarehouseException("WAREHOUSE_PRODUCT_INACTIVE");
             one("SELECT id FROM warehouse_locations WHERE id=? AND is_active=1 AND hierarchy_level='BIN' FOR UPDATE",line.get("location_id"));
             ReceiptMetadata metadata=(ReceiptMetadata)line.get("metadata");
-            jdbc.update("INSERT INTO warehouse_receipt_items(receipt_id,product_id,product_name,quantity,location_id,unit_price,manufacture_date,expiry_date,input_unit,input_quantity,units_per_block,batch_number) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)",
+            String priceNote=(String)line.get("price_note");
+            if(priceNote.isEmpty())jdbc.update("INSERT INTO warehouse_receipt_items(receipt_id,product_id,product_name,quantity,location_id,unit_price,manufacture_date,expiry_date,input_unit,input_quantity,units_per_block,batch_number) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)",
                     id,line.get("product_id"),product.get("name"),line.get("quantity"),line.get("location_id"),metadata.unitPrice(),metadata.manufactured(),metadata.expiry(),metadata.unit(),metadata.inputQuantity(),metadata.unitsPerBlock(),metadata.batch());
+            else jdbc.update("INSERT INTO warehouse_receipt_items(receipt_id,product_id,product_name,quantity,location_id,unit_price,manufacture_date,expiry_date,input_unit,input_quantity,units_per_block,batch_number,price_note) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)",
+                    id,line.get("product_id"),product.get("name"),line.get("quantity"),line.get("location_id"),metadata.unitPrice(),metadata.manufactured(),metadata.expiry(),metadata.unit(),metadata.inputQuantity(),metadata.unitsPerBlock(),metadata.batch(),priceNote);
         }
         if(supplierId!=null) jdbc.update("INSERT INTO supplier_invoices(receipt_id,supplier_id,invoice_number,invoice_amount,invoice_date,due_date,created_by,created_at) VALUES(?,?,?,?,?,?,?,UTC_TIMESTAMP())",
                 id,supplierId,invoice,invoiceAmount,invoiceDate,invoiceDate.plusDays(((Number)registeredSupplier.get("payment_term_days")).longValue()),actor());
         return id;
+    }
+
+    /** The last posted purchase price per piece for each product (Q-4). */
+    public Map<String,Object> previousCosts(List<Long> products) {
+        requireEnabled();
+        var costs=new LinkedHashMap<String,Object>();
+        for(long product:products.stream().distinct().limit(100).toList()){BigDecimal last=lastCost(product);if(last!=null)costs.put(String.valueOf(product),last);}
+        return Map.of("threshold_percent",priceJumpPercent(),"note_required",com.ninimum.api.admin.access.StrictRules.on("Q-4"),"costs",costs);
+    }
+    private BigDecimal lastCost(long product) {
+        var rows=jdbc.queryForList("SELECT i.unit_price FROM warehouse_receipt_items i JOIN warehouse_receipts r ON r.id=i.receipt_id WHERE i.product_id=? AND r.status='POSTED' AND i.unit_price IS NOT NULL ORDER BY r.posted_at DESC,r.id DESC LIMIT 1",BigDecimal.class,product);
+        return rows.isEmpty()?null:rows.get(0);
+    }
+    private int priceJumpPercent() {
+        try{return Integer.parseInt(String.valueOf(com.ninimum.api.admin.access.StrictRules.value("Q-4")));}catch(NumberFormatException ex){return 20;}
+    }
+    private boolean priceJump(long product,BigDecimal price) {
+        BigDecimal last=lastCost(product);
+        if(last==null||last.signum()<=0||price==null)return false;
+        return price.subtract(last).abs().multiply(BigDecimal.valueOf(100)).compareTo(last.multiply(BigDecimal.valueOf(priceJumpPercent())))>0;
     }
 
     @Transactional public void updateReceiptMetadata(long id,long product,Map<String,Object> body) {
@@ -215,6 +257,7 @@ public class WarehouseService {
         Map<String,Object> header = one("SELECT status,created_by FROM warehouse_receipts WHERE id=? FOR UPDATE",id);
         if ("POSTED".equals(header.get("status"))) return id;
         if (!"DRAFT".equals(header.get("status"))) throw new WarehouseException("WAREHOUSE_INVALID_STATE");
+        com.ninimum.api.finance.PeriodClose.guardToday();
         List<Map<String,Object>> lines = receiptLines(id);
         if (lines.isEmpty()) throw new WarehouseException("WAREHOUSE_INVALID_INPUT");
         var auth=SecurityContextHolder.getContext().getAuthentication();
@@ -222,20 +265,31 @@ public class WarehouseService {
         if(actor().equals(header.get("created_by"))&&!owner)throw new WarehouseException("WAREHOUSE_SEPARATE_APPROVER_REQUIRED");
         if(!(body.get("counts") instanceof List<?> counts)||counts.size()!=lines.size())throw new WarehouseException("WAREHOUSE_BLIND_COUNT_REQUIRED");
         var counted=new HashMap<Long,Long>();
+        var unfit=new HashMap<Long,Object[]>();
         for(Object raw:counts) {
             if(!(raw instanceof Map<?,?> c))throw new WarehouseException("WAREHOUSE_INVALID_INPUT");
-            long product=positive(c.get("product_id")),quantity=positive(c.get("quantity"));
+            long product=positive(c.get("product_id")),quantity=nonnegative(c.get("quantity")),bad=c.get("unfit_quantity")==null?0:nonnegative(c.get("unfit_quantity"));
             if(counted.put(product,quantity)!=null)throw new WarehouseException("WAREHOUSE_DUPLICATE_PRODUCT");
+            // Q-3: unfit goods (damaged / expired / wrong product) are recorded with a photo and never become stock.
+            if(bad>0){
+                String condition=text(c.get("unfit_condition"),20,true);
+                if(!Set.of("DAMAGED","EXPIRED","WRONG_PRODUCT").contains(condition))throw new WarehouseException("WAREHOUSE_INVALID_INPUT");
+                byte[] photo=ReceiptImage.decode(c.get("unfit_photo_base64"));
+                if(photo==null&&com.ninimum.api.admin.access.StrictRules.on("Q-3"))throw new WarehouseException("RECEIPT_PHOTO_REQUIRED");
+                unfit.put(product,new Object[]{bad,condition,photo});
+            }
+            if(quantity+bad==0)throw new WarehouseException("WAREHOUSE_INVALID_INPUT");
         }
         for(var line:lines) {
             Object expiry=line.get("expiry_date");
             if(line.get("unit_price")==null||expiry==null)throw new WarehouseException("WAREHOUSE_RECEIPT_METADATA_REQUIRED");
             if(!java.time.LocalDate.parse(expiry.toString()).isAfter(java.time.LocalDate.now(java.time.ZoneId.of("Asia/Tashkent"))))throw new WarehouseException("WAREHOUSE_EXPIRED_BATCH");
         }
-        for(var line:lines)if(!Objects.equals(counted.get(((Number)line.get("product_id")).longValue()),((Number)line.get("quantity")).longValue()))throw new WarehouseException("WAREHOUSE_COUNT_MISMATCH");
+        for(var line:lines){long product=((Number)line.get("product_id")).longValue();Object[] bad=unfit.get(product);
+            if(counted.get(product)==null||counted.get(product)+(bad==null?0:(Long)bad[0])!=((Number)line.get("quantity")).longValue())throw new WarehouseException("WAREHOUSE_COUNT_MISMATCH");}
 
         for (var line : lines) {
-            long product = ((Number)line.get("product_id")).longValue(), qty = ((Number)line.get("quantity")).longValue();
+            long product = ((Number)line.get("product_id")).longValue(), qty = counted.get(product);
             Map<String,Object> row = one("SELECT stock_quantity,is_active FROM products WHERE id=? FOR UPDATE",product);
             if (!active(row.get("is_active"))) throw new WarehouseException("WAREHOUSE_PRODUCT_INACTIVE");
             one("SELECT id FROM warehouse_locations WHERE id=? AND is_active=1 AND hierarchy_level='BIN' FOR UPDATE",line.get("location_id"));
@@ -244,7 +298,9 @@ public class WarehouseService {
             jdbc.update("UPDATE products SET stock_quantity=stock_quantity+?,updated_at=NOW() WHERE id=?",qty,product);
             recordChange(product,qty,"RECEIPT","KR-"+id,actor(),"", "receipt:"+id+":"+product);
         }
-        for(var entry:counted.entrySet())jdbc.update("INSERT INTO warehouse_receipt_counts(receipt_id,product_id,counted_quantity,counted_by,counted_at) VALUES(?,?,?,?,UTC_TIMESTAMP())",id,entry.getKey(),entry.getValue(),actor());
+        for(var entry:counted.entrySet()){Object[] bad=unfit.get(entry.getKey());
+            if(bad==null)jdbc.update("INSERT INTO warehouse_receipt_counts(receipt_id,product_id,counted_quantity,counted_by,counted_at) VALUES(?,?,?,?,UTC_TIMESTAMP())",id,entry.getKey(),entry.getValue(),actor());
+            else jdbc.update("INSERT INTO warehouse_receipt_counts(receipt_id,product_id,counted_quantity,counted_by,counted_at,unfit_quantity,unfit_condition,unfit_photo) VALUES(?,?,?,?,UTC_TIMESTAMP(),?,?,?)",id,entry.getKey(),entry.getValue(),actor(),bad[0],bad[1],bad[2]);}
         jdbc.update("UPDATE warehouse_receipts SET status='POSTED',posted_by=?,posted_at=UTC_TIMESTAMP() WHERE id=?",actor(),id);
         return id;
     }
@@ -257,8 +313,12 @@ public class WarehouseService {
         Map<String,Object> header = one("SELECT status FROM warehouse_receipts WHERE id=? FOR UPDATE",id);
         if ("REVERSED".equals(header.get("status"))) return id;
         if (!"POSTED".equals(header.get("status"))) throw new WarehouseException("WAREHOUSE_INVALID_STATE");
-        for (var line : receiptLines(id)) {
+        // Q-16: a receipt posted in a closed period stays; the reversal itself is dated today.
+        com.ninimum.api.finance.PeriodClose.guard(jdbc.queryForObject("SELECT DATE(DATE_ADD(posted_at,INTERVAL 5 HOUR)) FROM warehouse_receipts WHERE id=?",java.time.LocalDate.class,id));
+        com.ninimum.api.finance.PeriodClose.guardToday();
+        for (var line : jdbc.queryForList("SELECT i.product_id,COALESCE(c.counted_quantity,i.quantity) quantity FROM warehouse_receipt_items i LEFT JOIN warehouse_receipt_counts c ON c.receipt_id=i.receipt_id AND c.product_id=i.product_id WHERE i.receipt_id=? ORDER BY i.product_id",id)) {
             long product = ((Number)line.get("product_id")).longValue(), qty = ((Number)line.get("quantity")).longValue();
+            if (qty == 0) continue;
             lockStock(product);
             if(isInventoryEnabled()&&new BatchStock(jdbc).active(product)){
                 long delta=new BatchStock(jdbc).reverse(product,id,qty,actor(),reason);

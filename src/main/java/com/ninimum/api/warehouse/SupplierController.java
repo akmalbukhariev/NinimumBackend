@@ -15,6 +15,9 @@ public class SupplierController extends BaseController {
     private final SupplierService service;
     @javax.annotation.PostConstruct public void init(){setApiVersion(com.ninimum.api.constants.Constant.api_version);}
     @GetMapping public Object list(@RequestParam(required=false) String search){return setResult(Result.SUCCESS,service.list(search));}
+    /** Money places to say where a supplier payment came from (names only). */
+    @GetMapping("/money-places") public Object places(){try{return setResult(Result.SUCCESS,placesJdbc.queryForList("SELECT id,name FROM finance_accounts ORDER BY id"));}catch(org.springframework.dao.DataAccessException ex){return setResult(Result.SUCCESS,java.util.List.of());}}
+    @org.springframework.beans.factory.annotation.Autowired private org.springframework.jdbc.core.JdbcTemplate placesJdbc;
     @GetMapping("/calendar") public Object calendar(@RequestParam String from,@RequestParam String to){return setResult(Result.SUCCESS,service.calendar(from,to));}
     @GetMapping("/{id}") public Object detail(@PathVariable long id){return setResult(Result.SUCCESS,service.detail(id));}
     @PostMapping public Object create(@RequestBody Map<String,Object> body){return setResult(Result.SUCCESS,service.save(null,body));}
