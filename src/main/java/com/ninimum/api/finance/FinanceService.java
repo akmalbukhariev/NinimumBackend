@@ -37,6 +37,7 @@ public class FinanceService {
         " UNION ALL SELECT account_id,doc_date,-amount,'TRANSFER_OUT' FROM finance_documents WHERE kind='TRANSFER' AND status='POSTED'" +
         " UNION ALL SELECT to_account_id,doc_date,amount,'TRANSFER_IN' FROM finance_documents WHERE kind='TRANSFER' AND status='POSTED'" +
         " UNION ALL SELECT account_id,paid_date,-amount,'SUPPLIER' FROM supplier_payment_records WHERE status='RECORDED' AND account_id IS NOT NULL" +
+        " UNION ALL SELECT account_id,refund_date,-amount,'CUSTOMER_REFUND' FROM customer_refunds" +
         ") m JOIN finance_accounts a ON a.id=m.account_id WHERE a.opening_date IS NULL OR m.d>=a.opening_date";
 
     static LocalDate today() { return LocalDate.now(TASHKENT); }
@@ -173,7 +174,7 @@ public class FinanceService {
             var row = new LinkedHashMap<String,Object>(a);
             // "start": balance before the period; "opening": opening balances set inside the period.
             row.put("start", balance(id, from.minusDays(1)));
-            for (String kind : List.of("OPENING", "PAYME", "PAYME_REFUND", "INCOME", "SUPPLIER", "EXPENSE", "TRANSFER_IN", "TRANSFER_OUT"))
+            for (String kind : List.of("OPENING", "PAYME", "PAYME_REFUND", "INCOME", "SUPPLIER", "CUSTOMER_REFUND", "EXPENSE", "TRANSFER_IN", "TRANSFER_OUT"))
                 row.put(kind.toLowerCase(), jdbc.queryForObject("SELECT COALESCE(SUM(amount),0) FROM (" + MOVEMENTS + ") x WHERE account_id=? AND kind=? AND d BETWEEN ? AND ?", BigDecimal.class, id, kind, from, to));
             row.put("closing", balance(id, to));
             rows.add(row);

@@ -108,6 +108,8 @@ public final class StaffAccess {
         r("/admin/management/delivery/**", "AREA:delivery"), r("/delivery-app/admin/**", "AREA:delivery"),
         // TZ v10 §9: the money section (view = money.view, changes = money.edit).
         r("/admin/finance/**", "MONEY"),
+        // K5: anyone who sees problem orders sees who is owed money; recording a refund is a money change.
+        r("/admin/management/refunds/*/record", "MONEY"), r("/admin/management/refunds/**", "AREA:problems"),
         // Reports: any signed-in staff; ReportsService checks the permission of each report.
         r("/admin/reports/**", "ANY"), r("/admin/reports", "ANY"),
         r("/admin/warehouse/suppliers/**", "AREA:suppliers"),

@@ -26,7 +26,7 @@ class FinanceIntegrationTest {
         String url=System.getProperty("finance.test.jdbc");
         if(!url.matches("jdbc:mariadb://127\\.0\\.0\\.1:[0-9]+/finance_test"))throw new IllegalArgumentException("Dedicated local finance_test only");
         var ds=new DriverManagerDataSource(url,"root","");jdbc=new JdbcTemplate(ds);
-        for(String t:List.of("finance_accounts","expense_types","finance_documents","cash_counts","supplier_payment_records","strict_rules","strict_rules_audit","period_closings","payments","orders","order_items","products","delivery_partial_returns","delivery_partial_return_items"))jdbc.execute("DROP TABLE IF EXISTS "+t);
+        for(String t:List.of("finance_accounts","expense_types","finance_documents","cash_counts","supplier_payment_records","strict_rules","strict_rules_audit","period_closings","customer_refunds","payments","orders","order_items","products","delivery_partial_returns","delivery_partial_return_items"))jdbc.execute("DROP TABLE IF EXISTS "+t);
         jdbc.execute("CREATE TABLE payments(id BIGINT PRIMARY KEY,provider VARCHAR(20),amount DECIMAL(16,2),status VARCHAR(20),payme_perform_time BIGINT,payme_cancel_time BIGINT)");
         jdbc.execute("CREATE TABLE supplier_payment_records(id BIGINT AUTO_INCREMENT PRIMARY KEY,supplier_id BIGINT,receipt_id BIGINT,amount DECIMAL(16,2),reference VARCHAR(160),paid_date DATE,status VARCHAR(20) DEFAULT 'RECORDED')");
         jdbc.execute("CREATE TABLE orders(id BIGINT PRIMARY KEY,status VARCHAR(30),total_price DECIMAL(16,2),delivered_at DATETIME)");
@@ -34,7 +34,7 @@ class FinanceIntegrationTest {
         jdbc.execute("CREATE TABLE products(id BIGINT PRIMARY KEY,cost_price DECIMAL(16,2))");
         jdbc.execute("CREATE TABLE delivery_partial_returns(order_id BIGINT PRIMARY KEY,refund_amount DECIMAL(16,2))");
         jdbc.execute("CREATE TABLE delivery_partial_return_items(order_id BIGINT,product_id BIGINT,quantity INT)");
-        for(String f:List.of("20261021_strict_rules.sql","20261022_strict_rules_value.sql","20261022_finance.sql","20261022_finance.sql","20261022_period_close.sql","20261022_period_close.sql"))new ResourceDatabasePopulator(new FileSystemResource("database/migrations/"+f)).execute(ds);
+        for(String f:List.of("20261021_strict_rules.sql","20261022_strict_rules_value.sql","20261022_finance.sql","20261022_finance.sql","20261022_period_close.sql","20261022_period_close.sql","20261023_customer_refunds.sql"))new ResourceDatabasePopulator(new FileSystemResource("database/migrations/"+f)).execute(ds);
         new com.ninimum.api.admin.access.StrictRules(jdbc);
         new PeriodClose(jdbc);
         finance=new FinanceService(jdbc);

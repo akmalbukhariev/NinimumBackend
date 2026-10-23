@@ -23,6 +23,9 @@ public class OrderTimersService {
     private static final ZoneId TASHKENT=ZoneId.of("Asia/Tashkent");
     @org.springframework.beans.factory.annotation.Value("${warehouse.enabled:false}") private boolean warehouseEnabled;
     @org.springframework.beans.factory.annotation.Value("${warehouse.inventory-enabled:false}") private boolean inventoryEnabled;
+    // K7: Telegram copy of each new alert; optional so tests that build the service with jdbc only still work.
+    @org.springframework.beans.factory.annotation.Autowired(required=false) private TelegramNotifier telegram;
+    private final List<Object[]> openedNow=new ArrayList<>();
     public OrderTimersService(JdbcTemplate jdbc,PlatformTransactionManager manager) {
         this.jdbc=jdbc;transaction=new TransactionTemplate(manager);
         transaction.setIsolationLevel(TransactionDefinition.ISOLATION_READ_COMMITTED);
@@ -60,6 +63,7 @@ public class OrderTimersService {
         }
     }
     public void scan(Instant now) {
+        openedNow.clear();
         transaction.executeWithoutResult(tx->{
             // A single row lock serializes workers across backend instances and settings edits.
             var config=jdbc.queryForMap("SELECT * FROM order_timer_settings WHERE id=1 FOR UPDATE");
@@ -110,6 +114,9 @@ public class OrderTimersService {
             }
             jdbc.update("UPDATE order_timer_settings SET last_scanned_at=? WHERE id=1",timestamp(now));
         });
+        // Only after the commit, so a rolled-back scan never sends a message.
+        if(telegram!=null)for(Object[] a:openedNow)telegram.opened((String)a[0],(Long)a[1],(String)a[2],(Long)a[3]);
+        openedNow.clear();
     }
     /** Inventory: a batch with stock that is past its expiry date, or expires within the warning period (Tashkent dates). */
     private void batchExpiry(Instant now,Set<String> active) {
@@ -145,7 +152,7 @@ public class OrderTimersService {
         boolean episode=previous.isEmpty() || previous.get(0).get("resolved_at")!=null || !since.equals(instant(previous.get(0).get("since")));
         if(episode && !previous.isEmpty() && previous.get(0).get("resolved_at")==null)event(type,id,kind,"RESOLVED","SYSTEM",now);
         jdbc.update("INSERT INTO order_problem_alerts(entity_type,entity_id,kind,order_status,responsible,state_since,elapsed_minutes,opened_at,resolved_at) VALUES(?,?,?,?,?,?,?,?,NULL) ON DUPLICATE KEY UPDATE order_status=VALUES(order_status),responsible=VALUES(responsible),state_since=VALUES(state_since),elapsed_minutes=VALUES(elapsed_minutes),opened_at=IF(?=1,VALUES(opened_at),opened_at),resolved_at=NULL",type,id,kind,status,responsible,timestamp(since),elapsed,timestamp(now),episode?1:0);
-        if(episode)event(type,id,kind,"OPENED","SYSTEM",now);
+        if(episode){event(type,id,kind,"OPENED","SYSTEM",now);openedNow.add(new Object[]{type,id,kind,elapsed});}
     }
     private void event(String type,long id,String kind,String action,String actor,Instant now) {
         jdbc.update("INSERT INTO order_problem_events(entity_type,entity_id,kind,event,occurred_at,actor) VALUES(?,?,?,?,?,?)",type,id,kind,action,timestamp(now),actor);
