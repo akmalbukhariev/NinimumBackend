@@ -75,7 +75,7 @@ public class TelegramNotifier {
     public boolean test() {
         if (!enabled()) return false;
         boolean ok = true;
-        for (String chat : chats) ok &= send(chat, "✅ Ninimum Nazorat ulandi. Muammoli buyurtmalar haqida xabarlar shu yerga keladi.");
+        for (String chat : chats) ok &= send(chat, "✅ Ninimum Nazorat ulandi. Muammolar haqida xabarlar shu yerga keladi.");
         return ok;
     }
 

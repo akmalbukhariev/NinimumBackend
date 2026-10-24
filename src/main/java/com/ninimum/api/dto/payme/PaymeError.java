@@ -9,6 +9,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 public class PaymeError {
     private Integer code;
-    private String message;
+    /** {"ru","uz","en"} as Payme expects; Payme shows it to the payer. */
+    private Object message;
     private Object data;
 }

@@ -611,7 +611,9 @@ public class PaymeService implements IPaymeService {
         }
 
         Long cancelTime = System.currentTimeMillis();
-        Integer reason = "PAID".equalsIgnoreCase(status) ? 5 : 3;
+        // Keep Payme's own reason (1 receiver, 2 card/bank debit failed, 3 processing, 4 timeout, 5 refund, 10 unknown);
+        // the customer app explains a failed payment with it.
+        Integer reason = params.getReason() != null ? params.getReason() : ("PAID".equalsIgnoreCase(status) ? 5 : 3);
 
         CancelPaymePaymentParam cancelParam = new CancelPaymePaymentParam();
         cancelParam.setTransaction_id(params.getId());

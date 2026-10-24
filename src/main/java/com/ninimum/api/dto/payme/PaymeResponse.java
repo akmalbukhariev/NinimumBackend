@@ -18,7 +18,7 @@ public class PaymeResponse {
 
     public static PaymeResponse error(Integer code, String message, Object data, Object id) {
         PaymeResponse response = new PaymeResponse();
-        response.setError(new PaymeError(code, message, data));
+        response.setError(new PaymeError(code, PaymeMessages.of(message), data));
         response.setId(id);
         return response;
     }

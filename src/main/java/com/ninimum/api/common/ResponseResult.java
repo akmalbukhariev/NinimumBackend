@@ -18,8 +18,9 @@ public class ResponseResult implements Serializable {
         this.resultCode = resultCode;
     }
 
+    /** Error messages leave the server in Uzbek (codes stay as they are); see UzbekMessages. */
     public String getResultMsg() {
-        return this.resultMsg;
+        return "100".equals(this.resultCode) ? this.resultMsg : UzbekMessages.of(this.resultMsg);
     }
 
     public void setResultMsg(String resultMsg) {

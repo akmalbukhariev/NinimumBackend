@@ -256,7 +256,8 @@
             id AS orderId,
             order_number AS orderNumber,
             CASE WHEN status = 'CANCELLED' AND payment_status = 'PENDING'
-                 THEN 'CANCELLED' ELSE payment_status END AS paymentStatus
+                 THEN 'CANCELLED' ELSE payment_status END AS paymentStatus,
+            (SELECT p.payme_reason FROM payments p WHERE p.order_id = orders.id AND p.provider = 'PAYME' ORDER BY p.id DESC LIMIT 1) AS paymentReason
         FROM orders
         WHERE id = #{orderId}
           AND user_id = #{userId}
