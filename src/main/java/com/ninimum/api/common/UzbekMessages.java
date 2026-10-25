@@ -118,6 +118,59 @@ public final class UzbekMessages {
         put("Rasm o‘lchami juda katta.", "Image dimensions too large");
         put("Mahsulot rasmi juda katta. Eng ko‘pi 20 MB.", "Product image is too large. Maximum size is 20 MB.");
         put("Sharh rasmi juda katta.", "Review image is too large.");
+        // Courier app
+        put("Tanlangan buyurtmalardan biri boshqa kuryerga berilgan. Hech biri olinmadi — ro‘yxat yangilandi, qaytadan tanlang.", "One of the selected deliveries was already taken by another courier");
+        put("Bu buyurtmani boshqa kuryer olgan. Ro‘yxatni yangilang.", "This delivery was already taken by another courier");
+        put("Kamida bitta buyurtmani tanlang.", "At least one delivery must be selected");
+        put("Yo‘lga chiqishdan oldin tanlangan barcha buyurtmalarni qabul qiling.", "All selected deliveries must be accepted before starting the route");
+        put("Tanlangan buyurtmalardan birini boshlab bo‘lmadi. Ro‘yxatni yangilang.", "Could not start one of the selected deliveries");
+        put("Yetkazish holatini yangilab bo‘lmadi. Qayta urinib ko‘ring.", "Could not update delivery status");
+        put("Buyurtma holati o‘zgargan. Ro‘yxatni yangilang.", "Order status changed; refresh the delivery");
+        put("Bu buyurtma sizga biriktirilmagan.", "Delivery job does not belong to this courier");
+        put("Yetkazish topilmadi.", "Delivery job not found");
+        put("Kuryer topilmadi yoki faol emas.", "Delivery worker not found or inactive");
+        put("Bunday ID li kuryer allaqachon bor.", "Delivery worker with this ID already exists");
+        put("Kuryerni yaratib bo‘lmadi.", "Could not create delivery worker");
+        put("Kuryer ID va parolni kiriting.", "Courier ID and password are required");
+        put("Kuryer ID 3–50 belgi bo‘lishi va faqat harf, raqam, nuqta, chiziqcha yoki pastki chiziqdan iborat bo‘lishi kerak.", "Courier ID must be 3-50 characters and contain only letters, numbers, dot, dash or underscore");
+        put("Kuryer ID, ism va parolni (kamida 6 belgi) kiriting.", "Courier ID, full name and password (minimum 6 characters) are required");
+        put("Qaytarish sababini yozing (1–500 belgi).", "A return reason of 1-500 characters is required");
+        put("Yetkazish holatini bu tartibda o‘zgartirib bo‘lmaydi.", "Invalid delivery status transition: ");
+        // Customer app: orders, payment, tariffs, account
+        put("Buyurtmada kamida bitta mahsulot bo‘lishi kerak.", "Order must contain at least one product");
+        put("Buyurtmani yaratib bo‘lmadi. Qayta urinib ko‘ring.", "Order could not be created", "Calculated order total is invalid");
+        put("Mahsulot topilmadi yoki narxi noto‘g‘ri.", "Product not found or price is invalid. product_id=");
+        put("Miqdor 0 dan katta bo‘lishi kerak.", "Quantity must be greater than zero. product_id=");
+        put("Buyurtma mahsulotlari topilmadi.", "Order items not found for order_id=");
+        put("Bu buyurtma allaqachon to‘langan.", "Order already paid");
+        put("Buyurtma bekor qilingan.", "Order is cancelled");
+        put("Buyurtmani bekor qilib bo‘lmaydi: u allaqachon tayyorlanmoqda, yetkazilgan yoki bekor qilingan.", "Order cannot be cancelled. It may already be processing, delivered, cancelled, or not belong to this user");
+        put("Bekor qilish sababini yozing.", "Cancel reason is required");
+        put("Shahrisabzdagi yetkazish manzilini tanlang.", "Please select a delivery address in Shahrisabz");
+        put("Yetkazish manzilini saqlab bo‘lmadi.", "Delivery address could not be saved");
+        put("Hududni o‘zgartirib bo‘lmadi.", "Region cannot be changed. User or active region was not found");
+        put("Tarif topilmadi yoki faol emas.", "Tariff not found or inactive", "Tariff subscription not found");
+        put("Tarif narxi noto‘g‘ri.", "Tariff price is invalid");
+        put("Bu tarif allaqachon faol.", "Selected tariff is already active");
+        put("Tarif uchun to‘lovni boshlab bo‘lmadi. Qayta urinib ko‘ring.", "Tariff checkout could not be created", "Tariff subscription activation failed. subscriptionId=");
+        put("Tarif faqat Payme orqali yoqiladi.", "Direct tariff activation is disabled. Use Payme checkout.");
+        put("Faol tarifni bekor qilib bo‘lmadi. U allaqachon tugagan yoki bekor qilingan bo‘lishi mumkin.", "Active tariff could not be cancelled. It may already be expired/cancelled or not belong to this user");
+        put("Sizda faol tarif yo‘q.", "Tariff subscription is not active for this user");
+        put("Karta raqami va amal qilish muddatini kiriting.", "Card number and expire are required");
+        put("To‘lov tizimida xatolik. Qayta urinib ko‘ring.", "Payme error: ", "Payme Subscribe API HTTP error: ");
+        put("Login yoki parol noto‘g‘ri.", "Invalid login or password", "Password is incorrect");
+        put("Yangi parol eskisidan farq qilishi kerak.", "New password must be different from current password");
+        put("Bu telefon raqami allaqachon ro‘yxatdan o‘tgan.", "Phone number already exists");
+        put("Telefon raqami va vaqtinchalik parolni kiriting.", "Phone number and temporary password are required");
+        put("SMS yuborib bo‘lmadi. Birozdan keyin qayta urinib ko‘ring.", "Eskiz login failed", "HTTP Request failed with status: ", "Refresh token failed with status code: ");
+        put("Administrator topilmadi.", "Admin not found");
+        put("MXIK paketini tanlang.", "Fiscal MXIK package must be selected");
+        put("Mahsulot ma’lumotlarini kiriting.", "Product data is required", "Product ID is required");
+        put("Majburiy ma’lumotlar yetishmayapti. Ilovani yangilab, qayta urinib ko‘ring.", "Order ID and User ID are required", "User ID and Region ID are required", "User ID and phone number are required", "User ID is required",
+            "User ID, current password and new password are required", "jobId and status are required", "jobId is required", "order_id is required", "subscriptionId is required", "tariffId is required", "userId is required",
+            "Token and code are required", "Token is required");
+        put("Serverda xatolik yuz berdi. Birozdan keyin qayta urinib ko‘ring.", "Failed to map CamelCaseMap to ", "Failed to parse timestamp: ");
+        put("Kirish ma’lumotlari noto‘g‘ri. Qaytadan kiring.", "The token does not contain authorization information.");
         // Warehouse setup (shown to the owner)
         put("Ombor hali sozlanmagan (warehouse-step1).", "Run warehouse-step1.sql before enabling WAREHOUSE_ENABLED");
         put("Ombor ilovasi hali yoqilmagan (warehouse-step2).", "Run warehouse-step2.sql and enable warehouse.enabled first");
@@ -129,8 +182,9 @@ public final class UzbekMessages {
         if (message == null) return null;
         String uz = UZ.get(message);
         if (uz != null) return uz;
-        for (String prefix : new String[]{"Invalid timestamp: ", "Unknown User value: "})
-            if (message.startsWith(prefix)) return UZ.get(prefix);
+        // Messages built as "text: value" are matched by their fixed start.
+        for (var e : UZ.entrySet())
+            if ((e.getKey().endsWith(": ") || e.getKey().endsWith("=")) && message.startsWith(e.getKey())) return e.getValue();
         return message;
     }
 }

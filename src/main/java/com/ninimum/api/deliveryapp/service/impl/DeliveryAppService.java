@@ -142,6 +142,8 @@ public class DeliveryAppService implements IDeliveryAppService {
         DeliveryAppJobDto job = mapper.getJobDetail(jobId, worker.getId());
         if (job == null) throw new Exception("Delivery job not found");
         if("WAITING_ASSIGNMENT".equals(job.getJobStatus())&&!dispatch.visible(jobId,worker.getId()))throw new org.springframework.security.access.AccessDeniedException("This delivery offer is not assigned to you");
+        // Same flag as the available list; the courier app reads it as true/false and fails on null.
+        job.setDispatchOffer("WAITING_ASSIGNMENT".equals(job.getJobStatus()) && dispatch.offersEnabled());
         // Do not expose evidence to an unassigned courier browsing available deliveries.
         job.setPartialReturn(partialReturns.details(job.getOrderId()));
         if (job.getPartialReturn()!=null || java.util.Set.of("RETURNING", "RETURNED").contains(job.getOrderStatus()))
