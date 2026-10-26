@@ -12,4 +12,6 @@ public class SubscriptionDto {
     private String startDate;
     private String endDate;
     private String subscriptionStatus;
+    /** True when the customer cancelled: benefits stay until endDate, then the tariff expires. */
+    private Boolean cancelled;
 }

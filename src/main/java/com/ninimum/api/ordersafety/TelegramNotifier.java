@@ -25,7 +25,7 @@ import java.util.concurrent.Executors;
 public class TelegramNotifier {
     static final Map<String,String> LABELS = Map.ofEntries(
         Map.entry("COURIER_REASSIGN", "Kuryer 3 ta taklifni qabul qilmadi"), Map.entry("PREPARATION_QUEUE", "Tayyorlash navbati kechikdi"),
-        Map.entry("PREPARATION_DELAY", "Tayyorlash kechikdi"), Map.entry("COURIER_WAIT", "Kuryer biriktirilmagan"),
+        Map.entry("PREPARATION_DELAY", "Tayyorlash kechikdi"), Map.entry("COURIER_WAIT", "Kuryer biriktirilmagan"), Map.entry("TAXI_WAIT", "Taksi chaqirilmagan"), Map.entry("TAXI_PROBLEM", "Mijoz taksi bo‘yicha muammo yozdi"),
         Map.entry("COURIER_PICKUP", "Kuryer olib ketishi kechikdi"), Map.entry("DELIVERY_DELAY", "Yetkazish kechikdi"),
         Map.entry("REFUND_PENDING", "Pulni qaytarish kutilmoqda"), Map.entry("UNANSWERED_QUESTION", "Savol yoki shikoyat javobsiz"),
         Map.entry("STOCK_EXPIRED", "Partiya muddati o‘tgan"), Map.entry("STOCK_EXPIRING", "Partiya muddati yaqin"));
@@ -58,6 +58,8 @@ public class TelegramNotifier {
             out.append("Buyurtma #").append(id);
             if (!rows.isEmpty()) out.append(" (").append(rows.get(0).get("order_number")).append(')');
             link = "/orders?order=" + id;
+            if ("TAXI_PROBLEM".equals(kind))
+                for (var p : jdbc.queryForList("SELECT customer_problem FROM taxi_deliveries WHERE order_id=?", id)) out.append("\n«").append(p.get("customer_problem")).append('»');
         } else if ("BATCH".equals(type)) {
             var rows = jdbc.queryForList("SELECT p.name,l.code,b.physical_quantity,DATE_FORMAT(b.expiry_date,'%d.%m.%Y') expiry FROM inventory_batches b JOIN products p ON p.id=b.product_id JOIN warehouse_locations l ON l.id=b.location_id WHERE b.id=?", id);
             if (!rows.isEmpty()) { var r = rows.get(0); out.append(r.get("name")).append(" · ").append(r.get("code")).append(" · ").append(r.get("physical_quantity")).append(" dona · muddat ").append(r.get("expiry")); }

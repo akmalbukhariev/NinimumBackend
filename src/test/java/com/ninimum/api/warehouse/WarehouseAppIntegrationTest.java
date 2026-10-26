@@ -26,7 +26,7 @@ class WarehouseAppIntegrationTest {
         for(String t:List.of("warehouse_order_return_items","warehouse_order_returns","delivery_partial_return_items","delivery_partial_returns","delivery_return_photos","warehouse_preparation_items","warehouse_preparation_events","warehouse_preparations","warehouse_app_sessions","warehouse_workers","warehouse_app_schema","order_items","orders","delivery_jobs","products")) jdbc.execute("DROP TABLE IF EXISTS "+t);
         jdbc.execute("SET FOREIGN_KEY_CHECKS=1");
         jdbc.execute("CREATE TABLE products(id BIGINT PRIMARY KEY,barcode VARCHAR(120),stock_quantity INT)");
-        jdbc.execute("CREATE TABLE orders(id BIGINT PRIMARY KEY,order_number VARCHAR(100),payment_status VARCHAR(20),status VARCHAR(30),ordered_at DATETIME,updated_at DATETIME,status_actor VARCHAR(255),status_source VARCHAR(40),status_reason VARCHAR(500))");
+        jdbc.execute("CREATE TABLE orders(delivery_method VARCHAR(20) NOT NULL DEFAULT 'COURIER',id BIGINT PRIMARY KEY,order_number VARCHAR(100),payment_status VARCHAR(20),status VARCHAR(30),ordered_at DATETIME,updated_at DATETIME,status_actor VARCHAR(255),status_source VARCHAR(40),status_reason VARCHAR(500))");
         jdbc.execute("CREATE TABLE order_items(id BIGINT PRIMARY KEY,order_id BIGINT,product_id BIGINT,product_name VARCHAR(255),quantity INT,product_image_url VARCHAR(1000))");
         jdbc.execute("CREATE TABLE delivery_jobs(id BIGINT PRIMARY KEY,order_id BIGINT UNIQUE,status VARCHAR(30),note VARCHAR(500))");
         jdbc.update("INSERT INTO products VALUES (1,'123456',10),(2,NULL,7)");

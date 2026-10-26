@@ -171,6 +171,10 @@ public final class UzbekMessages {
             "Token and code are required", "Token is required");
         put("Serverda xatolik yuz berdi. Birozdan keyin qayta urinib ko‘ring.", "Failed to map CamelCaseMap to ", "Failed to parse timestamp: ");
         put("Kirish ma’lumotlari noto‘g‘ri. Qaytadan kiring.", "The token does not contain authorization information.");
+        // Taxi delivery
+        put("Taksi orqali yetkazish faqat ish vaqtida mavjud. Kuryer orqali yetkazishni tanlang.", "Taxi delivery is available only during working hours");
+        put("Avval taksi chaqirilgan bo‘lishi kerak.", "A booked taxi is required");
+        put("Bu buyurtma hozir yo‘lda emas.", "This order is not on the way");
         // Warehouse setup (shown to the owner)
         put("Ombor hali sozlanmagan (warehouse-step1).", "Run warehouse-step1.sql before enabling WAREHOUSE_ENABLED");
         put("Ombor ilovasi hali yoqilmagan (warehouse-step2).", "Run warehouse-step2.sql and enable warehouse.enabled first");

@@ -40,7 +40,7 @@ class AdminVerificationIntegrationTest {
         jdbc.execute("CREATE TABLE users(id BIGINT PRIMARY KEY,first_name VARCHAR(50),last_name VARCHAR(50),phone_number VARCHAR(30))");
         jdbc.execute("CREATE TABLE orders(id BIGINT PRIMARY KEY,user_id BIGINT,order_number VARCHAR(100),status VARCHAR(30))");
         jdbc.update("INSERT INTO users VALUES(1,'Test','Customer','998901234587')");
-        jdbc.update("INSERT INTO orders VALUES(87,1,'ORD-EXACT-87','PENDING'),(86,1,'ORD-OTHER','DELIVERED')");
+        jdbc.update("INSERT INTO orders VALUES(87,1,'ORD-EXACT-87','PENDING'),(86,1,'ORD-OTHER','DELIVERED')");jdbc.execute("ALTER TABLE orders ADD COLUMN delivery_method VARCHAR(20) NOT NULL DEFAULT 'COURIER'");
         jdbc.execute("ALTER TABLE orders ADD COLUMN payment_status VARCHAR(30), ADD COLUMN ordered_at DATETIME(6), ADD COLUMN cancelled_at DATETIME, ADD COLUMN subtotal_price DECIMAL(16,2), ADD COLUMN delivery_price DECIMAL(16,2), ADD COLUMN discount_price DECIMAL(16,2), ADD COLUMN total_price DECIMAL(16,2)");
         jdbc.execute("CREATE TABLE order_items(id BIGINT PRIMARY KEY,order_id BIGINT,quantity INT)");
         jdbc.execute("CREATE TABLE order_status_history(id BIGINT PRIMARY KEY,order_id BIGINT,to_status VARCHAR(30),changed_at DATETIME)");

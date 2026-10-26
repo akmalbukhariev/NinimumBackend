@@ -15,6 +15,12 @@
             o.total_price AS totalPrice,
             (SELECT pr.status FROM delivery_partial_returns pr WHERE pr.order_id=o.id) AS partialReturnStatus,
             (SELECT pr.refund_amount FROM delivery_partial_returns pr WHERE pr.order_id=o.id) AS partialRefundAmount,
+            (SELECT od.delivery_method FROM orders od WHERE od.id=o.id) AS deliveryMethod,
+            (SELECT t.company FROM taxi_deliveries t WHERE t.order_id=o.id) AS taxiCompany,
+            (SELECT t.driver_name FROM taxi_deliveries t WHERE t.order_id=o.id) AS taxiDriverName,
+            (SELECT t.driver_phone FROM taxi_deliveries t WHERE t.order_id=o.id) AS taxiDriverPhone,
+            (SELECT t.car_number FROM taxi_deliveries t WHERE t.order_id=o.id) AS taxiCarNumber,
+            (SELECT t.quoted_fare FROM taxi_deliveries t WHERE t.order_id=o.id) AS taxiFare,
             COALESCE(SUM(oi.quantity), 0) AS productCount,
             DATE_FORMAT(o.ordered_at, '%Y-%m-%d %H:%i:%s') AS orderedAt
         FROM orders o
@@ -91,7 +97,8 @@
             discount_price,
             total_price,
             ordered_at,
-            created_at
+            created_at,
+            delivery_method
         )
         VALUES
         (
@@ -109,7 +116,8 @@
             #{discountPrice},
             #{totalPrice},
             NOW(),
-            NOW()
+            NOW(),
+            COALESCE(#{deliveryMethod},'COURIER')
         )
     </insert>
 
@@ -273,6 +281,12 @@
             o.status AS status,
             (SELECT pr.status FROM delivery_partial_returns pr WHERE pr.order_id=o.id) AS partialReturnStatus,
             o.payment_status AS paymentStatus,
+            (SELECT od.delivery_method FROM orders od WHERE od.id=o.id) AS deliveryMethod,
+            (SELECT t.company FROM taxi_deliveries t WHERE t.order_id=o.id) AS taxiCompany,
+            (SELECT t.driver_name FROM taxi_deliveries t WHERE t.order_id=o.id) AS taxiDriverName,
+            (SELECT t.driver_phone FROM taxi_deliveries t WHERE t.order_id=o.id) AS taxiDriverPhone,
+            (SELECT t.car_number FROM taxi_deliveries t WHERE t.order_id=o.id) AS taxiCarNumber,
+            (SELECT t.quoted_fare FROM taxi_deliveries t WHERE t.order_id=o.id) AS taxiFare,
             DATE_FORMAT(o.ordered_at, '%Y-%m-%d %H:%i:%s') AS orderedAt,
             CASE
                 WHEN o.delivered_at IS NULL THEN NULL

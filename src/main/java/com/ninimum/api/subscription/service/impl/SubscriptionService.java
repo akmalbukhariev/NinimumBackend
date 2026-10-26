@@ -138,9 +138,8 @@ public class SubscriptionService implements ISubscriptionService {
             throw new Exception("subscriptionId is required");
         }
 
-        // This is a service cancellation only. It stops tariff benefits immediately
-        // but does NOT refund the Payme payment. Refunds are handled separately by
-        // Payme Business through Merchant API CancelTransaction.
+        // The customer keeps the benefits until the paid period ends (no refund, nothing is renewed).
+        // A refund, if ever needed, is made by hand in Payme Business.
         subscriptionMapper.expireSubscriptions(param.getUserId());
 
         int updated = subscriptionMapper.cancelActiveSubscription(param);

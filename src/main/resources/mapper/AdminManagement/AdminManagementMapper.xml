@@ -34,7 +34,7 @@
   </sql>
   <select id="getOrders" resultType="camelMap">
     SELECT <include refid="refundFields"/>, o.id, o.order_number, o.user_id, CONCAT_WS(' ',u.first_name,u.last_name) customer_name, u.phone_number,
-           o.status, o.payment_status, o.subtotal_price, o.delivery_price, o.discount_price, o.total_price,
+           o.status, o.payment_status, o.delivery_method, o.subtotal_price, o.delivery_price, o.discount_price, o.total_price,
            DATE_FORMAT(o.ordered_at,'%Y-%m-%d %H:%i:%s') ordered_at,
            COALESCE((SELECT SUM(quantity) FROM order_items oi WHERE oi.order_id=o.id),0) product_count
     FROM orders o LEFT JOIN users u ON u.id=o.user_id
@@ -214,7 +214,7 @@
     <if test="status != null">AND ut.status=#{status}</if>
   </where></sql>
   <select id="getSubscriptions" resultType="camelMap">
-    SELECT ut.id,ut.user_id,ut.tariff_plan_id,tp.name tariff_name,tp.monthly_price,ut.status,ut.start_date,ut.end_date,ut.auto_renew,ut.created_at,
+    SELECT ut.id,ut.user_id,ut.tariff_plan_id,tp.name tariff_name,tp.monthly_price,ut.status,ut.start_date,ut.end_date,ut.auto_renew,ut.created_at,ut.cancelled_at,
       CONCAT_WS(' ',u.first_name,u.last_name) customer_name,u.phone_number
     FROM user_tariffs ut JOIN tariff_plans tp ON tp.id=ut.tariff_plan_id JOIN users u ON u.id=ut.user_id
     <include refid="subscriptionWhere"/> ORDER BY ut.id DESC LIMIT #{pageSize} OFFSET #{offset}
@@ -241,7 +241,7 @@
     INSERT IGNORE INTO delivery_jobs(order_id,customer_name,customer_phone,delivery_address,status,created_at,updated_at)
     SELECT o.id,COALESCE(NULLIF(TRIM(CONCAT_WS(' ',u.first_name,u.last_name)),''),'Mijoz'),COALESCE(NULLIF(u.phone_number,''),''),COALESCE(NULLIF(o.delivery_address,''),NULLIF(u.address,''),'Manzil ko''rsatilmagan'),'WAITING_ASSIGNMENT',NOW(),NOW()
     FROM orders o JOIN users u ON u.id=o.user_id
-    WHERE o.payment_status='PAID' AND o.status IN ('CONFIRMED','PREPARING','READY','ON_THE_WAY')
+    WHERE o.payment_status='PAID' AND o.status IN ('CONFIRMED','PREPARING','READY','ON_THE_WAY') AND o.delivery_method&lt;&gt;'TAXI'
   </insert>
   <sql id="deliveryWhere"><where><if test="status != null">AND dj.status=#{status}</if></where></sql>
   <select id="getDeliveryJobs" resultType="camelMap">

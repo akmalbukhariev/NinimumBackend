@@ -52,7 +52,12 @@ public class OrderCorrectionService {
                jdbc.queryForObject("SELECT COUNT(*) FROM warehouse_preparation_items WHERE order_id=? AND checked_quantity<>required_quantity",Integer.class,id)!=0)
                 throw new IllegalArgumentException("The warehouse must have checked and packed the order");
         }
-        if("ON_THE_WAY".equals(target)) {
+        // A taxi order has no courier job: going back to "on the way" needs its booked taxi instead.
+        boolean taxiOrder="TAXI".equals(jdbc.queryForObject("SELECT delivery_method FROM orders WHERE id=?",String.class,id));
+        if("ON_THE_WAY".equals(target)&&taxiOrder) {
+            if(jdbc.queryForObject("SELECT COUNT(*) FROM taxi_deliveries WHERE order_id=?",Integer.class,id)!=1)
+                throw new IllegalArgumentException("A booked taxi is required");
+        } else if("ON_THE_WAY".equals(target)) {
             if(jobs.size()!=1 || jobs.get(0).get("delivery_worker_id")==null ||
                jdbc.queryForObject("SELECT COUNT(*) FROM delivery_app_workers WHERE id=? AND status='ACTIVE'",Integer.class,jobs.get(0).get("delivery_worker_id"))!=1)
                 throw new IllegalArgumentException("An active assigned courier is required");

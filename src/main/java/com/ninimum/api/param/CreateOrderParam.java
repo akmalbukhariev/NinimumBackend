@@ -16,5 +16,7 @@ public class CreateOrderParam {
     private Integer totalPrice;
     private Integer quotedTotal;
     private Long tariffSubscriptionId;
+    /** "COURIER" (default) or "TAXI": fast delivery by an outside taxi, the customer pays the driver. */
+    private String deliveryMethod;
     private List<CreateOrderProductParam> products;
 }

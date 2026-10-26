@@ -37,7 +37,7 @@ class OrderAddressIntegrationTest {
         jdbc.execute(Files.readString(Path.of("src/test/resources/live-schema-fixtures/user-addresses.sql")));
         // This follow-up migration must also be safe for installations that already have the table.
         jdbc.execute(Files.readString(Path.of("src/test/resources/live-schema-fixtures/user-addresses.sql")));
-        jdbc.execute("CREATE TABLE orders(id BIGINT AUTO_INCREMENT PRIMARY KEY,user_id BIGINT,address_id BIGINT,user_tariff_id BIGINT,order_number VARCHAR(100),status VARCHAR(30),payment_status VARCHAR(30),subtotal_price INT,delivery_price INT,discount_price INT,total_price INT,ordered_at DATETIME,created_at DATETIME,updated_at DATETIME,cancelled_at DATETIME,cancel_reason TEXT,delivered_at DATETIME,is_history_deleted INT DEFAULT 0)");
+        jdbc.execute("CREATE TABLE orders(delivery_method VARCHAR(20) NOT NULL DEFAULT 'COURIER',id BIGINT AUTO_INCREMENT PRIMARY KEY,user_id BIGINT,address_id BIGINT,user_tariff_id BIGINT,order_number VARCHAR(100),status VARCHAR(30),payment_status VARCHAR(30),subtotal_price INT,delivery_price INT,discount_price INT,total_price INT,ordered_at DATETIME,created_at DATETIME,updated_at DATETIME,cancelled_at DATETIME,cancel_reason TEXT,delivered_at DATETIME,is_history_deleted INT DEFAULT 0)");
         jdbc.execute(Files.readString(Path.of("src/test/resources/live-schema-fixtures/order-delivery-address.sql")));
         String auditSql=Files.readString(Path.of("src/test/resources/live-schema-fixtures/order-status-history.sql"));
         String[] auditParts=auditSql.split("DELIMITER \\$\\$");
@@ -50,6 +50,7 @@ class OrderAddressIntegrationTest {
         new org.springframework.jdbc.datasource.init.ResourceDatabasePopulator(
                 new FileSystemResource("src/test/resources/live-schema-fixtures/return-photos.sql")).execute(ds);
         new org.springframework.jdbc.datasource.init.ResourceDatabasePopulator(new FileSystemResource("database/migrations/20261012_partial_returns.sql")).execute(ds);
+        jdbc.execute("DROP TABLE IF EXISTS taxi_deliveries");new org.springframework.jdbc.datasource.init.ResourceDatabasePopulator(new FileSystemResource("database/migrations/20261026_taxi_delivery.sql")).execute(ds);
         returnPhotos = new ReturnPhotoService(jdbc);
         jdbc.update("INSERT INTO users VALUES (7,'Customer','Test','+998900000000','Profile address',39.0500,66.8300)");
         var config = new org.apache.ibatis.session.Configuration();

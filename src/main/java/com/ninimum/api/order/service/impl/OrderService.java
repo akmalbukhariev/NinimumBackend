@@ -25,6 +25,7 @@ public class OrderService implements IOrderService {
 
     private final OrderMapper orderMapper;
     @org.springframework.beans.factory.annotation.Autowired private com.ninimum.api.warehouse.WarehouseService warehouse;
+    @org.springframework.beans.factory.annotation.Autowired(required=false) private com.ninimum.api.taxi.TaxiDelivery taxi;
 
     @Value("${file.access.url}")
     private String fileAccessUrl;
@@ -173,7 +174,11 @@ public class OrderService implements IOrderService {
         param.setTotalPrice((int) calculatedTotal);
 
         var result=new java.util.LinkedHashMap<String,Object>();
-        result.put("subtotal",param.getSubtotalPrice());result.put("discount",param.getDiscountPrice());result.put("total",param.getTotalPrice());result.put("delivery_price",0);
+        // Taxi: only inside working hours; Ninimum's delivery fee stays 0 (the customer pays the driver).
+        param.setDeliveryMethod(com.ninimum.api.taxi.TaxiDelivery.method(param.getDeliveryMethod()));
+        boolean taxiOpen=taxi!=null&&taxi.available();
+        if(com.ninimum.api.taxi.TaxiDelivery.TAXI.equals(param.getDeliveryMethod())&&!taxiOpen)throw new Exception("Taxi delivery is available only during working hours");
+        result.put("subtotal",param.getSubtotalPrice());result.put("delivery_method",param.getDeliveryMethod());result.put("taxi_available",taxiOpen);result.put("discount",param.getDiscountPrice());result.put("total",param.getTotalPrice());result.put("delivery_price",0);
         result.put("tariff_subscription_id",param.getTariffSubscriptionId());result.put("benefits",benefits);result.put("products",param.getProducts());
         return result;
     }

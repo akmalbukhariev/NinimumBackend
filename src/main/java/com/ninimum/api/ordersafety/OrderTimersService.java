@@ -70,7 +70,7 @@ public class OrderTimersService {
             var hours=new WorkingHours(config);
             if(integer(config.get("expiry_enabled"))==1) expire(config,hours,now);
             var active=new HashSet<String>();
-            var orders=jdbc.queryForList("SELECT o.id,o.status,o.payment_status,DATE_FORMAT(o.ordered_at,'%Y-%m-%dT%H:%i:%sZ') ordered_at,"+
+            var orders=jdbc.queryForList("SELECT o.id,o.status,o.payment_status,o.delivery_method,DATE_FORMAT(o.ordered_at,'%Y-%m-%dT%H:%i:%sZ') ordered_at,"+
                 "DATE_FORMAT((SELECT h.changed_at FROM order_status_history h WHERE h.order_id=o.id AND h.to_status=o.status ORDER BY h.id DESC LIMIT 1),'%Y-%m-%dT%H:%i:%sZ') state_since,"+
                 "wp.worker_code,dj.delivery_worker_id,COALESCE(dw.full_name,dw.worker_code,CAST(dj.delivery_worker_id AS CHAR)) courier_name FROM orders o LEFT JOIN warehouse_preparations wp ON wp.order_id=o.id LEFT JOIN delivery_jobs dj ON dj.order_id=o.id LEFT JOIN delivery_app_workers dw ON dw.id=dj.delivery_worker_id "+
                 "WHERE o.payment_status='PAID' AND o.status IN ('PENDING','CONFIRMED','PREPARING','READY','ON_THE_WAY','RETURNING','RETURNED','CANCELLED')");
@@ -81,7 +81,7 @@ public class OrderTimersService {
                 switch(status) {
                     case "PENDING":case "CONFIRMED":kind="PREPARATION_QUEUE";key="queue_minutes";responsible="WAREHOUSE";break;
                     case "PREPARING":kind="PREPARATION_DELAY";key="preparation_minutes";responsible=Objects.toString(order.get("worker_code"),"WAREHOUSE");break;
-                    case "READY":kind=order.get("delivery_worker_id")==null?"COURIER_WAIT":"COURIER_PICKUP";key="courier_wait_minutes";responsible=Objects.toString(order.get("courier_name"),"DISPATCHER");break;
+                    case "READY":kind="TAXI".equals(order.get("delivery_method"))?"TAXI_WAIT":order.get("delivery_worker_id")==null?"COURIER_WAIT":"COURIER_PICKUP";key="courier_wait_minutes";responsible=Objects.toString(order.get("courier_name"),"DISPATCHER");break;
                     case "ON_THE_WAY":kind="DELIVERY_DELAY";key="delivery_minutes";responsible=Objects.toString(order.get("courier_name"),"DISPATCHER");break;
                     default:
                         kind="REFUND_PENDING";key=null;responsible="OWNER";
@@ -93,6 +93,13 @@ public class OrderTimersService {
                 // A paid cancelled/returned order stays problematic until its refund is confirmed.
                 if(key==null || elapsed>=integer(config.get(key))) open("ORDER",id,kind,status,responsible,since,elapsed,now,active);
             }
+            // Taxi: the customer pressed "Muammo bor" while the taxi order is on the way → the operator must react.
+            try {
+                for(var taxi:jdbc.queryForList("SELECT t.order_id,DATE_FORMAT(t.customer_problem_at,'%Y-%m-%dT%H:%i:%sZ') since FROM taxi_deliveries t JOIN orders o ON o.id=t.order_id WHERE t.customer_problem_at IS NOT NULL AND o.status='ON_THE_WAY'")) {
+                    Instant since=instant(taxi.get("since"));
+                    if(since!=null) open("ORDER",((Number)taxi.get("order_id")).longValue(),"TAXI_PROBLEM","ON_THE_WAY","OPERATOR",since,Math.max(0,Duration.between(since,now).toMinutes()),now,active);
+                }
+            } catch(org.springframework.dao.DataAccessException ex) { /* taxi tables not migrated yet */ }
             for(var partial:jdbc.queryForList("SELECT pr.order_id,DATE_FORMAT(pr.created_at,'%Y-%m-%dT%H:%i:%sZ') since FROM delivery_partial_returns pr JOIN orders o ON o.id=pr.order_id WHERE pr.refund_status='PENDING' AND pr.refund_amount>0 AND o.payment_status='PAID'")) {
                 Instant since=instant(partial.get("since"));
                 if(since!=null) open("ORDER",((Number)partial.get("order_id")).longValue(),"REFUND_PENDING","DELIVERED","OWNER",since,Math.max(0,Duration.between(since,now).toMinutes()),now,active);

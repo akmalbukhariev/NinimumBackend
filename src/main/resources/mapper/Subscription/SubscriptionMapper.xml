@@ -33,7 +33,8 @@
             CAST(tp.monthly_price AS SIGNED) AS price,
             DATE_FORMAT(ut.start_date, '%Y-%m-%d') AS startDate,
             DATE_FORMAT(ut.end_date, '%Y-%m-%d') AS endDate,
-            ut.status AS subscriptionStatus
+            ut.status AS subscriptionStatus,
+            (ut.cancelled_at IS NOT NULL) AS cancelled
         FROM user_tariffs ut
         INNER JOIN tariff_plans tp
             ON tp.id = ut.tariff_plan_id
@@ -136,15 +137,17 @@
 
     <update id="cancelActiveSubscription"
             parameterType="com.ninimum.api.param.CancelSubscriptionParam">
+        <!-- The customer paid for the whole period: cancelling keeps the tariff ACTIVE until its end date
+             (it then expires as usual); it only records the cancellation and stops any renewal. -->
         UPDATE user_tariffs
         SET
-            status = 'CANCELLED',
-            end_date = NOW(),
+            auto_renew = 0,
             cancelled_at = NOW(),
             updated_at = NOW()
         WHERE id = #{subscriptionId}
           AND user_id = #{userId}
           AND status = 'ACTIVE'
+          AND cancelled_at IS NULL
           AND start_date IS NOT NULL
     </update>
 

@@ -48,6 +48,7 @@
         FROM orders o
         JOIN users u ON u.id=o.user_id
         WHERE o.payment_status='PAID' AND o.status IN ('CONFIRMED','PREPARING','READY','ON_THE_WAY')
+          AND o.delivery_method&lt;&gt;'TAXI'
     </insert>
 
     <select id="getDashboard" resultType="com.ninimum.api.dto.DeliveryAppDashboardDto">
