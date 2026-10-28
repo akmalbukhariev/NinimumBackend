@@ -38,7 +38,7 @@ public final class UzbekMessages {
         put("Juda ko‘p urinish. 15 daqiqadan keyin qayta urinib ko‘ring.", "Too many attempts. Try again in 15 minutes.");
         put("Kirish turi noto‘g‘ri.", "Invalid login realm");
         put("Telefon raqami noto‘g‘ri.", "Invalid phone number");
-        put("Parol kamida 10 belgidan iborat bo‘lishi va katta harf, kichik harf, raqam hamda belgi bo‘lishi kerak.", "Password must contain at least 10 characters, uppercase, lowercase, a number and a symbol (maximum 72 UTF-8 bytes).");
+        put("Parolni kiriting (72 belgidan oshmasin).", "Password is required (maximum 72 UTF-8 bytes).");
         put("Administrator topilmadi yoki egasining hisobini o‘zgartirib bo‘lmaydi.", "Administrator not found or owner account is protected");
         put("Administrator holati noto‘g‘ri.", "Invalid administrator status");
         // Orders

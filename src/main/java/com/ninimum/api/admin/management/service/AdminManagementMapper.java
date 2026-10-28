@@ -67,6 +67,7 @@ public interface AdminManagementMapper {
     int updateDeliveryWorkerStatus(@Param("id") long id, @Param("status") String status);
     int countDeliveryJobsForWorker(@Param("id") long id);
     int countDeliveryTrackingForWorker(@Param("id") long id);
+    int updateDeliveryWorkerPassword(@Param("id") long id, @Param("passwordHash") String passwordHash);
     int deleteDeliveryWorker(@Param("id") long id);
     int updateDeliveryJob(Map<String, Object> data);
     int syncOrderFromDeliveryJob(@Param("id") long id);

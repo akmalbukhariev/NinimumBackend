@@ -4,10 +4,9 @@ import java.nio.charset.StandardCharsets;
 public final class StaffPasswordPolicy {
     private StaffPasswordPolicy() {}
     public static String require(Object input) {
-        if(!(input instanceof String password)||password.length()<10||password.getBytes(StandardCharsets.UTF_8).length>72
-            ||password.chars().noneMatch(Character::isUpperCase)||password.chars().noneMatch(Character::isLowerCase)
-            ||password.chars().noneMatch(Character::isDigit)||password.chars().noneMatch(c->!Character.isLetterOrDigit(c)&&!Character.isWhitespace(c)))
-            throw new IllegalArgumentException("Password must contain at least 10 characters, uppercase, lowercase, a number and a symbol (maximum 72 UTF-8 bytes).");
+        // No strength rules (owner decision 2026-10-28): any non-empty password; bcrypt reads only 72 bytes.
+        if(!(input instanceof String password)||password.isEmpty()||password.getBytes(StandardCharsets.UTF_8).length>72)
+            throw new IllegalArgumentException("Password is required (maximum 72 UTF-8 bytes).");
         return password;
     }
 }

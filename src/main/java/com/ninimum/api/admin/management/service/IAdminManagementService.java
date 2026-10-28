@@ -39,6 +39,7 @@ public interface IAdminManagementService {
     Map<String, Object> getDeliveryJobs(String status, int page, int pageSize);
     List<CamelCaseMap> getDeliveryWorkers();
     int updateDeliveryWorkerStatus(long id, String status);
+    int resetDeliveryWorkerPassword(long id, String password);
     int deleteDeliveryWorker(long id);
     int updateDeliveryJob(long id, Map<String, Object> body);
 

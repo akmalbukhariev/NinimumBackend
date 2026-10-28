@@ -28,6 +28,7 @@ public class AdminManagementService implements IAdminManagementService {
     private final com.ninimum.api.warehouse.WarehouseService warehouse;
     private final com.ninimum.api.deliveryapp.service.ReturnPhotoService returnPhotos;
     private final com.ninimum.api.deliveryapp.service.PartialReturnService partialReturns;
+    @org.springframework.beans.factory.annotation.Autowired private org.springframework.security.crypto.password.PasswordEncoder passwordEncoder;
 
     private int page(int page) {
         return Math.max(page, 1);
@@ -453,6 +454,11 @@ public class AdminManagementService implements IAdminManagementService {
     @Override
     public int updateDeliveryWorkerStatus(long id, String status) {
         return mapper.updateDeliveryWorkerStatus(id, clean(status));
+    }
+
+    @Override
+    public int resetDeliveryWorkerPassword(long id, String password) {
+        return mapper.updateDeliveryWorkerPassword(id, passwordEncoder.encode(com.ninimum.api.security.login.StaffPasswordPolicy.require(password)));
     }
 
     @Override

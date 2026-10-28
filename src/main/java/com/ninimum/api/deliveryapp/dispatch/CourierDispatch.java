@@ -25,13 +25,15 @@ public class CourierDispatch {
  }
  public boolean visible(long job,long worker){
   if(!enabled())return true;
-  return jdbc.queryForObject("SELECT COUNT(*) FROM courier_dispatch_offers WHERE job_id=? AND worker_id=? AND status='OFFERED' AND expires_at>UTC_TIMESTAMP()",Integer.class,job,worker)==1;
+  // After three missed offers the job is ESCALATED: the dispatcher is alerted, and every courier may still take it (it used to vanish from all couriers).
+  return jdbc.queryForObject("SELECT COUNT(*) FROM courier_dispatch_offers WHERE job_id=? AND ((worker_id=? AND status='OFFERED' AND expires_at>UTC_TIMESTAMP()) OR status='ESCALATED')",Integer.class,job,worker)==1;
  }
  /** Caller must already hold the delivery job lock; accepted jobs still require physical handover. */
  public void requireOffer(long job,long worker){
   if(!enabled())return;
   jdbc.queryForMap("SELECT id FROM delivery_jobs WHERE id=? FOR UPDATE",job);
   var rows=jdbc.queryForList("SELECT worker_id,status,expires_at>UTC_TIMESTAMP() valid FROM courier_dispatch_offers WHERE job_id=? FOR UPDATE",job);
+  if(rows.size()==1&&"ESCALATED".equals(rows.get(0).get("status")))return;
   if(rows.size()!=1||!"OFFERED".equals(rows.get(0).get("status"))||!Objects.equals(((Number)rows.get(0).get("worker_id")).longValue(),worker)||!truth(rows.get(0).get("valid")))throw new AccessDeniedException("This offer expired or belongs to another courier");
  }
  /** The courier turns the offer down; the next scan offers the job to another courier. */
@@ -42,7 +44,7 @@ public class CourierDispatch {
   event(job,((Number)rows.get(0).get("attempt")).intValue(),worker,"DECLINED",actor(),"Courier declined the offer");
  }
  public void accepted(long job,long worker){
-  var rows=jdbc.queryForList("SELECT attempt FROM courier_dispatch_offers WHERE job_id=? AND worker_id=? AND status='OFFERED' FOR UPDATE",job,worker);
+  var rows=jdbc.queryForList("SELECT attempt FROM courier_dispatch_offers WHERE job_id=? AND (worker_id=? AND status='OFFERED' OR status='ESCALATED') FOR UPDATE",job,worker);
   if(!rows.isEmpty()){jdbc.update("UPDATE courier_dispatch_offers SET status='ACCEPTED',updated_at=UTC_TIMESTAMP() WHERE job_id=?",job);event(job,((Number)rows.get(0).get("attempt")).intValue(),worker,"ACCEPTED",actor(),null);}
  }
  @Scheduled(fixedDelayString="${courier.dispatch.interval-ms:15000}",initialDelayString="${courier.dispatch.initial-delay-ms:60000}")

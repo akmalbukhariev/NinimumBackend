@@ -354,6 +354,19 @@ public class AdminManagementController extends BaseController {
         }
     }
 
+    @PutMapping("/delivery/workers/{id}/password")
+    public ResponseEntity<Object> deliveryWorkerPassword(@PathVariable long id, @RequestBody Map<String, String> body) {
+        try {
+            return changed(service.resetDeliveryWorkerPassword(id, body.get("password")));
+        } catch (IllegalArgumentException ex) {
+            com.ninimum.api.common.VersionResponseResult result = setResult(Result.SERVER_ERROR);
+            result.setResultMsg("ADMIN_WEAK_PASSWORD");
+            return new ResponseEntity<>(result, HttpStatus.OK);
+        } catch (Exception ex) {
+            return fail(ex, "deliveryWorkerPassword");
+        }
+    }
+
     @DeleteMapping("/delivery/workers/{id}")
     public ResponseEntity<Object> deleteDeliveryWorker(@PathVariable long id) {
         try {
