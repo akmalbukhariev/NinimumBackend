@@ -34,7 +34,7 @@ public class WarehouseService {
     @Transactional(propagation=Propagation.MANDATORY) public boolean canSell(long product,long quantity){long legacy=lockStock(product);return sellableAvailable(product,legacy)>=quantity;}
     @Transactional(propagation=Propagation.MANDATORY) public void issueOrderStock(long order){if(isInventoryEnabled())new BatchStock(jdbc).issue(order,actor());}
     public void requireFreshInventory(long order){if(isInventoryEnabled())new BatchStock(jdbc).requireFresh(order);}
-    public List<Map<String,Object>> allocations(long order){if(!isInventoryEnabled())return List.of();return jdbc.queryForList("SELECT a.product_id,a.batch_id,a.quantity-a.issued_quantity-a.released_quantity held_quantity,b.batch_number,b.expiry_date,l.code location_code FROM inventory_allocations a JOIN inventory_batches b ON b.id=a.batch_id JOIN warehouse_locations l ON l.id=b.location_id WHERE a.order_id=? ORDER BY l.code,b.expiry_date,b.id",order);}
+    public List<Map<String,Object>> allocations(long order){if(!isInventoryEnabled())return List.of();return jdbc.queryForList("SELECT a.product_id,a.batch_id,a.quantity-a.issued_quantity-a.released_quantity held_quantity,b.batch_number,b.expiry_date,DATE_FORMAT(b.expiry_date,'%d.%m.%Y') expiry_text,l.code location_code FROM inventory_allocations a JOIN inventory_batches b ON b.id=a.batch_id JOIN warehouse_locations l ON l.id=b.location_id WHERE a.order_id=? ORDER BY l.code,b.expiry_date,b.id",order);}
     @Transactional(propagation=Propagation.MANDATORY) public void recordInventoryAdjustment(long product,long delta,String kind,String reference,String note){
         if(delta==0)return;
         var row=one("SELECT name,stock_quantity FROM products WHERE id=? FOR UPDATE",product);
@@ -203,11 +203,23 @@ public class WarehouseService {
             lines.add(Map.of("product_id",product,"quantity",qty,"location_id",location,"metadata",metadata,"price_note",priceNote));
         }
         lines.sort(Comparator.comparingLong(x -> ((Number)x.get("product_id")).longValue()));
+        // TZ v12 A4.1: the debt always equals quantity × price; another invoice total needs a reason, kept in the note.
+        if(supplierId!=null){
+            BigDecimal total=BigDecimal.ZERO;
+            for(var line:lines){BigDecimal price=((ReceiptMetadata)line.get("metadata")).unitPrice();if(price!=null)total=total.add(price.multiply(BigDecimal.valueOf(((Number)line.get("quantity")).longValue())));}
+            if(invoiceAmount.compareTo(total)!=0){
+                String reason=text(body.get("invoice_difference_reason"),300,false);
+                if(reason.isEmpty())throw new WarehouseException("RECEIPT_INVOICE_DIFFERENCE");
+                String written="Nakladnoy: "+invoiceAmount.toPlainString()+", qatorlar: "+total.toPlainString()+". Sabab: "+reason;
+                note=(note.isEmpty()?written:note+" | "+written);if(note.length()>500)note=note.substring(0,500);
+                invoiceAmount=total;
+            }
+        }
         long id = insert("INSERT INTO warehouse_receipts(supplier_name,invoice_number,note,status,created_by,created_at,invoice_image) " +
                 "VALUES (?,?,?,'DRAFT',?,UTC_TIMESTAMP(),?)",supplier,invoice,note,actor(),image);
         for (var line : lines) {
             Map<String,Object> product = one("SELECT name,is_active FROM products WHERE id=? FOR UPDATE",line.get("product_id"));
-            if (!active(product.get("is_active"))) throw new WarehouseException("WAREHOUSE_PRODUCT_INACTIVE");
+            // TZ v12 B4: an inactive product can still come into stock; it just isn't on sale.
             one("SELECT id FROM warehouse_locations WHERE id=? AND is_active=1 AND hierarchy_level='BIN' FOR UPDATE",line.get("location_id"));
             ReceiptMetadata metadata=(ReceiptMetadata)line.get("metadata");
             String priceNote=(String)line.get("price_note");
@@ -226,7 +238,16 @@ public class WarehouseService {
         requireEnabled();
         var costs=new LinkedHashMap<String,Object>();
         for(long product:products.stream().distinct().limit(100).toList()){BigDecimal last=lastCost(product);if(last!=null)costs.put(String.valueOf(product),last);}
-        return Map.of("threshold_percent",priceJumpPercent(),"note_required",com.ninimum.api.admin.access.StrictRules.on("Q-4"),"costs",costs);
+        // TZ v12 A4.2: products still on the old (non-batch) stock get a reminder on the receipt form.
+        var untracked=new ArrayList<Long>();
+        if(inventoryEnabled)for(long product:products.stream().distinct().limit(100).toList())if(jdbc.queryForObject("SELECT COUNT(*) FROM inventory_products WHERE product_id=?",Integer.class,product)==0)untracked.add(product);
+        return Map.of("threshold_percent",priceJumpPercent(),"note_required",com.ninimum.api.admin.access.StrictRules.on("Q-4"),"costs",costs,"untracked",untracked);
+    }
+    /** TZ v12 A4.3: the real cost of a product: dearest batch in stock, else the last purchase price. */
+    public BigDecimal batchCost(long product) {
+        if(!enabled)return null;
+        if(inventoryEnabled){BigDecimal top=jdbc.queryForObject("SELECT MAX(unit_cost) FROM inventory_batches WHERE product_id=? AND physical_quantity>0",BigDecimal.class,product);if(top!=null)return top;}
+        return lastCost(product);
     }
     private BigDecimal lastCost(long product) {
         var rows=jdbc.queryForList("SELECT i.unit_price FROM warehouse_receipt_items i JOIN warehouse_receipts r ON r.id=i.receipt_id WHERE i.product_id=? AND r.status='POSTED' AND i.unit_price IS NOT NULL ORDER BY r.posted_at DESC,r.id DESC LIMIT 1",BigDecimal.class,product);
@@ -248,6 +269,12 @@ public class WarehouseService {
         var input=new HashMap<String,Object>(body);input.put("quantity",1);input.put("input_unit","PIECE");
         var metadata=ReceiptMetadata.parse(input,java.time.Clock.systemUTC());
         if(jdbc.update("UPDATE warehouse_receipt_items SET unit_price=?,manufacture_date=?,expiry_date=?,batch_number=?,metadata_updated_by=?,metadata_updated_at=UTC_TIMESTAMP() WHERE receipt_id=? AND product_id=?",metadata.unitPrice(),metadata.manufactured(),metadata.expiry(),metadata.batch(),actor(),id,product)!=1)throw new WarehouseException("WAREHOUSE_NOT_FOUND");
+        syncInvoice(id);
+    }
+
+    /** Debt follows the lines: a price changed on a draft moves the invoice total with it. */
+    private void syncInvoice(long id) {
+        jdbc.update("UPDATE supplier_invoices SET invoice_amount=COALESCE((SELECT SUM(i.quantity*i.unit_price) FROM warehouse_receipt_items i WHERE i.receipt_id=? HAVING COUNT(*)=COUNT(i.unit_price)),invoice_amount) WHERE receipt_id=?",id,id);
     }
 
     @Deprecated
@@ -260,6 +287,7 @@ public class WarehouseService {
         com.ninimum.api.finance.PeriodClose.guardToday();
         List<Map<String,Object>> lines = receiptLines(id);
         if (lines.isEmpty()) throw new WarehouseException("WAREHOUSE_INVALID_INPUT");
+        syncInvoice(id);
         var auth=SecurityContextHolder.getContext().getAuthentication();
         boolean owner=auth!=null&&auth.getAuthorities().stream().anyMatch(a->"SUPER_ADMIN".equals(a.getAuthority()));
         if(actor().equals(header.get("created_by"))&&!owner)throw new WarehouseException("WAREHOUSE_SEPARATE_APPROVER_REQUIRED");
@@ -291,7 +319,6 @@ public class WarehouseService {
         for (var line : lines) {
             long product = ((Number)line.get("product_id")).longValue(), qty = counted.get(product);
             Map<String,Object> row = one("SELECT stock_quantity,is_active FROM products WHERE id=? FOR UPDATE",product);
-            if (!active(row.get("is_active"))) throw new WarehouseException("WAREHOUSE_PRODUCT_INACTIVE");
             one("SELECT id FROM warehouse_locations WHERE id=? AND is_active=1 AND hierarchy_level='BIN' FOR UPDATE",line.get("location_id"));
             if (((Number)row.get("stock_quantity")).longValue() + qty > Integer.MAX_VALUE)
                 throw new WarehouseException("WAREHOUSE_INVALID_INPUT");

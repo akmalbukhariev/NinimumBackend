@@ -457,6 +457,11 @@ public class AdminManagementService implements IAdminManagementService {
     }
 
     @Override
+    public java.math.BigDecimal productBatchCost(long id) {
+        return warehouse.batchCost(id);
+    }
+
+    @Override
     public int resetDeliveryWorkerPassword(long id, String password) {
         return mapper.updateDeliveryWorkerPassword(id, passwordEncoder.encode(com.ninimum.api.security.login.StaffPasswordPolicy.require(password)));
     }

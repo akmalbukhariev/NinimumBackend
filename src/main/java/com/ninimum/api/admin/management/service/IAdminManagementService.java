@@ -40,6 +40,7 @@ public interface IAdminManagementService {
     List<CamelCaseMap> getDeliveryWorkers();
     int updateDeliveryWorkerStatus(long id, String status);
     int resetDeliveryWorkerPassword(long id, String password);
+    java.math.BigDecimal productBatchCost(long id);
     int deleteDeliveryWorker(long id);
     int updateDeliveryJob(long id, Map<String, Object> body);
 

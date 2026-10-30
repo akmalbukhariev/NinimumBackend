@@ -75,6 +75,18 @@ class SupplierIntegrationTest {
         assertThrows(WarehouseException.class,()->tx.executeWithoutResult(s->warehouse.updateReceiptMetadata(id,1,Map.of("unit_price","1","expiry_date",java.time.LocalDate.now().plusYears(1).toString()))));
         assertEquals(new BigDecimal("450.50"),jdbc.queryForObject("SELECT unit_price FROM warehouse_receipt_items WHERE receipt_id=?",BigDecimal.class,id));
     }
+    // TZ v12 A4.1: 2 × 400 with an invoice of 1 000 stops without a reason; with one the debt is 800.
+    @Test void invoiceTotalDifferentFromLinesNeedsAReasonAndDebtFollowsTheLines() {
+        long supplier=supplier();
+        var line=Map.of("product_id",1,"quantity",2,"location_id",1,"unit_price","400","expiry_date",java.time.LocalDate.now().plusYears(1).toString());
+        var error=assertThrows(WarehouseException.class,()->tx.execute(s->warehouse.createReceipt(Map.of("supplier_id",supplier,"invoice_number","DIFF","invoice_amount","1000","invoice_date","2026-10-01","items",List.of(line)))));
+        assertEquals("RECEIPT_INVOICE_DIFFERENCE",error.getMessage());
+        long id=tx.execute(s->warehouse.createReceipt(Map.of("supplier_id",supplier,"invoice_number","DIFF","invoice_amount","1000","invoice_date","2026-10-01","invoice_difference_reason","Yetkazish narxi","items",List.of(line))));
+        assertEquals(0,new BigDecimal("800").compareTo(jdbc.queryForObject("SELECT invoice_amount FROM supplier_invoices WHERE receipt_id=?",BigDecimal.class,id)));
+        assertTrue(jdbc.queryForObject("SELECT note FROM warehouse_receipts WHERE id=?",String.class,id).contains("Yetkazish narxi"));
+        tx.executeWithoutResult(s->warehouse.updateReceiptMetadata(id,1,Map.of("unit_price","450","expiry_date",java.time.LocalDate.now().plusYears(1).toString())));
+        assertEquals(0,new BigDecimal("900").compareTo(jdbc.queryForObject("SELECT invoice_amount FROM supplier_invoices WHERE receipt_id=?",BigDecimal.class,id)),"a price changed on the draft moves the debt");
+    }
     long supplier(){return tx.execute(s->suppliers.save(null,Map.of("name","  Supplier  ","payment_term_days",7)));}
     long receipt(long supplier,String invoice){return tx.execute(s->warehouse.createReceipt(Map.of("supplier_id",supplier,"invoice_number",invoice,"invoice_amount","1000.00","invoice_date","2026-10-01","items",List.of(Map.of("product_id",1,"quantity",2,"location_id",1,"unit_price","500","expiry_date",java.time.LocalDate.now().plusYears(1).toString())))));}
     Map<String,Object> payment(long receipt,String amount,String reference){return Map.of("receipt_id",receipt,"amount",amount,"reference",reference,"paid_date","2026-10-02");}

@@ -201,11 +201,16 @@ public class FinanceService {
                 "WHERE d.kind='EXPENSE' AND d.status='POSTED' AND d.doc_date>=? AND d.doc_date<? GROUP BY e.name ORDER BY amount DESC", month.atDay(1), month.plusMonths(1).atDay(1));
         BigDecimal expenseTotal = expenses.stream().map(r -> (BigDecimal) r.get("amount")).reduce(BigDecimal.ZERO, BigDecimal::add);
         BigDecimal costTotal = new BigDecimal(String.valueOf(cost.get("cost")));
-        BigDecimal profit = sales.subtract(costTotal).subtract(expenseTotal);
+        // TZ v12 B13: write-offs and count shortages are lost goods; a surplus is not income.
+        var lost = jdbc.queryForMap("SELECT COALESCE(SUM(CASE WHEN kind='WRITEOFF' THEN cost_total END),0) writeoff,COALESCE(-SUM(CASE WHEN kind='COUNT' AND cost_total<0 THEN cost_total END),0) shortage " +
+                "FROM inventory_documents WHERE status='POSTED' AND approved_at>=CONVERT_TZ(?, '+05:00', '+00:00') AND approved_at<CONVERT_TZ(?, '+05:00', '+00:00')", range);
+        BigDecimal writeoff = new BigDecimal(String.valueOf(lost.get("writeoff"))), shortage = new BigDecimal(String.valueOf(lost.get("shortage")));
+        BigDecimal profit = sales.subtract(costTotal).subtract(expenseTotal).subtract(writeoff).subtract(shortage);
         var result = new LinkedHashMap<String,Object>();
         result.put("month", month.toString()); result.put("sales", sales); result.put("cost", costTotal);
         result.put("cost_estimated_lines", ((Number) cost.get("estimated")).longValue()); result.put("cost_unknown_lines", ((Number) cost.get("unknown")).longValue());
-        result.put("expenses", expenseTotal); result.put("expenses_by_type", expenses); result.put("profit", profit);
+        result.put("expenses", expenseTotal); result.put("expenses_by_type", expenses); result.put("losses", writeoff.add(shortage));
+        result.put("losses_writeoff", writeoff); result.put("losses_shortage", shortage); result.put("profit", profit);
         result.put("margin_percent", sales.signum() == 0 ? null : profit.multiply(BigDecimal.valueOf(100)).divide(sales, 1, java.math.RoundingMode.HALF_UP));
         return result;
     }

@@ -53,6 +53,7 @@ class WarehouseIntegrationTest {
         jdbc.execute("CREATE TABLE order_items(id BIGINT PRIMARY KEY,order_id BIGINT,product_id BIGINT,product_name VARCHAR(255),quantity INT)");
         jdbc.execute("CREATE TABLE delivery_jobs(id BIGINT PRIMARY KEY,order_id BIGINT UNIQUE,status VARCHAR(30))");
         jdbc.execute("CREATE TABLE payments(id BIGINT PRIMARY KEY,order_id BIGINT,user_tariff_id BIGINT,provider VARCHAR(20),provider_transaction_id VARCHAR(80),status VARCHAR(20),payme_create_time BIGINT,payme_perform_time BIGINT,payme_cancel_time BIGINT,payme_reason INT,updated_at DATETIME)");
+        jdbc.execute("CREATE TABLE IF NOT EXISTS supplier_invoices(receipt_id BIGINT PRIMARY KEY,invoice_amount DECIMAL(16,2))");
         jdbc.update("INSERT INTO products(id,name,stock_quantity,is_active) VALUES (1,'Baby food',10,1),(2,'Milk',0,1)");
         migrate();
         transactions=new DataSourceTransactionManager(ds);tx=new TransactionTemplate(transactions);
@@ -148,9 +149,15 @@ class WarehouseIntegrationTest {
         long location=service.createLocation(Map.of("code","A","name","Shelf","type","SHELF"));
         long id=service.createReceipt(Map.of("supplier_name","Supplier","items",List.of(
                 Map.of("product_id",1,"quantity",3,"location_id",location,"unit_price","10","expiry_date",java.time.LocalDate.now().plusYears(1).toString()),Map.of("product_id",2,"quantity",4,"location_id",location,"unit_price","10","expiry_date",java.time.LocalDate.now().plusYears(1).toString()))));
-        jdbc.update("UPDATE products SET is_active=0 WHERE id=2");
+        jdbc.update("UPDATE products SET stock_quantity=2147483647 WHERE id=2");
         assertThrows(WarehouseException.class,()->post(id));
-        assertEquals(10,qty(1));assertEquals(0,qty(2));assertEquals(2,count());assertEquals("DRAFT",service.receipt(id).get("status"));
+        assertEquals(10,qty(1));assertEquals(2147483647,qty(2));assertEquals(2,count());assertEquals("DRAFT",service.receipt(id).get("status"));
+    }
+    // TZ v12 B4: goods of an inactive product can be received; the product stays off sale.
+    @Test void inactiveProductCanBeReceived() {
+        jdbc.update("UPDATE products SET is_active=0 WHERE id=1");
+        long id=receipt(5);post(id);
+        assertEquals(15,qty(1));assertEquals(0,jdbc.queryForObject("SELECT is_active FROM products WHERE id=1",Integer.class));
     }
     @Test void migrationCanRunAgainWithoutChangingBalances() {
         long id=receipt(5);post(id);migrate();

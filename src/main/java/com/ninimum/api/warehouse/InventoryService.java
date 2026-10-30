@@ -158,7 +158,7 @@ public class InventoryService {
  }
  public Map<String,Object> writeoffSummary(){enabled();if(!com.ninimum.api.admin.access.StaffAccess.isOwner())throw new org.springframework.security.access.AccessDeniedException("Owner only");
   String start="CONVERT_TZ(DATE_FORMAT(CONVERT_TZ(UTC_TIMESTAMP(),'+00:00','+05:00'),'%Y-%m-01'),'+05:00','+00:00')";
-  BigDecimal written=jdbc.queryForObject("SELECT COALESCE(SUM(cost_total),0) FROM inventory_documents WHERE kind='WRITEOFF' AND status='POSTED' AND approved_at>="+start,BigDecimal.class);
+  BigDecimal written=jdbc.queryForObject("SELECT COALESCE(SUM(CASE WHEN kind='WRITEOFF' THEN cost_total WHEN kind='COUNT' AND cost_total<0 THEN -cost_total END),0) FROM inventory_documents WHERE status='POSTED' AND approved_at>="+start,BigDecimal.class);
   BigDecimal sales=jdbc.queryForObject("SELECT COALESCE(SUM(GREATEST(0,o.total_price-COALESCE((SELECT r.refund_amount FROM delivery_partial_returns r WHERE r.order_id=o.id),0))),0) FROM orders o WHERE o.status='DELIVERED' AND o.payment_status='PAID' AND o.delivered_at>="+start,BigDecimal.class);
   BigDecimal threshold=jdbc.queryForObject("SELECT writeoff_warning_percent FROM inventory_settings WHERE id=1",BigDecimal.class);var result=new LinkedHashMap<String,Object>();result.put("writeoff_cost",written);result.put("delivered_turnover",sales);result.put("threshold_percent",threshold);result.put("percent",sales.signum()==0?null:written.multiply(new BigDecimal("100")).divide(sales,4,java.math.RoundingMode.HALF_UP));result.put("warning",threshold.signum()>0&&written.signum()>0&&(sales.signum()==0||written.multiply(new BigDecimal("100")).compareTo(sales.multiply(threshold))>0));return result;
  }

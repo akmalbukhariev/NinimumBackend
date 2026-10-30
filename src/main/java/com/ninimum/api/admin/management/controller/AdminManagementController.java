@@ -336,6 +336,17 @@ public class AdminManagementController extends BaseController {
         }
     }
 
+    @GetMapping("/products/{id}/batch-cost")
+    public ResponseEntity<Object> productBatchCost(@PathVariable long id) {
+        try {
+            var data = new java.util.HashMap<String, Object>();
+            data.put("batch_cost", service.productBatchCost(id));
+            return ok(data);
+        } catch (Exception ex) {
+            return fail(ex, "productBatchCost");
+        }
+    }
+
     @GetMapping("/delivery/workers")
     public ResponseEntity<Object> deliveryWorkers() {
         try {
