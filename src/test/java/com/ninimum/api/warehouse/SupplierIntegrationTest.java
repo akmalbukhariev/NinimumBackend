@@ -19,7 +19,7 @@ class SupplierIntegrationTest {
         String url=System.getProperty("supplier.test.jdbc");
         if(!url.matches("jdbc:mariadb://127\\.0\\.0\\.1:[0-9]+/supplier_test"))throw new IllegalArgumentException("Isolated local supplier_test only");
         var ds=new DriverManagerDataSource(url,"root","");jdbc=new JdbcTemplate(ds);tx=new TransactionTemplate(new DataSourceTransactionManager(ds));
-        for(String t:List.of("warehouse_receipt_counts","supplier_payment_records","supplier_invoices","suppliers","warehouse_receipt_items","warehouse_receipts","warehouse_locations","warehouse_stock_movements","products"))jdbc.execute("DROP TABLE IF EXISTS "+t);
+        for(String t:List.of("supplier_claims","warehouse_receipt_counts","supplier_payment_records","supplier_invoices","suppliers","warehouse_receipt_items","warehouse_receipts","warehouse_locations","warehouse_stock_movements","products"))jdbc.execute("DROP TABLE IF EXISTS "+t);
         jdbc.execute("CREATE TABLE products(id BIGINT PRIMARY KEY,name VARCHAR(100),stock_quantity INT,is_active BOOLEAN,updated_at DATETIME)");
         jdbc.execute("CREATE TABLE warehouse_locations(id BIGINT AUTO_INCREMENT PRIMARY KEY,code VARCHAR(50),name VARCHAR(160),type VARCHAR(20) NOT NULL DEFAULT 'SHELF',is_active BOOLEAN DEFAULT TRUE,created_by VARCHAR(160),created_at DATETIME)");
         jdbc.execute("CREATE TABLE warehouse_receipts(id BIGINT AUTO_INCREMENT PRIMARY KEY,supplier_name VARCHAR(160),invoice_number VARCHAR(80),note VARCHAR(500),status VARCHAR(30),created_by VARCHAR(160),created_at DATETIME,posted_by VARCHAR(160),posted_at DATETIME,reversed_by VARCHAR(160),reversed_at DATETIME,reversal_reason VARCHAR(500))");
@@ -29,6 +29,7 @@ class SupplierIntegrationTest {
         var script=new ResourceDatabasePopulator(new FileSystemResource("database/migrations/20261015_suppliers.sql"));script.execute(ds);script.execute(ds);
         new ResourceDatabasePopulator(new FileSystemResource("database/migrations/20261017_receipt_approval.sql")).execute(ds);
         new ResourceDatabasePopulator(new FileSystemResource("database/migrations/20261017_location_hierarchy.sql")).execute(ds);
+        var shortageMigration=new ResourceDatabasePopulator(new FileSystemResource("database/migrations/20261031_receipt_shortage.sql"));shortageMigration.execute(ds);shortageMigration.execute(ds);
         var metadataMigration=new ResourceDatabasePopulator(new FileSystemResource("database/migrations/20261017_receipt_metadata.sql"));metadataMigration.execute(ds);metadataMigration.execute(ds);
         suppliers=new SupplierService(jdbc);warehouse=new WarehouseService(jdbc);ReflectionTestUtils.setField(warehouse,"enabled",true);
     }
@@ -86,6 +87,32 @@ class SupplierIntegrationTest {
         assertTrue(jdbc.queryForObject("SELECT note FROM warehouse_receipts WHERE id=?",String.class,id).contains("Yetkazish narxi"));
         tx.executeWithoutResult(s->warehouse.updateReceiptMetadata(id,1,Map.of("unit_price","450","expiry_date",java.time.LocalDate.now().plusYears(1).toString())));
         assertEquals(0,new BigDecimal("900").compareTo(jdbc.queryForObject("SELECT invoice_amount FROM supplier_invoices WHERE receipt_id=?",BigDecimal.class,id)),"a price changed on the draft moves the debt");
+    }
+    // TZ v12 B5: 5 on the invoice, 3 arrived: stopped first; accepted with a reason the debt covers 3 and a claim records 2.
+    @Test void shortDeliveryIsAcceptedWithAClaimAndTheDebtFollowsWhatArrived() {
+        var context=org.springframework.security.core.context.SecurityContextHolder.getContext();
+        context.setAuthentication(new org.springframework.security.authentication.UsernamePasswordAuthenticationToken("owner",null,List.of(new org.springframework.security.core.authority.SimpleGrantedAuthority("SUPER_ADMIN"))));
+        try{shortDelivery();}finally{context.setAuthentication(null);}
+    }
+    void shortDelivery() {
+        long supplier=supplier();
+        long id=tx.execute(s->warehouse.createReceipt(Map.of("supplier_id",supplier,"invoice_number","SHORT","invoice_amount","2000","invoice_date","2026-10-01","items",List.of(Map.of("product_id",1,"quantity",5,"location_id",1,"unit_price","400","expiry_date",java.time.LocalDate.now().plusYears(1).toString())))));
+        var counts=List.of(Map.of("product_id",1,"quantity",3));
+        assertEquals("WAREHOUSE_COUNT_MISMATCH",assertThrows(WarehouseException.class,()->tx.execute(s->warehouse.postReceipt(id,Map.of("counts",counts)))).getMessage());
+        assertEquals("RECEIPT_SHORTAGE_REASON_REQUIRED",assertThrows(WarehouseException.class,()->tx.execute(s->warehouse.postReceipt(id,Map.of("counts",counts,"accept_shortage",true)))).getMessage());
+        assertEquals("WAREHOUSE_COUNT_MISMATCH",assertThrows(WarehouseException.class,()->tx.execute(s->warehouse.postReceipt(id,Map.of("counts",List.of(Map.of("product_id",1,"quantity",6)),"accept_shortage",true,"shortage_reason","x")))).getMessage(),"more than the invoice is never accepted");
+        tx.execute(s->warehouse.postReceipt(id,Map.of("counts",counts,"accept_shortage",true,"shortage_reason","2 dona kelmadi")));
+        assertEquals(3,jdbc.queryForObject("SELECT stock_quantity FROM products WHERE id=1",Integer.class));
+        assertEquals(0,new BigDecimal("1200").compareTo(balance(supplier)));
+        var claims=(List<?>)suppliers.detail(supplier).get("claims");
+        assertEquals(1,claims.size());
+        var claim=(Map<?,?>)claims.get(0);
+        assertEquals(2,((Number)claim.get("quantity")).intValue());assertEquals(0,new BigDecimal("800").compareTo((BigDecimal)claim.get("amount")));assertEquals("OPEN",claim.get("status"));
+        assertEquals(2,jdbc.queryForObject("SELECT shortage_quantity FROM warehouse_receipt_counts WHERE receipt_id=?",Integer.class,id));
+        tx.execute(s->warehouse.reverseReceipt(id,"Xato"));
+        assertEquals(0,jdbc.queryForObject("SELECT stock_quantity FROM products WHERE id=1",Integer.class));
+        assertEquals(0,balance(supplier).signum());
+        assertEquals("CANCELLED",jdbc.queryForObject("SELECT status FROM supplier_claims WHERE receipt_id=?",String.class,id));
     }
     long supplier(){return tx.execute(s->suppliers.save(null,Map.of("name","  Supplier  ","payment_term_days",7)));}
     long receipt(long supplier,String invoice){return tx.execute(s->warehouse.createReceipt(Map.of("supplier_id",supplier,"invoice_number",invoice,"invoice_amount","1000.00","invoice_date","2026-10-01","items",List.of(Map.of("product_id",1,"quantity",2,"location_id",1,"unit_price","500","expiry_date",java.time.LocalDate.now().plusYears(1).toString())))));}

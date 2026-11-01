@@ -16,7 +16,7 @@ public final class StaffAccess {
     public static final String PREFIX = "PERM:";
     /** Added by the JWT filter with the permissions; an ADMIN without it gets the restricted-admin defaults. */
     public static final String LOADED = PREFIX + "*";
-    public static final String MONEY = "money.view", MONEY_EDIT = "money.edit", APPROVE = "approve", PRICES = "prices.edit";
+    public static final String MONEY = "money.view", MONEY_EDIT = "money.edit", MONEY_COUNT = "money.count", APPROVE = "approve", PRICES = "prices.edit";
     /** Any signed-in staff member may call it. */
     public static final String ANY = "";
     public static final List<String> AREAS = List.of("dashboard","problems","orders","customers","products","categories","subscriptions",
@@ -26,7 +26,7 @@ public final class StaffAccess {
     static {
         var all = new ArrayList<String>();
         for (String area : AREAS) { all.add(area + ".view"); all.add(area + ".edit"); }
-        all.addAll(List.of(MONEY, MONEY_EDIT, APPROVE, PRICES));
+        all.addAll(List.of(MONEY, MONEY_EDIT, MONEY_COUNT, APPROVE, PRICES));
         ALL = List.copyOf(all);
         var roles = new LinkedHashMap<String,Set<String>>();
         // ADMIN: the restricted administrator before M14; keeps exactly the pages and actions it had.
@@ -55,6 +55,8 @@ public final class StaffAccess {
     private static TreeSet<String> withViews(Collection<String> permissions) {
         var result = new TreeSet<>(permissions);
         for (String p : permissions) if (p.endsWith(".edit")) result.add(p.substring(0, p.length() - 5) + ".view");
+        // TZ v12 B3: money.count alone counts blind; whoever sees the money section can count too.
+        if (result.contains(MONEY)) result.add(MONEY_COUNT);
         return result;
     }
     public static Set<String> split(String value) {
@@ -107,6 +109,8 @@ public final class StaffAccess {
         r("/admin/management/reviews/**", "AREA:reviews"), r("/admin/management/questions/**", "AREA:reviews"),
         r("/admin/management/delivery/**", "AREA:delivery"), r("/delivery-app/admin/**", "AREA:delivery"),
         // TZ v10 §9: the money section (view = money.view, changes = money.edit).
+        r("/admin/finance/counts/*/approve", "APPROVE"), r("/admin/finance/counts/*/void", "APPROVE"),
+        r("/admin/finance/counts", "COUNT"), r("/admin/finance/count-places", "COUNT"),
         r("/admin/finance/**", "MONEY"),
         // K5: anyone who sees problem orders sees who is owed money; recording a refund is a money change.
         r("/admin/management/refunds/*/record", "MONEY"), r("/admin/management/refunds/**", "AREA:problems"),
@@ -128,6 +132,7 @@ public final class StaffAccess {
             if ("ANY".equals(r)) return ANY;
             if ("OWNER".equals(r)) return null;
             if ("APPROVE".equals(r)) return APPROVE;
+            if ("COUNT".equals(r)) return MONEY_COUNT;
             if ("MONEY".equals(r)) return "GET".equalsIgnoreCase(method) ? MONEY : MONEY_EDIT;
             return r.substring(5) + ("GET".equalsIgnoreCase(method) ? ".view" : ".edit");
         }

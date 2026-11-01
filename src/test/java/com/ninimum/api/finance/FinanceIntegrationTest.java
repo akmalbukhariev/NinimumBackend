@@ -35,7 +35,7 @@ class FinanceIntegrationTest {
         jdbc.execute("CREATE TABLE delivery_partial_returns(order_id BIGINT PRIMARY KEY,refund_amount DECIMAL(16,2))");
         jdbc.execute("CREATE TABLE delivery_partial_return_items(order_id BIGINT,product_id BIGINT,quantity INT)");
         jdbc.execute("CREATE TABLE inventory_documents(id BIGINT AUTO_INCREMENT PRIMARY KEY,kind VARCHAR(30),status VARCHAR(20),approved_at DATETIME,cost_total DECIMAL(16,2))");
-        for(String f:List.of("20261021_strict_rules.sql","20261022_strict_rules_value.sql","20261022_finance.sql","20261022_finance.sql","20261022_period_close.sql","20261022_period_close.sql","20261023_customer_refunds.sql"))new ResourceDatabasePopulator(new FileSystemResource("database/migrations/"+f)).execute(ds);
+        for(String f:List.of("20261021_strict_rules.sql","20261022_strict_rules_value.sql","20261022_finance.sql","20261022_finance.sql","20261022_period_close.sql","20261022_period_close.sql","20261023_customer_refunds.sql","20261031_cash_count_review.sql","20261031_cash_count_review.sql"))new ResourceDatabasePopulator(new FileSystemResource("database/migrations/"+f)).execute(ds);
         new com.ninimum.api.admin.access.StrictRules(jdbc);
         new PeriodClose(jdbc);
         finance=new FinanceService(jdbc);
@@ -102,8 +102,55 @@ class FinanceIntegrationTest {
 
     @Test void cashCountShowsTheDifference(){
         finance.setOpening(cash,Map.of("opening_balance",1000000,"opening_date",today.toString()));
-        var r=finance.count(Map.of("account_id",cash,"counted_amount",999000));
+        var r=finance.count(Map.of("account_id",cash,"counted_amount",999000,"note","Kam chiqdi"));
         assertEquals(n(-1000),r.get("difference"));assertEquals(1,finance.counts().size());
+    }
+
+    void user(String name,String... authorities){SecurityContextHolder.getContext().setAuthentication(new UsernamePasswordAuthenticationToken(name,null,java.util.Arrays.stream(authorities).map(org.springframework.security.core.authority.SimpleGrantedAuthority::new).toList()));}
+    long lastCount(){return jdbc.queryForObject("SELECT MAX(id) FROM cash_counts",Long.class);}
+
+    // TZ v12 B3: a difference needs a reason, waits for another person, and approval corrects the balance through a document.
+    @Test void countDifferenceNeedsReasonAndAnotherApprover(){
+        finance.setOpening(cash,Map.of("opening_balance",1000,"opening_date",today.toString()));
+        user("clerk","ROLE_ADMIN","PERM:money.view","PERM:money.count");
+        assertEquals("CASH_COUNT_REASON_REQUIRED",assertThrows(WarehouseException.class,()->finance.count(Map.of("account_id",cash,"counted_amount",700))).getMessage());
+        assertEquals("POSTED",finance.count(Map.of("account_id",cash,"counted_amount",1000)).get("status"),"no difference, nothing to review");
+        assertEquals("PENDING",finance.count(Map.of("account_id",cash,"counted_amount",700,"note","Qaytim xato")).get("status"));
+        long id=lastCount();
+        assertEquals(0,n(1000).compareTo(bal(cash)),"nothing moves before approval");
+        assertEquals("CASH_COUNT_SEPARATE_APPROVER",assertThrows(WarehouseException.class,()->finance.approveCount(id)).getMessage());
+        user("boss2","ROLE_ADMIN","PERM:approve");finance.approveCount(id);
+        assertEquals(0,n(700).compareTo(bal(cash)),"the shortage is an expense, so the balance equals the count");
+        assertEquals("Kassa kamomadi",jdbc.queryForObject("SELECT e.name FROM finance_documents d JOIN expense_types e ON e.id=d.expense_type_id ORDER BY d.id DESC LIMIT 1",String.class));
+        assertEquals("WAREHOUSE_INVALID_STATE",assertThrows(WarehouseException.class,()->finance.approveCount(id)).getMessage());
+        // A surplus becomes income.
+        user("clerk","ROLE_ADMIN","PERM:money.view","PERM:money.count");finance.count(Map.of("account_id",cash,"counted_amount",750,"note","Ortiqcha"));
+        long more=lastCount();user("boss2","ROLE_ADMIN","PERM:approve");finance.approveCount(more);
+        assertEquals(0,n(750).compareTo(bal(cash)));
+    }
+
+    // TZ v12 B3: a wrong count is cancelled with a reason; the row stays and its document is taken back.
+    @Test void wrongCountCanBeVoidedWithAReason(){
+        finance.setOpening(cash,Map.of("opening_balance",1000,"opening_date",today.toString()));
+        finance.count(Map.of("account_id",cash,"counted_amount",900,"note","Kam"));long id=lastCount();finance.approveCount(id);
+        assertEquals(0,n(900).compareTo(bal(cash)));
+        assertThrows(WarehouseException.class,()->finance.voidCount(id," "),"reason required");
+        finance.voidCount(id,"Xato sanaldi");
+        assertEquals(0,n(1000).compareTo(bal(cash)),"the shortage document is reversed");
+        assertEquals("VOIDED",jdbc.queryForObject("SELECT status FROM cash_counts WHERE id=?",String.class,id));
+        assertEquals("REVERSED",jdbc.queryForObject("SELECT status FROM finance_documents ORDER BY id DESC LIMIT 1",String.class));
+        assertEquals("WAREHOUSE_INVALID_STATE",assertThrows(WarehouseException.class,()->finance.voidCount(id,"Yana")).getMessage());
+    }
+
+    // TZ v12 B3: money.count alone never sees the system total, and sees only its own counts.
+    @Test void blindCounterNeverSeesTheSystemTotal(){
+        finance.setOpening(cash,Map.of("opening_balance",1000,"opening_date",today.toString()));
+        finance.count(Map.of("account_id",cash,"counted_amount",1000));
+        user("clerk","ROLE_ADMIN","PERM:money.count");
+        var r=finance.count(Map.of("account_id",cash,"counted_amount",1000));
+        assertFalse(r.containsKey("system_amount"));assertFalse(r.containsKey("difference"));
+        var rows=finance.counts();
+        assertEquals(1,rows.size());assertFalse(rows.get(0).containsKey("system_amount"));assertFalse(rows.get(0).containsKey("difference"));
     }
 
     @Test void monthlyResultIsSalesMinusCostMinusExpenses(){

@@ -144,7 +144,17 @@ public class FinanceService {
         return Map.of("photo_data", "data:image/jpeg;base64," + Base64.getEncoder().encodeToString(b));
     }
 
-    /** Daily cash count: the counted amount next to what the system expects for that day. */
+    /** Whoever may see money figures; a money.count-only counter stays blind to the system total (TZ v12 B3). */
+    private static boolean seesMoney() {
+        var auth = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
+        return auth != null && auth.getAuthorities().stream().anyMatch(a -> "SUPER_ADMIN".equals(a.getAuthority()) || "PERM:money.view".equals(a.getAuthority()));
+    }
+    private static boolean owner() {
+        var auth = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
+        return auth != null && auth.getAuthorities().stream().anyMatch(a -> "SUPER_ADMIN".equals(a.getAuthority()));
+    }
+
+    /** Daily cash count. A difference needs a reason and waits for another person's approval (TZ v12 B3). */
     @Transactional
     public Map<String,Object> count(Map<String,Object> body) {
         long account = account(body.get("account_id"));
@@ -152,13 +162,61 @@ public class FinanceService {
         if (date == null) date = today();
         PeriodClose.guard(date);
         BigDecimal counted = money(body.get("counted_amount"), true), system = balance(account, date);
-        jdbc.update("INSERT INTO cash_counts(account_id,count_date,counted_amount,system_amount,note,created_by,created_at) VALUES(?,?,?,?,?,?,UTC_TIMESTAMP())",
-                account, date, counted, system, text(body.get("note"), 500, false), WarehouseService.actor());
-        return Map.of("system_amount", system, "counted_amount", counted, "difference", counted.subtract(system));
+        String note = text(body.get("note"), 500, false);
+        boolean differs = counted.compareTo(system) != 0;
+        if (differs && (note == null || note.isBlank())) throw new WarehouseException("CASH_COUNT_REASON_REQUIRED");
+        String status = differs ? "PENDING" : "POSTED";
+        jdbc.update("INSERT INTO cash_counts(account_id,count_date,counted_amount,system_amount,note,status,created_by,created_at) VALUES(?,?,?,?,?,?,?,UTC_TIMESTAMP())",
+                account, date, counted, system, note, status, WarehouseService.actor());
+        var result = new LinkedHashMap<String,Object>();
+        result.put("status", status); result.put("counted_amount", counted);
+        if (seesMoney()) { result.put("system_amount", system); result.put("difference", counted.subtract(system)); }
+        return result;
     }
 
     public List<Map<String,Object>> counts() {
-        return jdbc.queryForList("SELECT c.id,a.name account_name,DATE_FORMAT(c.count_date,'%Y-%m-%d') count_date,c.counted_amount,c.system_amount,c.counted_amount-c.system_amount difference,c.note,c.created_by FROM cash_counts c JOIN finance_accounts a ON a.id=c.account_id ORDER BY c.count_date DESC,c.id DESC LIMIT 60");
+        var rows = jdbc.queryForList("SELECT c.id,a.name account_name,DATE_FORMAT(c.count_date,'%Y-%m-%d') count_date,c.counted_amount,c.system_amount,c.counted_amount-c.system_amount difference,c.note,c.status,c.document_id,c.approved_by,c.voided_by,c.void_reason,c.created_by FROM cash_counts c JOIN finance_accounts a ON a.id=c.account_id ORDER BY c.id DESC LIMIT 100");
+        if (!seesMoney()) { String me = WarehouseService.actor(); rows.removeIf(r -> !me.equals(r.get("created_by"))); rows.forEach(r -> { r.remove("system_amount"); r.remove("difference"); }); }
+        return rows;
+    }
+
+    /** Places a blind counter may pick: names only, no balances. */
+    public List<Map<String,Object>> countPlaces() { return places(); }
+
+    /** Another person accepts the difference: a shortage becomes an expense, a surplus an income, so the balance equals the count. */
+    @Transactional
+    public void approveCount(long id) {
+        var rows = jdbc.queryForList("SELECT * FROM cash_counts WHERE id=? FOR UPDATE", id);
+        if (rows.isEmpty()) throw new WarehouseException("WAREHOUSE_NOT_FOUND");
+        var c = rows.get(0);
+        if (!"PENDING".equals(c.get("status"))) throw new WarehouseException("WAREHOUSE_INVALID_STATE");
+        if (WarehouseService.actor().equals(c.get("created_by")) && !owner()) throw new WarehouseException("CASH_COUNT_SEPARATE_APPROVER");
+        LocalDate day = LocalDate.parse(c.get("count_date").toString());
+        PeriodClose.guard(day);
+        BigDecimal difference = new BigDecimal(c.get("counted_amount").toString()).subtract(new BigDecimal(c.get("system_amount").toString()));
+        boolean shortage = difference.signum() < 0;
+        Long type = shortage ? jdbc.queryForObject("SELECT id FROM expense_types WHERE name='Kassa kamomadi'", Long.class) : null;
+        var key = new org.springframework.jdbc.support.GeneratedKeyHolder();
+        jdbc.update(x -> {
+            var p = x.prepareStatement("INSERT INTO finance_documents(kind,doc_date,amount,account_id,expense_type_id,note,created_by,created_at) VALUES(?,?,?,?,?,?,?,UTC_TIMESTAMP())", java.sql.Statement.RETURN_GENERATED_KEYS);
+            Object[] args = {shortage ? "EXPENSE" : "INCOME", java.sql.Date.valueOf(day), difference.abs(), c.get("account_id"), type, ("Kassa sanash #" + id + (shortage ? " kamomad: " : " ortiqcha: ") + c.get("note")), WarehouseService.actor()};
+            for (int i = 0; i < args.length; i++) p.setObject(i + 1, args[i]);
+            return p;
+        }, key);
+        jdbc.update("UPDATE cash_counts SET status='APPROVED',document_id=?,approved_by=?,approved_at=UTC_TIMESTAMP() WHERE id=?", Objects.requireNonNull(key.getKey()).longValue(), WarehouseService.actor(), id);
+    }
+
+    /** A wrong count is cancelled with a reason; an approved one takes its shortage or surplus document back. The row stays. */
+    @Transactional
+    public void voidCount(long id, String reason) {
+        reason = text(reason, 500, true);
+        var rows = jdbc.queryForList("SELECT * FROM cash_counts WHERE id=? FOR UPDATE", id);
+        if (rows.isEmpty()) throw new WarehouseException("WAREHOUSE_NOT_FOUND");
+        var c = rows.get(0);
+        if ("VOIDED".equals(c.get("status"))) throw new WarehouseException("WAREHOUSE_INVALID_STATE");
+        PeriodClose.guard(LocalDate.parse(c.get("count_date").toString()));
+        if (c.get("document_id") != null) reverse(((Number) c.get("document_id")).longValue(), reason);
+        jdbc.update("UPDATE cash_counts SET status='VOIDED',voided_by=?,voided_at=UTC_TIMESTAMP(),void_reason=? WHERE id=?", WarehouseService.actor(), reason, id);
     }
 
     /** Opening + income − supplier payments − expenses ± transfers = closing, per money place (TZ v10 §9, T18). */

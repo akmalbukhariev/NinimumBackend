@@ -64,6 +64,13 @@ class StaffAccessTest {
         assertTrue(ok("DIRECTOR", "GET", A+"/finance/monthly"));
         assertTrue(ok("DIRECTOR", "POST", A+"/finance/documents"));
         assertFalse(StaffAccess.allows(StaffAccess.effective("DIRECTOR", null, "money.edit"), StaffAccess.required("POST", A+"/finance/documents")), "view-only money");
+        // TZ v12 B3: a blind counter counts, but sees no balances and approves nothing.
+        var blind=StaffAccess.effective("OPERATOR","money.count",null);
+        assertTrue(StaffAccess.allows(blind,StaffAccess.required("POST",A+"/finance/counts")));
+        assertTrue(StaffAccess.allows(blind,StaffAccess.required("GET",A+"/finance/count-places")));
+        assertFalse(StaffAccess.allows(blind,StaffAccess.required("GET",A+"/finance/accounts")));
+        assertFalse(StaffAccess.allows(blind,StaffAccess.required("POST",A+"/finance/counts/1/approve")));
+        assertTrue(StaffAccess.allows(StaffAccess.effective("DIRECTOR",null,null),StaffAccess.required("POST",A+"/finance/counts/1/void")));
         assertTrue(ok("PURCHASING", "GET", A+"/warehouse/suppliers/money-places"), "place names for supplier payments");
     }
 }

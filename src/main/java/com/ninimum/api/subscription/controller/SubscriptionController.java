@@ -35,6 +35,7 @@ public class SubscriptionController extends BaseController {
 
     private final ISubscriptionService subscriptionService;
     private final com.ninimum.api.security.CurrentCustomer customer;
+    private final com.ninimum.api.referral.ReferralService referral;
 
     @PostConstruct
     public void init() {
@@ -79,6 +80,7 @@ public class SubscriptionController extends BaseController {
 
         try {
             param.setUserId(customer.id());
+            referral.sync(customer.id());
             SubscriptionDto subscription = this.subscriptionService.getActiveSubscription(param);
             result = this.setResult(Result.SUCCESS, subscription);
         } catch (Exception ex) {
@@ -129,6 +131,13 @@ public class SubscriptionController extends BaseController {
     @PostMapping(value = "/payme/createCheckoutUrl", headers = { "Content-type=application/json" })
     public ResponseEntity<Object> createCheckoutUrl(@RequestBody CreateTariffCheckoutParam param) {
         VersionResponseResult result;
+
+        // Promo period: older apps still show the tariff screen, so refuse here too.
+        if (referral.promoMode()) {
+            result = this.setResult(Result.FAILED);
+            result.setResultMsg("Tariflar hozircha sotilmaydi. Do‘stlaringizni taklif qiling va tarifni bepul oling.");
+            return new ResponseEntity<>(result, HttpStatus.OK);
+        }
 
         try {
             param.setUserId(customer.id());

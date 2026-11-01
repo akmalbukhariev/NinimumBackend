@@ -164,7 +164,7 @@ public class WarehouseService {
             var counted=new HashMap<Long,Map<String,Object>>();
             for(var c:jdbc.queryForList("SELECT * FROM warehouse_receipt_counts WHERE receipt_id=?",id))counted.put(((Number)c.get("product_id")).longValue(),c);
             for(var item:(List<Map<String,Object>>)result.get("items")){var c=counted.get(((Number)item.get("product_id")).longValue());if(c==null)continue;
-                item.put("fit_quantity",c.get("counted_quantity"));item.put("unfit_quantity",c.get("unfit_quantity"));item.put("unfit_condition",c.get("unfit_condition"));
+                item.put("fit_quantity",c.get("counted_quantity"));item.put("unfit_quantity",c.get("unfit_quantity"));item.put("unfit_condition",c.get("unfit_condition"));item.put("shortage_quantity",c.get("shortage_quantity"));item.put("shortage_reason",c.get("shortage_reason"));
                 if(c.get("unfit_photo") instanceof byte[] photo)item.put("unfit_photo_data","data:image/jpeg;base64,"+Base64.getEncoder().encodeToString(photo));}
         }
         if("DRAFT".equals(result.get("status"))) {
@@ -313,8 +313,15 @@ public class WarehouseService {
             if(line.get("unit_price")==null||expiry==null)throw new WarehouseException("WAREHOUSE_RECEIPT_METADATA_REQUIRED");
             if(!java.time.LocalDate.parse(expiry.toString()).isAfter(java.time.LocalDate.now(java.time.ZoneId.of("Asia/Tashkent"))))throw new WarehouseException("WAREHOUSE_EXPIRED_BATCH");
         }
-        for(var line:lines){long product=((Number)line.get("product_id")).longValue();Object[] bad=unfit.get(product);
-            if(counted.get(product)==null||counted.get(product)+(bad==null?0:(Long)bad[0])!=((Number)line.get("quantity")).longValue())throw new WarehouseException("WAREHOUSE_COUNT_MISMATCH");}
+        // TZ v12 B5: fewer goods than the invoice stop the first count; after a recount the shortage is accepted with a reason.
+        var shortages=new HashMap<Long,Long>();
+        boolean acceptShortage=Boolean.TRUE.equals(body.get("accept_shortage"));
+        String shortageReason=text(body.get("shortage_reason"),500,false);
+        for(var line:lines){long product=((Number)line.get("product_id")).longValue(),expected=((Number)line.get("quantity")).longValue();Object[] bad=unfit.get(product);
+            if(counted.get(product)==null)throw new WarehouseException("WAREHOUSE_COUNT_MISMATCH");
+            long arrived=counted.get(product)+(bad==null?0:(Long)bad[0]);
+            if(arrived>expected||(arrived<expected&&!acceptShortage))throw new WarehouseException("WAREHOUSE_COUNT_MISMATCH");
+            if(arrived<expected){if(shortageReason.isEmpty())throw new WarehouseException("RECEIPT_SHORTAGE_REASON_REQUIRED");shortages.put(product,expected-arrived);}}
 
         for (var line : lines) {
             long product = ((Number)line.get("product_id")).longValue(), qty = counted.get(product);
@@ -328,11 +335,18 @@ public class WarehouseService {
         for(var entry:counted.entrySet()){Object[] bad=unfit.get(entry.getKey());
             if(bad==null)jdbc.update("INSERT INTO warehouse_receipt_counts(receipt_id,product_id,counted_quantity,counted_by,counted_at) VALUES(?,?,?,?,UTC_TIMESTAMP())",id,entry.getKey(),entry.getValue(),actor());
             else jdbc.update("INSERT INTO warehouse_receipt_counts(receipt_id,product_id,counted_quantity,counted_by,counted_at,unfit_quantity,unfit_condition,unfit_photo) VALUES(?,?,?,?,UTC_TIMESTAMP(),?,?,?)",id,entry.getKey(),entry.getValue(),actor(),bad[0],bad[1],bad[2]);}
+        for(var line:lines){long product=((Number)line.get("product_id")).longValue();Long missing=shortages.get(product);
+            if(missing==null)continue;
+            BigDecimal price=new BigDecimal(line.get("unit_price").toString()),amount=price.multiply(BigDecimal.valueOf(missing));
+            jdbc.update("UPDATE warehouse_receipt_counts SET shortage_quantity=?,shortage_reason=? WHERE receipt_id=? AND product_id=?",missing,shortageReason,id,product);
+            jdbc.update("UPDATE supplier_invoices SET invoice_amount=invoice_amount-? WHERE receipt_id=?",amount,id);
+            jdbc.update("INSERT INTO supplier_claims(receipt_id,supplier_id,product_id,product_name,quantity,unit_price,amount,reason,created_by,created_at) SELECT ?,(SELECT supplier_id FROM supplier_invoices WHERE receipt_id=?),?,?,?,?,?,?,?,UTC_TIMESTAMP()",
+                    id,id,product,line.get("product_name"),missing,price,amount,shortageReason,actor());}
         jdbc.update("UPDATE warehouse_receipts SET status='POSTED',posted_by=?,posted_at=UTC_TIMESTAMP() WHERE id=?",actor(),id);
         return id;
     }
     private List<Map<String,Object>> receiptLines(long id) {
-        return jdbc.queryForList("SELECT product_id,quantity,location_id,unit_price,expiry_date FROM warehouse_receipt_items WHERE receipt_id=? ORDER BY product_id",id);
+        return jdbc.queryForList("SELECT product_id,product_name,quantity,location_id,unit_price,expiry_date FROM warehouse_receipt_items WHERE receipt_id=? ORDER BY product_id",id);
     }
     @Transactional public long reverseReceipt(long id, String reason) {
         requireEnabled();
@@ -355,6 +369,7 @@ public class WarehouseService {
                 recordChange(product,-qty,"RECEIPT_REVERSAL","KR-"+id,actor(),reason,"reversal:"+id+":"+product);
             }
         }
+        jdbc.update("UPDATE supplier_claims SET status='CANCELLED' WHERE receipt_id=? AND status='OPEN'",id);
         jdbc.update("UPDATE warehouse_receipts SET status='REVERSED',reversed_by=?,reversed_at=UTC_TIMESTAMP(),reversal_reason=? WHERE id=?",actor(),reason,id);
         return id;
     }

@@ -131,6 +131,7 @@ public class SecurityConfig {
 
                 "/ninimum/api/v1/user/checkPhoneNumber", //it should not be committed
                 "/ninimum/api/v1/user/register",     //it should not be committed
+                "/ninimum/api/v1/referral/settings",
                 //"/ninimum/api/v1/admin/register",     //it should not be committed
                 "/ninimum/api/v1/message/verifyPhoneNumber",     //it should not be committed
                 "/ninimum/api/v1/message/sendTemporaryPassword",

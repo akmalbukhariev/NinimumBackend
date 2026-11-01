@@ -26,6 +26,9 @@ public class FinanceController extends BaseController {
     @GetMapping("/documents/{id}/photo") public Object photo(@PathVariable long id) { return setResult(Result.SUCCESS, service.photo(id)); }
     @GetMapping("/counts") public Object counts() { return setResult(Result.SUCCESS, service.counts()); }
     @PostMapping("/counts") public Object count(@RequestBody Map<String,Object> body) { return setResult(Result.SUCCESS, service.count(body)); }
+    @GetMapping("/count-places") public Object countPlaces() { return setResult(Result.SUCCESS, service.countPlaces()); }
+    @PostMapping("/counts/{id}/approve") public Object approveCount(@PathVariable long id) { service.approveCount(id); return setResult(Result.SUCCESS, service.counts()); }
+    @PostMapping("/counts/{id}/void") public Object voidCount(@PathVariable long id, @RequestBody Map<String,Object> body) { service.voidCount(id, java.util.Objects.toString(body.get("reason"), "")); return setResult(Result.SUCCESS, service.counts()); }
     @GetMapping("/movement") public Object movement(@RequestParam(required = false) String from, @RequestParam(required = false) String to) { return setResult(Result.SUCCESS, service.movement(from, to)); }
     @GetMapping("/monthly") public Object monthly(@RequestParam(required = false) String month) { return setResult(Result.SUCCESS, service.monthly(month)); }
     @ExceptionHandler(WarehouseException.class) public ResponseEntity<Object> invalid(WarehouseException ex) {

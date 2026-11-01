@@ -32,6 +32,7 @@ import javax.annotation.PostConstruct;
 public class UserController extends BaseController {
 
     private final IUserService userService;
+    private final com.ninimum.api.referral.ReferralService referral;
     private static final String INVALID_PHONE_MESSAGE = "Telefon raqami noto‘g‘ri. Masalan: +998901234567";
 
     @PostConstruct
@@ -63,6 +64,11 @@ public class UserController extends BaseController {
             else if (com.ninimum.api.common.PhoneNumbers.normalize(param.getPhone_number()) == null) {
                 result = this.setResult(Result.FAILED);
                 result.setResultMsg(INVALID_PHONE_MESSAGE);
+            }
+            else if (param.getReferral_code() != null && !param.getReferral_code().isBlank()
+                    && referral.promoMode() && !referral.validCode(param.getReferral_code())) {
+                result = this.setResult(Result.FAILED);
+                result.setResultMsg("Promo kod topilmadi. Tekshirib qayta kiriting yoki bo‘sh qoldiring.");
             }
             else {
 

@@ -62,7 +62,7 @@ class WarehouseIntegrationTest {
     }
     void migrate() {
         new ResourceDatabasePopulator(new FileSystemResource("src/test/resources/live-schema-fixtures/warehouse-step1.sql")).execute(ds);
-        for(String file:List.of("20261012_partial_returns.sql","20261017_receipt_approval.sql","20261017_location_hierarchy.sql","20261017_receipt_metadata.sql"))new ResourceDatabasePopulator(new FileSystemResource("database/migrations/"+file)).execute(ds);
+        for(String file:List.of("20261012_partial_returns.sql","20261017_receipt_approval.sql","20261017_location_hierarchy.sql","20261017_receipt_metadata.sql","20261031_receipt_shortage.sql"))new ResourceDatabasePopulator(new FileSystemResource("database/migrations/"+file)).execute(ds);
     }
     long post(long id) {
         var context=org.springframework.security.core.context.SecurityContextHolder.getContext();var previous=context.getAuthentication();

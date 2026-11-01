@@ -38,7 +38,7 @@ class CustomerOwnershipTest {
     @Test void cartAddressAndSubscriptionUseSignedInCustomer() throws Exception {
         var carts=mock(ICartService.class);var cart=new AddCartParam();cart.setUser_id(99L);new CartController(carts,customer).addCart(cart);verify(carts).addCart(argThat(p->p.getUser_id()==7));
         var addresses=mock(IAddressService.class);var address=new DeleteAddressParam();address.setUserId(99L);new AddressController(addresses,customer).deleteAddress(address);verify(addresses).deleteAddress(argThat(p->p.getUserId()==7));
-        var subscriptions=mock(ISubscriptionService.class);var cancel=new CancelSubscriptionParam();cancel.setUserId(99L);new SubscriptionController(subscriptions,customer).cancelSubscription(cancel);verify(subscriptions).cancelSubscription(argThat(p->p.getUserId()==7));
+        var subscriptions=mock(ISubscriptionService.class);var cancel=new CancelSubscriptionParam();cancel.setUserId(99L);new SubscriptionController(subscriptions,customer,mock(com.ninimum.api.referral.ReferralService.class)).cancelSubscription(cancel);verify(subscriptions).cancelSubscription(argThat(p->p.getUserId()==7));
     }
     @Test void absentCustomerOrStaffIdentityNeverReachesOrderService() {
         var service=mock(IOrderService.class);var controller=new OrderController(service,customer);

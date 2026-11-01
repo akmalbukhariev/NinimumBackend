@@ -16,5 +16,6 @@ public class RegisterUserParam {
     private String address;
     private String phone_number;
     private String password;
+    private String referral_code;
     //private List<AddChildParam> children;
 }

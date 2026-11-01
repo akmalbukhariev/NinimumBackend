@@ -22,6 +22,7 @@ public class UserService implements IUserService {
     private final UserMapper mapper;
     private final PasswordEncoder pwEncoder;
     private final JwtTokenProvider jwtTokenProvider;
+    private final com.ninimum.api.referral.ReferralService referral;
     @Override
     public UserDto getUserByPhone(String phone_number) throws Exception {
         CamelCaseMap map = mapper.selectUserByPhone(phone_number);
@@ -34,13 +35,16 @@ public class UserService implements IUserService {
     }
 
     @Override
+    @org.springframework.transaction.annotation.Transactional(rollbackFor = Exception.class)
     public int register(RegisterUserParam param) throws Exception {
         String phone = com.ninimum.api.common.PhoneNumbers.normalize(param.getPhone_number());
         if (phone == null) throw new IllegalArgumentException("Invalid phone number");
         param.setPhone_number(phone);
         String str_pwd = pwEncoder.encode(param.getPassword());
         param.setPassword(str_pwd);
-        return mapper.insertUser(param);
+        int inserted = mapper.insertUser(param);
+        if (inserted != 0) referral.registered(phone, param.getReferral_code());
+        return inserted;
     }
 
     @Override
