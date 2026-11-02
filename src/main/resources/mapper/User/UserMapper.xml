@@ -106,9 +106,8 @@
             parameterType="com.ninimum.api.param.LogoutParam">
         UPDATE users
         SET
-        refresh_token = NULL,
         updated_at = NOW()
-        WHERE user_id = #{userId}
+        WHERE id = #{userId}
     </update>
 
     <insert id="insertDeleteFeedback"
@@ -133,7 +132,6 @@
         SET
             status = 'DELETED',
             is_active = 0,
-            refresh_token = NULL,
             token_mb = NULL,
             updated_at = NOW()
         WHERE id = #{userId}

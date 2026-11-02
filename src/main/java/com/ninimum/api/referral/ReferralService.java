@@ -50,6 +50,12 @@ public class ReferralService {
         }
         throw new IllegalStateException("Referral code could not be created");
     }
+    /** A number that was deleted before and registered again: no second welcome month, no friend credit. */
+    private boolean returning(long user) {
+        try {
+            return jdbc.queryForObject("SELECT COUNT(*) FROM account_deletions d JOIN users u ON d.phone_hash=SHA2(u.phone_number,256) WHERE u.id=?", Integer.class, user) > 0;
+        } catch (DataAccessException ex) { return false; }
+    }
     private int friends(long user) { return jdbc.queryForObject("SELECT COUNT(*) FROM referrals WHERE inviter_user_id=?", Integer.class, user); }
     private boolean rewarded(long user) { return jdbc.queryForObject("SELECT COUNT(*) FROM referral_rewards WHERE user_id=? AND kind='INVITER'", Integer.class, user) > 0; }
 
@@ -83,6 +89,7 @@ public class ReferralService {
         Long inviter = hasCode ? inviter(rawCode, true) : null;
         if (hasCode && inviter == null) throw new IllegalArgumentException("Referral code not found");
         long user = jdbc.queryForObject("SELECT id FROM users WHERE phone_number=?", Long.class, phone);
+        if (returning(user)) return;
         if (hasCode) jdbc.update("INSERT INTO referrals(invited_user_id,inviter_user_id,code,created_at) VALUES(?,?,?,UTC_TIMESTAMP())", user, inviter, clean(rawCode));
         grant(user, "WELCOME", ((Number) s.get("tariff_plan_id")).longValue());
         if (hasCode) rewardInviter(inviter, s);
@@ -99,7 +106,7 @@ public class ReferralService {
         var s = settings();
         var given = jdbc.queryForList("SELECT user_tariff_id FROM referral_rewards WHERE user_id=? AND kind='WELCOME'", Long.class, user);
         if (on(s.get("welcome_for_all"))) {
-            if (given.isEmpty() && s.get("tariff_plan_id") != null && jdbc.queryForObject(
+            if (given.isEmpty() && s.get("tariff_plan_id") != null && !returning(user) && jdbc.queryForObject(
                     "SELECT COUNT(*) FROM user_tariffs WHERE user_id=? AND status='ACTIVE' AND (end_date IS NULL OR end_date>=NOW())", Integer.class, user) == 0)
                 grant(user, "WELCOME", ((Number) s.get("tariff_plan_id")).longValue());
             return;

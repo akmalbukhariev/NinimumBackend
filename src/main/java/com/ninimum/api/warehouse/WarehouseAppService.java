@@ -129,6 +129,8 @@ public class WarehouseAppService {
             if(items.isEmpty() && row.get("partial_return_status")!=null) items=jdbc.queryForList("SELECT i.product_id,i.product_name,p.barcode,i.quantity required_quantity,0 checked_quantity,(SELECT MAX(oi.product_image_url) FROM order_items oi WHERE oi.order_id=i.order_id AND oi.product_id=i.product_id) product_image_url FROM delivery_partial_return_items i LEFT JOIN products p ON p.id=i.product_id WHERE i.order_id=? ORDER BY i.product_id",id);
             if(items.isEmpty()) items=jdbc.queryForList("SELECT i.product_id,MAX(i.product_name) AS product_name,MAX(NULLIF(i.product_image_url,'')) AS product_image_url,p.barcode,SUM(i.quantity) AS required_quantity,0 AS checked_quantity FROM order_items i LEFT JOIN products p ON p.id=i.product_id WHERE i.order_id=? GROUP BY i.product_id,p.barcode ORDER BY i.product_id",id);
         }
+        // The product's place typed in web admin; skipped before the products.storage_location migration.
+        try{for(var item:items)item.put("storage_location",jdbc.queryForList("SELECT storage_location FROM products WHERE id=?",String.class,item.get("product_id")).stream().filter(Objects::nonNull).findFirst().orElse(null));}catch(org.springframework.dao.DataAccessException ignored){}
         row.put("items",items);
         row.put("batch_allocations",warehouse.allocations(id));
         row.put("events",jdbc.queryForList("SELECT actor,kind,product_id,quantity,note,DATE_FORMAT(created_at,'%Y-%m-%dT%H:%i:%sZ') AS created_at FROM warehouse_preparation_events WHERE order_id=? ORDER BY id DESC LIMIT 100",id));

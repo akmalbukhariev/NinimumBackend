@@ -171,6 +171,7 @@
       <if test="_parameter.containsKey('min_stock_quantity')">min_stock_quantity=#{min_stock_quantity,jdbcType=INTEGER},</if>
       <if test="_parameter.containsKey('shelf_life_days')">shelf_life_days=#{shelf_life_days,jdbcType=INTEGER},</if>
       <if test="_parameter.containsKey('storage_temperature')">storage_temperature=#{storage_temperature,jdbcType=VARCHAR},</if>
+      <if test="_parameter.containsKey('storage_location')">storage_location=#{storage_location,jdbcType=VARCHAR},</if>
       <if test="_parameter.containsKey('ingredients')">ingredients=#{ingredients,jdbcType=VARCHAR},</if>
       <if test="_parameter.containsKey('age_range')">age_range=#{age_range,jdbcType=VARCHAR},</if>
 
@@ -207,7 +208,7 @@
     FROM users u <include refid="customerWhere"/> ORDER BY u.id DESC LIMIT #{pageSize} OFFSET #{offset}
   </select>
   <select id="countCustomers" resultType="int">SELECT COUNT(*) FROM users u <include refid="customerWhere"/></select>
-  <update id="updateCustomerStatus">UPDATE users SET is_active=#{active}, status=CASE WHEN #{active}=1 THEN 'ACTIVE' ELSE 'BANNED' END, updated_at=NOW() WHERE id=#{id}</update>
+  <update id="updateCustomerStatus">UPDATE users SET is_active=#{active}, status=CASE WHEN #{active}=1 THEN 'ACTIVE' ELSE 'BANNED' END, updated_at=NOW() WHERE id=#{id} AND status&lt;&gt;'DELETED'</update>
 
   <sql id="subscriptionWhere"><where>
     <if test="search != null">AND (u.phone_number LIKE CONCAT('%',#{search},'%') OR CONCAT_WS(' ',u.first_name,u.last_name) LIKE CONCAT('%',#{search},'%') OR tp.name LIKE CONCAT('%',#{search},'%'))</if>

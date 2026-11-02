@@ -24,7 +24,7 @@ public final class ProductMetadata {
                 data.put(key,value);
             }catch(Exception ex){throw new IllegalArgumentException("Invalid "+key);}
         }
-        for(String key:List.of("storage_temperature","ingredients","age_range"))if(data.containsKey(key)) {
+        for(String key:List.of("storage_temperature","storage_location","ingredients","age_range"))if(data.containsKey(key)) {
             String value=Objects.toString(data.get(key),"").trim();
             if(value.length()>(key.equals("ingredients")?4000:160))throw new IllegalArgumentException("Metadata too long");
             data.put(key,value.isEmpty()?null:value);
@@ -33,9 +33,9 @@ public final class ProductMetadata {
     public static void normalize(AddProductParam p) {
         var data=new HashMap<String,Object>();
         data.put("cost_price",p.getCost_price());data.put("min_stock_quantity",p.getMin_stock_quantity());data.put("shelf_life_days",p.getShelf_life_days());
-        data.put("storage_temperature",p.getStorage_temperature());data.put("ingredients",p.getIngredients());data.put("age_range",p.getAge_range());
+        data.put("storage_temperature",p.getStorage_temperature());data.put("storage_location",p.getStorage_location());data.put("ingredients",p.getIngredients());data.put("age_range",p.getAge_range());
         normalize(data);
         p.setCost_price((BigDecimal)data.get("cost_price"));p.setMin_stock_quantity((Integer)data.get("min_stock_quantity"));p.setShelf_life_days((Integer)data.get("shelf_life_days"));
-        p.setStorage_temperature((String)data.get("storage_temperature"));p.setIngredients((String)data.get("ingredients"));p.setAge_range((String)data.get("age_range"));
+        p.setStorage_temperature((String)data.get("storage_temperature"));p.setStorage_location((String)data.get("storage_location"));p.setIngredients((String)data.get("ingredients"));p.setAge_range((String)data.get("age_range"));
     }
 }

@@ -272,6 +272,9 @@ public class UserController extends BaseController {
                     }
                 }
             }
+        } catch (com.ninimum.api.user.service.impl.AccountDeletion.ActiveOrder ex) {
+            result = this.setResult(Result.FAILED);
+            result.setResultMsg("Sizda hali yetkazilmagan buyurtma bor. Buyurtma yetkazilgandan keyin hisobni o‘chirishingiz mumkin.");
         } catch (Exception ex) {
             result = this.setResult(Result.SERVER_ERROR);
             log.error("UserController => deleteAccount: ", ex);

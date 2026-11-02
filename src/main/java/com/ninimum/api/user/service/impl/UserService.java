@@ -23,6 +23,7 @@ public class UserService implements IUserService {
     private final PasswordEncoder pwEncoder;
     private final JwtTokenProvider jwtTokenProvider;
     private final com.ninimum.api.referral.ReferralService referral;
+    private final AccountDeletion accountDeletion;
     @Override
     public UserDto getUserByPhone(String phone_number) throws Exception {
         CamelCaseMap map = mapper.selectUserByPhone(phone_number);
@@ -93,17 +94,8 @@ public class UserService implements IUserService {
             param.setReasons(reasons);
         }
 
-        // Feedback must never prevent account deletion.
-        // If the feedback table has not been deployed yet, deletion still proceeds.
-        if (reasons != null && !reasons.isEmpty()) {
-            try {
-                this.mapper.insertDeleteFeedback(param);
-            } catch (Exception ex) {
-                log.warn("Could not save account delete feedback. userId={}", param.getUserId(), ex);
-            }
-        }
-
-        return this.mapper.deleteAccount(param);
+        // Feedback never prevents the deletion (AccountDeletion skips it if its table is missing).
+        return accountDeletion.delete(param.getUserId(), reasons) ? 1 : 0;
     }
 
     @Override

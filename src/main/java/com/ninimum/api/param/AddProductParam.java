@@ -25,6 +25,7 @@ public class AddProductParam {
     private Integer min_stock_quantity;
     private Integer shelf_life_days;
     private String storage_temperature;
+    private String storage_location;
     private String ingredients;
     private String age_range;
     private Double price;
