@@ -33,6 +33,12 @@
     </dependencyManagement>
 
     <dependencies>
+        <!-- Firebase push: signs requests with the service account key -->
+        <dependency>
+            <groupId>com.google.auth</groupId>
+            <artifactId>google-auth-library-oauth2-http</artifactId>
+            <version>1.17.0</version>
+        </dependency>
         <!-- Check the sever status -->
         <dependency>
             <groupId>org.springframework.boot</groupId>

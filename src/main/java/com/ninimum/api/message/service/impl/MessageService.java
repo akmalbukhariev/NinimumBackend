@@ -31,6 +31,11 @@ import java.security.SecureRandom;
 public class MessageService implements IMessageService {
     private final MessageMapper mapper;
     private final TestPhoneMapper testPhoneMapper;
+    private final com.ninimum.api.user.service.UserMapper userMapper;
+    // Login text for numbers that already have an account. Turn on only once Eskiz has approved this exact text,
+    // otherwise operators reject the SMS and the customer gets no code.
+    @org.springframework.beans.factory.annotation.Value("${sms.login-text-enabled:false}")
+    private boolean loginTextEnabled;
 
     private final RestTemplate restTemplate;
     private final String BASE_URL = "https://notify.eskiz.uz/api/";
@@ -39,6 +44,7 @@ public class MessageService implements IMessageService {
     private final String REFRESH_TOKEN = BASE_URL + "auth/refresh";
     private static final String VERIFICATION_TEXT = "Ninimum platformasidan ro‘yxatdan o‘tish kodi: ";
     private static final String TEMP_PASSWORD_TEXT = "Ninimum uchun vaqtinchalik parolingiz: ";
+    private static final String LOGIN_TEXT = "Kodni hech kimga bermang! Ninimum ilovasiga kirish uchun tasdiqlash kodi: ";
     private static final SecureRandom SECURE_RANDOM = new SecureRandom();
     @Override
     public VerifyPhoneNumberResponse verifyPhoneNumber(VerifyPhoneNumberParam param) throws Exception {
@@ -96,7 +102,9 @@ public class MessageService implements IMessageService {
         }
 
         String code = String.format("%04d", SECURE_RANDOM.nextInt(10000));
-        EskizMessageRespond respondMsg = sendMessage(param, eskizLoginInfoDto, code);
+        var forms = com.ninimum.api.common.PhoneNumbers.variants(param.getPhone_number());
+        boolean existing = loginTextEnabled && !forms.isEmpty() && userMapper.countActiveUsersByPhoneForms(forms, null) > 0;
+        EskizMessageRespond respondMsg = sendMessage(param, eskizLoginInfoDto, (existing ? LOGIN_TEXT : VERIFICATION_TEXT) + code);
         if (Constant.WAITING.equals(respondMsg.getStatus())) {
             responseNumber.setCode(code);
         }
@@ -160,7 +168,24 @@ public class MessageService implements IMessageService {
         return tempPassword;
     }
 
-    private EskizMessageRespond sendMessage(VerifyPhoneNumberParam param, EskizLoginInfoDto dto, String code) throws Exception {
+    /** Any approved text to a customer (order SMS). True when Eskiz accepted it. */
+    public boolean sendSms(String phone, String text) throws Exception {
+        CamelCaseMap camelEskiz = mapper.selectUser();
+        EskizLoginInfoDto dto = camelEskiz.toObject(EskizLoginInfoDto.class);
+        long ageDays = dto.getUpdated_at() == null ? Long.MAX_VALUE : java.time.temporal.ChronoUnit.DAYS.between(dto.getUpdated_at(), LocalDateTime.now());
+        if (dto.getToken() == null || dto.getToken().isBlank() || ageDays >= 30) {
+            dto.setToken(login(dto).getData().getToken());
+            mapper.updateUserToken(dto);
+        } else if (ageDays >= 28) {
+            dto.setToken(refreshToken(dto.getToken()).getData().getToken());
+            mapper.updateUserToken(dto);
+        }
+        VerifyPhoneNumberParam param = new VerifyPhoneNumberParam();
+        param.setPhone_number(phone);
+        return Constant.WAITING.equals(sendMessage(param, dto, text).getStatus());
+    }
+
+    private EskizMessageRespond sendMessage(VerifyPhoneNumberParam param, EskizLoginInfoDto dto, String text) throws Exception {
 
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.MULTIPART_FORM_DATA);
@@ -177,7 +202,7 @@ public class MessageService implements IMessageService {
 
         MultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
         body.add("mobile_phone", com.ninimum.api.common.PhoneNumbers.sms(param.getPhone_number()));
-        body.add("message", VERIFICATION_TEXT + code);
+        body.add("message", text);
         body.add("from", "4546");
         body.add("callback_url", "http://0000.uz/test.php");
 
