@@ -33,6 +33,8 @@ public class UserController extends BaseController {
 
     private final IUserService userService;
     private final com.ninimum.api.referral.ReferralService referral;
+    private final com.ninimum.api.message.SmsCodes smsCodes;
+    private final com.ninimum.api.security.login.TrustedDevices trustedDevices;
     private static final String INVALID_PHONE_MESSAGE = "Telefon raqami noto‘g‘ri. Masalan: +998901234567";
 
     @PostConstruct
@@ -65,6 +67,16 @@ public class UserController extends BaseController {
                 result = this.setResult(Result.FAILED);
                 result.setResultMsg(INVALID_PHONE_MESSAGE);
             }
+            else if (param.getPassword() == null || param.getPassword().length() < 6) {
+                // Same rule as the app's password change.
+                result = this.setResult(Result.FAILED);
+                result.setResultMsg("Parol kamida 6 ta belgidan iborat bo‘lishi kerak.");
+            }
+            else if (!smsCodes.consume(param.getPhone_number(), param.getSms_code())) {
+                result = this.setResult(Result.FAILED);
+                result.setResultCode("SMS_CODE_INVALID");
+                result.setResultMsg(com.ninimum.api.message.SmsCodes.message("SMS_CODE_INVALID"));
+            }
             else if (param.getReferral_code() != null && !param.getReferral_code().isBlank()
                     && referral.promoMode() && !referral.validCode(param.getReferral_code())) {
                 result = this.setResult(Result.FAILED);
@@ -75,7 +87,9 @@ public class UserController extends BaseController {
                 int resultNum = this.userService.register(param);
 
                 if (resultNum != 0) {
-                    result = this.setResult(Result.SUCCESS);
+                    UserDto created = this.userService.getUserByPhone(param.getPhone_number());
+                    String device = created == null || created.getId() == null ? null : trustedDevices.create(created.getId());
+                    result = this.setResult(Result.SUCCESS, device == null ? null : java.util.Map.of("device_token", device));
                 }
                 else {
                     result = this.setResult(Result.SERVER_ERROR);
@@ -369,6 +383,12 @@ public class UserController extends BaseController {
                 return new ResponseEntity<>(result, HttpStatus.OK);
             }
             // Never trust a userId supplied by the mobile client.
+            if (!smsCodes.consume(param.getPhoneNumber(), param.getSmsCode())) {
+                result = this.setResult(Result.FAILED);
+                result.setResultCode("SMS_CODE_INVALID");
+                result.setResultMsg(com.ninimum.api.message.SmsCodes.message("SMS_CODE_INVALID"));
+                return new ResponseEntity<>(result, HttpStatus.OK);
+            }
             param.setUserId(userInfo.getId());
             int resultNum = this.userService.changePhoneNumber(param);
 

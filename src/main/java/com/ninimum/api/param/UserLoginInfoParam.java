@@ -9,4 +9,6 @@ import lombok.RequiredArgsConstructor;
 public class UserLoginInfoParam {
     private String phone_number;
     private String password;
+    private String sms_code;
+    private String device_token;
 }

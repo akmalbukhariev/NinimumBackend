@@ -32,12 +32,16 @@ public class UserAuthenticationFilter extends UsernamePasswordAuthenticationFilt
 
 	private final JwtTokenProvider jwtTokenProvider;
 	private final UserAuthenticationProvider userAuthenticationProvider;
+	private final com.ninimum.api.message.SmsCodes smsCodes;
+	private final com.ninimum.api.security.login.TrustedDevices trustedDevices;
+	private static final String LOGIN = "ninimum.login";
 	private UserLoginInfoParam user = null;
 
 	@Override
 	public Authentication attemptAuthentication(HttpServletRequest request, HttpServletResponse response) throws AuthenticationException {
 		try {
 			user = new ObjectMapper().readValue(request.getInputStream(), UserLoginInfoParam.class);
+			request.setAttribute(LOGIN, user);
 			//log.info("User Info: phone={}, password=****", user.getPhone_number());
 
 			UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(user.getPhone_number(), user.getPassword());
@@ -58,6 +62,26 @@ public class UserAuthenticationFilter extends UsernamePasswordAuthenticationFilt
 
 		VersionResponseResult resResult = new VersionResponseResult();
 		response.setContentType("application/json");
+
+		// Password was right. A phone that confirmed a code before signs in; otherwise an SMS code is needed first.
+		UserLoginInfoParam login = (UserLoginInfoParam) request.getAttribute(LOGIN);
+		long userId = Long.parseLong(map.get("id").toString());
+		String phone = String.valueOf(map.get("phone_number"));
+		if (login == null || !trustedDevices.valid(userId, login.getDevice_token())) {
+			String code = login == null ? null : login.getSms_code();
+			if (code == null || code.isBlank()) {
+				try { smsCodes.send(phone, true); sendCode(response, "SMS_CODE_SENT", "Tasdiqlash kodi SMS orqali yuborildi."); }
+				catch (com.ninimum.api.message.SmsCodes.Limited limited) { sendCode(response, limited.getMessage(), com.ninimum.api.message.SmsCodes.message(limited.getMessage())); }
+				catch (Exception ex) { log.warn("Login SMS was not sent: {}", ex.getMessage()); sendCode(response, "SMS_NOT_SENT", com.ninimum.api.message.SmsCodes.message("SMS_NOT_SENT")); }
+				return;
+			}
+			if (!smsCodes.consume(phone, code)) {
+				sendCode(response, "SMS_CODE_INVALID", com.ninimum.api.message.SmsCodes.message("SMS_CODE_INVALID"));
+				return;
+			}
+			String device = trustedDevices.create(userId);
+			if (device != null) map.put("device_token", device);
+		}
 
 		handleSuccessfulLogin(request, response, authResult, map, resResult);
 	}
@@ -156,6 +180,16 @@ public class UserAuthenticationFilter extends UsernamePasswordAuthenticationFilt
 		dto.setStatus(UserStatus.ACTIVE);
 
 		userAuthenticationProvider.updateUserStatusAndToken(dto);
+	}
+
+	/** A login step that isn't finished yet (code sent, wrong code, limit): no token. */
+	private void sendCode(HttpServletResponse response, String code, String message) throws IOException {
+		response.setHeader(Constant.HEADER_ACCESS_TOKEN, "");
+		response.setHeader(Constant.HEADER_REFRESH_TOKEN, "");
+		VersionResponseResult resResult = new VersionResponseResult();
+		resResult.setResultCode(code);
+		resResult.setResultMsg(message);
+		new ObjectMapper().writeValue(response.getOutputStream(), resResult);
 	}
 
 	/**

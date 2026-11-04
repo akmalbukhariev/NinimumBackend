@@ -21,13 +21,14 @@ import java.util.Objects;
 public class OrderSms {
     public interface Sender { boolean send(String phone, String text) throws Exception; }
 
-    static final String ON_THE_WAY = "Ninimum: %s raqamli buyurtmangiz yo‘lga chiqdi. Kuryer tez orada yetkazib beradi.";
+    // Eskiz-approved wording (ID 98956). The straight apostrophe keeps it to 1 SMS; a curly ‘ would make it 2.
+    static final String ON_THE_WAY = "Ninimum: %s raqamli buyurtmangiz yo'lga chiqdi. Kuryer tez orada yetkazib beradi.";
     static final String TAXI = "Ninimum: %s raqamli buyurtmangiz taksi orqali yo‘lga chiqdi. Haydovchi: %s, mashina: %s.";
     static final String DELIVERED = "Ninimum: %s raqamli buyurtmangiz yetkazildi. Xaridingiz uchun rahmat!";
 
     private final JdbcTemplate jdbc;
     private final Sender sender;
-    @Value("${sms.order-on-way-enabled:false}") private boolean onWayEnabled;
+    @Value("${sms.order-on-way-enabled:true}") private boolean onWayEnabled;
     @Value("${sms.order-taxi-enabled:false}") private boolean taxiEnabled;
     @Value("${sms.order-delivered-enabled:false}") private boolean deliveredEnabled;
     private boolean schemaWarning;

@@ -6,4 +6,5 @@ import lombok.Data;
 public class ChangePhoneNumberParam {
     private Long userId;
     private String phoneNumber;
+    private String smsCode;
 }

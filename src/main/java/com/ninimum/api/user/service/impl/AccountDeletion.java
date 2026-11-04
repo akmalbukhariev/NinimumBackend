@@ -36,7 +36,7 @@ public class AccountDeletion {
             throw new ActiveOrder();
         if (reasons != null && !reasons.isEmpty()) optional("INSERT INTO user_delete_feedback(user_id,reasons,created_at) VALUES(?,?,UTC_TIMESTAMP())", user, reasons);
         optional("INSERT IGNORE INTO account_deletions(user_id,phone_hash,deleted_at) VALUES(?,SHA2(?,256),UTC_TIMESTAMP())", user, phone.get(0));
-        for (String table : List.of("cart_items", "favorites", "children", "payment_cards", "user_qr_codes", "recently_viewed_products", "referral_codes"))
+        for (String table : List.of("cart_items", "favorites", "children", "payment_cards", "user_qr_codes", "recently_viewed_products", "referral_codes", "trusted_devices"))
             optional("DELETE FROM " + table + " WHERE user_id=?", user);
         optional("DELETE FROM user_addresses WHERE user_id=? AND address_id NOT IN (SELECT address_id FROM orders WHERE address_id IS NOT NULL)", user);
         optional("DELETE FROM addresses WHERE user_id=? AND id NOT IN (SELECT legacy_address_id FROM orders WHERE legacy_address_id IS NOT NULL)", user);

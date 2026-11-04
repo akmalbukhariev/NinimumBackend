@@ -38,6 +38,8 @@ class AdminPermissionsTest {
     static class Fixture {
         @Bean JwtTokenProvider jwt() { return mock(JwtTokenProvider.class); }
         @Bean com.ninimum.api.security.login.LoginAttempts loginAttempts() { return mock(com.ninimum.api.security.login.LoginAttempts.class); }
+        @Bean com.ninimum.api.message.SmsCodes smsCodes() { return mock(com.ninimum.api.message.SmsCodes.class); }
+        @Bean com.ninimum.api.security.login.TrustedDevices trustedDevices() { return mock(com.ninimum.api.security.login.TrustedDevices.class); }
         @Bean com.ninimum.api.warehouse.WarehouseAppService warehouseApp() { return mock(com.ninimum.api.warehouse.WarehouseAppService.class); }
         @Bean AdminSessionService admins() { return mock(AdminSessionService.class); }
         @Bean DeliverySessionService deliveries() { return mock(DeliverySessionService.class); }

@@ -33,6 +33,7 @@ public class MessageController extends BaseController {
 
     private final IMessageService service;
     private final IUserService userService;
+    private final com.ninimum.api.message.SmsCodes smsCodes;
 
     @PostConstruct
     public void init() {
@@ -66,18 +67,39 @@ public class MessageController extends BaseController {
         VersionResponseResult result = null;
 
         try {
-            VerifyPhoneNumberResponse verifyData = this.service.verifyPhoneNumber(param);
-            if (verifyData.getCode() == Constant.NO_CODE) {
-                result = this.setResult(Result.VERIFY_PHONE_NUMBER_FAILED);
+            // Codes for new numbers only (registration, phone change); sign-in codes come from the login itself.
+            String phone = com.ninimum.api.common.PhoneNumbers.normalize(param.getPhone_number());
+            if (phone == null) {
+                result = this.setResult(Result.FAILED);
+                result.setResultMsg("Telefon raqami noto‘g‘ri.");
+            } else if (this.userService.getUserByPhone(phone) != null) {
+                result = this.setResult(Result.USER_EXIST);
             } else {
-                result = this.setResult(Result.SUCCESS, verifyData);
+                this.smsCodes.send(phone, false);
+                VerifyPhoneNumberResponse sentTo = new VerifyPhoneNumberResponse();
+                sentTo.setPhone_number(param.getPhone_number());
+                sentTo.setCode("");
+                result = this.setResult(Result.SUCCESS, sentTo);
             }
+        } catch (com.ninimum.api.message.SmsCodes.Limited limited) {
+            result = this.setResult(Result.FAILED);
+            result.setResultCode(limited.getMessage());
+            result.setResultMsg(com.ninimum.api.message.SmsCodes.message(limited.getMessage()));
         } catch (Exception var4) {
             result = this.setResult(Result.SERVER_ERROR);
             log.error("MessageController => verifyPhoneNumber: ", var4);
         }
 
         return new ResponseEntity(result, HttpStatus.OK);
+    }
+
+    /** The SMS popup checks the typed code here; the code itself never leaves the server. */
+    @PostMapping(value = "/checkCode", headers = {"Content-type=application/json"})
+    public ResponseEntity<Object> checkCode(@RequestBody java.util.Map<String, Object> body) {
+        boolean ok = smsCodes.check(java.util.Objects.toString(body.get("phone_number"), ""), java.util.Objects.toString(body.get("code"), ""));
+        VersionResponseResult result = this.setResult(ok ? Result.SUCCESS : Result.FAILED);
+        if (!ok) { result.setResultCode("SMS_CODE_INVALID"); result.setResultMsg(com.ninimum.api.message.SmsCodes.message("SMS_CODE_INVALID")); }
+        return new ResponseEntity<>(result, HttpStatus.OK);
     }
 
     @Operation(

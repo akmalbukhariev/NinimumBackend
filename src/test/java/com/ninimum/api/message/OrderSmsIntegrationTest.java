@@ -38,7 +38,7 @@ class OrderSmsIntegrationTest {
         order(134,2,"ON_THE_WAY","COURIER");
         sms.scan();sms.scan();
         assertEquals(List.of(
-            "+998900000001 | Ninimum: #000131 raqamli buyurtmangiz yo‘lga chiqdi. Kuryer tez orada yetkazib beradi.",
+            "+998900000001 | Ninimum: #000131 raqamli buyurtmangiz yo'lga chiqdi. Kuryer tez orada yetkazib beradi.",
             "+998900000001 | Ninimum: #000132 raqamli buyurtmangiz taksi orqali yo‘lga chiqdi. Haydovchi: +998901234567, mashina: 10 A 123 BC.",
             "+998900000001 | Ninimum: #000133 raqamli buyurtmangiz yetkazildi. Xaridingiz uchun rahmat!"),sent,"once each; a deleted account gets nothing");
         assertEquals(3,jdbc.queryForObject("SELECT COUNT(*) FROM order_sms WHERE status='SENT'",Integer.class));

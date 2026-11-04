@@ -31,10 +31,9 @@ import java.security.SecureRandom;
 public class MessageService implements IMessageService {
     private final MessageMapper mapper;
     private final TestPhoneMapper testPhoneMapper;
-    private final com.ninimum.api.user.service.UserMapper userMapper;
-    // Login text for numbers that already have an account. Turn on only once Eskiz has approved this exact text,
-    // otherwise operators reject the SMS and the customer gets no code.
-    @org.springframework.beans.factory.annotation.Value("${sms.login-text-enabled:false}")
+    // Login text for numbers that already have an account. Eskiz approved this exact text 2026-11-04 (ID 98803);
+    // a new wording needs approval first, otherwise operators reject the SMS and the customer gets no code.
+    @org.springframework.beans.factory.annotation.Value("${sms.login-text-enabled:true}")
     private boolean loginTextEnabled;
 
     private final RestTemplate restTemplate;
@@ -47,11 +46,9 @@ public class MessageService implements IMessageService {
     private static final String LOGIN_TEXT = "Kodni hech kimga bermang! Ninimum ilovasiga kirish uchun tasdiqlash kodi: ";
     private static final SecureRandom SECURE_RANDOM = new SecureRandom();
     @Override
-    public VerifyPhoneNumberResponse verifyPhoneNumber(VerifyPhoneNumberParam param) throws Exception {
-
-        VerifyPhoneNumberResponse responseNumber = new VerifyPhoneNumberResponse();
-        responseNumber.setPhone_number(param.getPhone_number());
-        responseNumber.setCode(Constant.NO_CODE);
+    public String deliverCode(String phone, boolean login) throws Exception {
+        VerifyPhoneNumberParam param = new VerifyPhoneNumberParam();
+        param.setPhone_number(phone);
 
         CamelCaseMap camelTestPhone = testPhoneMapper.selectTestPhone(param.getPhone_number());
         String smsPhone = com.ninimum.api.common.PhoneNumbers.sms(param.getPhone_number());
@@ -64,8 +61,7 @@ public class MessageService implements IMessageService {
         if (camelTestPhone != null) {
             TestPhoneDto testPhoneDto = camelTestPhone.toObject(TestPhoneDto.class);
             if ((Objects.equals(testPhoneDto.getPhone(), param.getPhone_number()) || Objects.equals(testPhoneDto.getPhone(), smsPhone)) && testPhoneDto.isUse()) {
-                responseNumber.setCode(testPhoneDto.getCode());
-                return responseNumber; // stop here, don’t send SMS
+                return testPhoneDto.getCode(); // stop here, don’t send SMS
             }
         }
 
@@ -102,14 +98,8 @@ public class MessageService implements IMessageService {
         }
 
         String code = String.format("%04d", SECURE_RANDOM.nextInt(10000));
-        var forms = com.ninimum.api.common.PhoneNumbers.variants(param.getPhone_number());
-        boolean existing = loginTextEnabled && !forms.isEmpty() && userMapper.countActiveUsersByPhoneForms(forms, null) > 0;
-        EskizMessageRespond respondMsg = sendMessage(param, eskizLoginInfoDto, (existing ? LOGIN_TEXT : VERIFICATION_TEXT) + code);
-        if (Constant.WAITING.equals(respondMsg.getStatus())) {
-            responseNumber.setCode(code);
-        }
-
-        return responseNumber;
+        EskizMessageRespond respondMsg = sendMessage(param, eskizLoginInfoDto, (login && loginTextEnabled ? LOGIN_TEXT : VERIFICATION_TEXT) + code);
+        return Constant.WAITING.equals(respondMsg.getStatus()) ? code : null;
     }
 
     @Override

@@ -35,6 +35,8 @@ public class SecurityConfig {
     private final UserDetailsServiceImpl userDetailsService;
     private final AdminDetailsServiceImpl adminDetailsService;
     private final com.ninimum.api.security.login.LoginAttempts loginAttempts;
+    private final com.ninimum.api.message.SmsCodes smsCodes;
+    private final com.ninimum.api.security.login.TrustedDevices trustedDevices;
 
     public UserAuthenticationProvider userProvider() {
         return new UserAuthenticationProvider(userDetailsService, passwordEncoder());
@@ -87,7 +89,7 @@ public class SecurityConfig {
         UserAuthenticationProvider userProvider = userProvider();
         AdminAuthenticationProvider adminProvider = adminProvider();
 
-        UserAuthenticationFilter userAuthFilter = new UserAuthenticationFilter(jwtTokenProvider, userProvider);
+        UserAuthenticationFilter userAuthFilter = new UserAuthenticationFilter(jwtTokenProvider, userProvider, smsCodes, trustedDevices);
         userAuthFilter.setFilterProcessesUrl("/ninimum/api/v1/user/login");
 
         AdminAuthenticationFilter adminAuthFilter = new AdminAuthenticationFilter(jwtTokenProvider, adminSessions, adminProvider);
@@ -134,6 +136,7 @@ public class SecurityConfig {
                 "/ninimum/api/v1/referral/settings",
                 //"/ninimum/api/v1/admin/register",     //it should not be committed
                 "/ninimum/api/v1/message/verifyPhoneNumber",     //it should not be committed
+                "/ninimum/api/v1/message/checkCode",
                 "/ninimum/api/v1/message/sendTemporaryPassword",
                 "/ninimum/api/v1/payment/payme/callback",     //it should not be committed
                 "/error");
