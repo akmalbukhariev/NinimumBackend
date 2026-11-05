@@ -622,6 +622,9 @@ public class AdminManagementService implements IAdminManagementService {
 
     @Override
     public int updateSettings(Map<String, Object> body) {
+        // force_update_yn: N = no message, O = optional update, Y = required update (old apps only know Y).
+        Object update = body.get("force_update_yn");
+        if (update != null && !List.of("N", "O", "Y").contains(update.toString())) throw new IllegalArgumentException("Invalid update type");
         return mapper.updateSettings(body);
     }
 

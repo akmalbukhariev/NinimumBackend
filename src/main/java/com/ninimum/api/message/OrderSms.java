@@ -38,7 +38,8 @@ public class OrderSms {
     public OrderSms(JdbcTemplate jdbc, Sender sender) { this.jdbc = jdbc; this.sender = sender; }
     void enable(boolean onWay, boolean taxi, boolean delivered) { onWayEnabled = onWay; taxiEnabled = taxi; deliveredEnabled = delivered; }
 
-    @Scheduled(fixedDelayString = "${sms.orders.interval-ms:60000}", initialDelayString = "${sms.orders.initial-delay-ms:60000}")
+    // Every 15 s: an order delivered right after it went on the way still gets its "on the way" SMS.
+    @Scheduled(fixedDelayString = "${sms.orders.interval-ms:15000}", initialDelayString = "${sms.orders.initial-delay-ms:60000}")
     public synchronized void tick() {
         if (!onWayEnabled && !taxiEnabled && !deliveredEnabled) return;
         try { scan(); schemaWarning = false; }

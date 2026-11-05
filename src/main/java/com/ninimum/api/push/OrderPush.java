@@ -27,6 +27,17 @@ public class OrderPush {
         catch (DataAccessException ex) { if (!schemaWarning) log.warn("Order push unavailable. Check the push migration."); schemaWarning = true; }
     }
 
+    private static String customerTitle(String status) {
+        return switch (status) {
+            case "CONFIRMED" -> "To‘lov qabul qilindi";
+            case "READY" -> "Buyurtma tayyor";
+            case "ON_THE_WAY" -> "Buyurtma yo‘lga chiqdi";
+            case "DELIVERED" -> "Buyurtma yetkazildi";
+            case "CANCELLED" -> "Buyurtma bekor qilindi";
+            default -> "Buyurtma";
+        };
+    }
+
     private static String customerText(String status, boolean taxi) {
         return switch (status) {
             case "CONFIRMED" -> "To‘lov qabul qilindi. Buyurtmangizni tayyorlaymiz.";
@@ -48,7 +59,7 @@ public class OrderPush {
             boolean taxi = "TAXI".equals(row.get("delivery_method"));
             String number = String.format("#%06d", order);
             Map<String, String> data = Map.of("order_id", String.valueOf(order), "status", status);
-            push.send(Push.CUSTOMER, String.valueOf(row.get("user_id")), "Buyurtma " + number, customerText(status, taxi), data);
+            push.send(Push.CUSTOMER, String.valueOf(row.get("user_id")), customerTitle(status) + " · " + number, customerText(status, taxi), data);
             if ("CONFIRMED".equals(status)) push.send(Push.WAREHOUSE, null, "Yangi buyurtma " + number, "To‘langan buyurtma navbatda. Tayyorlashni boshlang.", data);
             if ("READY".equals(status) && !taxi) push.send(Push.COURIER, null, "Yetkazishga tayyor " + number, "Buyurtma qadoqlandi va olib ketishni kutmoqda.", data);
         }

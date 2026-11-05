@@ -31,11 +31,11 @@ class OrderPushIntegrationTest {
         order(133,"READY","TAXI");
         orders.tick();orders.tick();
         assertEquals(List.of(
-            "CUSTOMER|7|Buyurtma #000131|To‘lov qabul qilindi. Buyurtmangizni tayyorlaymiz.",
+            "CUSTOMER|7|To‘lov qabul qilindi · #000131|To‘lov qabul qilindi. Buyurtmangizni tayyorlaymiz.",
             "WAREHOUSE|null|Yangi buyurtma #000131|To‘langan buyurtma navbatda. Tayyorlashni boshlang.",
-            "CUSTOMER|7|Buyurtma #000132|Buyurtmangiz tayyor. Kuryer tez orada olib ketadi.",
+            "CUSTOMER|7|Buyurtma tayyor · #000132|Buyurtmangiz tayyor. Kuryer tez orada olib ketadi.",
             "COURIER|null|Yetkazishga tayyor #000132|Buyurtma qadoqlandi va olib ketishni kutmoqda.",
-            "CUSTOMER|7|Buyurtma #000133|Buyurtmangiz tayyor. Taksi chaqirilmoqda."),sent,"taxi orders aren't offered to couriers");
+            "CUSTOMER|7|Buyurtma tayyor · #000133|Buyurtmangiz tayyor. Taksi chaqirilmoqda."),sent,"taxi orders aren't offered to couriers");
     }
     @Test void offSendsNothingAndPendingIsQuiet(){
         on=false;
