@@ -144,6 +144,10 @@ class OrderTimersIntegrationTest {
             service.scan(now);
             assertEquals(java.util.List.of("2:STOCK_EXPIRED"),jdbc.queryForList("SELECT CONCAT(entity_id,':',kind) FROM order_problem_alerts WHERE entity_type='BATCH' AND resolved_at IS NULL ORDER BY entity_id",String.class));
             assertEquals(2,jdbc.queryForObject("SELECT COUNT(*) FROM order_problem_events WHERE entity_type='BATCH' AND event='RESOLVED'",Integer.class));
+            // TZ v13 item 9: the product's own warning period wins over the general one (L3 expires in 9 days).
+            jdbc.execute("ALTER TABLE products ADD COLUMN expiry_warning_days INT NULL");jdbc.update("UPDATE products SET expiry_warning_days=10 WHERE id=12");
+            service.scan(now);
+            assertEquals(java.util.List.of("2:STOCK_EXPIRED","3:STOCK_EXPIRING"),jdbc.queryForList("SELECT CONCAT(entity_id,':',kind) FROM order_problem_alerts WHERE entity_type='BATCH' AND resolved_at IS NULL ORDER BY entity_id",String.class));
         } finally { org.springframework.security.core.context.SecurityContextHolder.clearContext(); }
     }
 }

@@ -33,7 +33,7 @@ class ReleaseBatchIntegrationTest {
   jdbc.execute("CREATE TABLE users(id BIGINT PRIMARY KEY,first_name VARCHAR(80),last_name VARCHAR(80),phone_number VARCHAR(40))");
   jdbc.execute("CREATE TABLE product_questions(id BIGINT AUTO_INCREMENT PRIMARY KEY,product_id BIGINT,user_id BIGINT,question TEXT,answer TEXT,status VARCHAR(30),is_active BOOLEAN,created_at DATETIME,answered_at DATETIME,updated_at DATETIME)");
   jdbc.execute("CREATE TABLE order_timer_settings(id INT PRIMARY KEY,question_minutes INT)");jdbc.update("INSERT INTO order_timer_settings VALUES(1,120)");
-  for(String file:List.of("20261017_product_metadata.sql","20261102_product_location.sql","20261017_complaints.sql","20261017_product_price_history.sql")) {var migration=new ResourceDatabasePopulator(new FileSystemResource("database/migrations/"+file));migration.execute(ds);migration.execute(ds);}
+  for(String file:List.of("20261017_product_metadata.sql","20261102_product_location.sql","20261109_product_expiry_warning.sql","20261017_complaints.sql","20261017_product_price_history.sql")) {var migration=new ResourceDatabasePopulator(new FileSystemResource("database/migrations/"+file));migration.execute(ds);migration.execute(ds);}
   var config=new org.apache.ibatis.session.Configuration();config.getTypeAliasRegistry().registerAlias("camelMap",CamelCaseMap.class);
   var factory=new SqlSessionFactoryBean();factory.setDataSource(ds);factory.setConfiguration(config);
   factory.setMapperLocations(new FileSystemResource("src/main/resources/mapper/Product/ProductMapper.xml"),new FileSystemResource("src/main/resources/mapper/ProductQuestion/ProductQuestionMapper.xml"),new FileSystemResource("src/main/resources/mapper/AdminManagement/AdminManagementMapper.xml"));
@@ -47,6 +47,8 @@ class ReleaseBatchIntegrationTest {
   admin.updateProduct(id,new HashMap<>(Map.of("cost_price","90.50","min_stock_quantity",5,"storage_temperature"," 2–8 C ","storage_location"," 1-stol, 2-ustun ")));assertEquals("1-stol, 2-ustun",jdbc.queryForObject("SELECT storage_location FROM products WHERE id=?",String.class,id));
   assertEquals(new BigDecimal("90.50"),jdbc.queryForObject("SELECT cost_price FROM products WHERE id=?",BigDecimal.class,id));
   assertEquals(180,jdbc.queryForObject("SELECT shelf_life_days FROM products WHERE id=?",Integer.class,id));
+  admin.updateProduct(id,new HashMap<>(Map.of("expiry_warning_days","7")));assertEquals(7,jdbc.queryForObject("SELECT expiry_warning_days FROM products WHERE id=?",Integer.class,id));
+  assertThrows(IllegalArgumentException.class,()->admin.updateProduct(id,new HashMap<>(Map.of("expiry_warning_days","0"))));
   var clear=new HashMap<String,Object>();clear.put("cost_price",null);clear.put("ingredients","");admin.updateProduct(id,clear);
   assertNull(jdbc.queryForMap("SELECT cost_price FROM products WHERE id=?",id).get("cost_price"));assertNull(jdbc.queryForMap("SELECT ingredients FROM products WHERE id=?",id).get("ingredients"));
   assertEquals(2,admin.getProductPriceHistory(id).size());

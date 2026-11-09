@@ -20,6 +20,7 @@ public final class BatchStock {
  }
  /** Returns actual sellable change, after correcting the caller's preliminary aggregate update. */
  public long reconcile(long product,long delta,String kind,String reference,String actor){
+  if(!active(product)&&"RECEIPT".equals(kind)&&reference!=null&&reference.startsWith("KR-"))openOnReceipt(product,delta,reference,actor);
   if(!active(product))return delta;
   refresh(product);
   if("SALE".equals(kind)){reserve(product,-delta,order(reference),actor);return delta;}
@@ -98,6 +99,18 @@ public final class BatchStock {
   if(physical!=expected||batches.stream().anyMatch(b->n(b,"reserved_quantity")!=0))throw new WarehouseException("INVENTORY_BATCH_IN_USE");
   long free=0;for(var b:batches){long id=n(b,"id"),qty=n(b,"physical_quantity");requireBin(n(b,"location_id"));if(eligible(id))free+=qty;jdbc.update("UPDATE inventory_batches SET physical_quantity=0,accounted_quantity=0 WHERE id=?",id);event(id,-qty,0,"RECEIPT_REVERSAL","KR-"+receipt,actor,reason,null);}
   adjustFree(product,-free);return -free;
+ }
+ /**
+  * TZ v13 item 9: a product not yet on batch tracking joins it with its first posted receipt, so the expiry and shelf are kept.
+  * Only when it had no old stock (stock before this receipt = 0) and no order is still being served from the old count;
+  * otherwise its old pieces have no known expiry and an opening count is still needed.
+  */
+ private void openOnReceipt(long product,long delta,String reference,String actor){
+  long before=jdbc.queryForObject("SELECT stock_quantity FROM products WHERE id=?",Long.class,product)-delta;
+  if(before!=0)return;
+  int open=jdbc.queryForObject("SELECT COUNT(*) FROM order_items i JOIN orders o ON o.id=i.order_id WHERE i.product_id=? AND (o.status IN ('ON_THE_WAY','RETURNING') OR (o.payment_status='PAID' AND o.status IN ('PENDING','CONFIRMED','PREPARING','READY')))",Integer.class,product);
+  if(open>0)return;
+  jdbc.update("INSERT INTO inventory_products(product_id,opened_by,opened_at) VALUES(?,?,UTC_TIMESTAMP())",product,(actor+" ("+reference+")").length()>160?actor.substring(0,Math.min(actor.length(),160)):actor+" ("+reference+")");
  }
  public void refresh(long product){
   if(!active(product))return;

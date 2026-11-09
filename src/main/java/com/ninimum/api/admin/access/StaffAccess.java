@@ -95,7 +95,7 @@ public final class StaffAccess {
     private static final String API = "/ninimum/api/v1";
     // First match wins. AREA:x → x.view for GET, x.edit otherwise. Anything not listed is owner-only.
     private static final List<String[]> RULES = List.of(
-        r("/admin/me", "ANY"), r("/admin/warehouse/status", "ANY"),
+        r("/admin/me", "ANY"), r("/admin/me/password", "ANY"), r("/admin/warehouse/status", "ANY"),
         r("/admin/dashboard", "AREA:dashboard"),
         r("/admin/management/orders/problems/**", "AREA:problems"),
         r("/admin/management/orders/*/correction", "OWNER"),

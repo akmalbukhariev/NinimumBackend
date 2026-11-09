@@ -43,7 +43,7 @@ class InventoryIntegrationTest {
         new ResourceDatabasePopulator(new FileSystemResource("src/test/resources/live-schema-fixtures/warehouse-step1.sql")).execute(ds);
         for(String file:List.of("20261012_partial_returns.sql","20261017_receipt_approval.sql","20261017_location_hierarchy.sql","20261017_receipt_metadata.sql","20261017_batch_inventory.sql")){var m=new ResourceDatabasePopulator(new FileSystemResource("database/migrations/"+file));m.execute(ds);if(file.contains("inventory"))m.execute(ds);}
         transactions=new DataSourceTransactionManager(ds);tx=new TransactionTemplate(transactions);
-        WarehouseService target=new WarehouseService(jdbc);ReflectionTestUtils.setField(target,"enabled",true);ReflectionTestUtils.setField(target,"inventoryEnabled",true);target.verifySchema();warehouse=proxy(target);
+        WarehouseService target=new WarehouseService(jdbc);ReflectionTestUtils.setField(target,"enabled",true);ReflectionTestUtils.setField(target,"inventoryEnabled",true);target.verifySchema();warehouse=proxy(target);target.allowUnregisteredSupplier=true;
         inventory=proxy(new InventoryService(jdbc,warehouse));
         owner();
         bin=warehouse.createLocation(Map.of("code","A-01","name","Shelf","type","SHELF"));
@@ -59,6 +59,21 @@ class InventoryIntegrationTest {
         inventory.approve(id,Map.of());return id;
     }
 
+    // TZ v13 item 9: a product without old stock joins batch tracking with its first receipt; one with old stock waits for an opening count.
+    @Test void firstReceiptOfAProductWithoutStockStartsBatchTracking(){
+        jdbc.update("INSERT INTO products(id,name,stock_quantity,is_active) VALUES (2,'Banana',0,1)");
+        String expiry=LocalDate.now().plusDays(3).toString();
+        java.util.function.LongFunction<Long> receive=product->{long id=warehouse.createReceipt(Map.of("supplier_name","S","items",List.of(Map.of("product_id",product,"quantity",12,"location_id",bin,"unit_price","700","expiry_date",expiry))));
+            warehouse.postReceipt(id,Map.of("counts",List.of(Map.of("product_id",product,"quantity",12))));return id;};
+        receive.apply(2L);
+        assertEquals(1,jdbc.queryForObject("SELECT COUNT(*) FROM inventory_products WHERE product_id=2",Integer.class));
+        assertEquals(12,jdbc.queryForObject("SELECT stock_quantity FROM products WHERE id=2",Long.class));
+        assertEquals(expiry,jdbc.queryForObject("SELECT DATE_FORMAT(expiry_date,'%Y-%m-%d') FROM inventory_batches WHERE product_id=2",String.class));
+        assertEquals(bin,jdbc.queryForObject("SELECT location_id FROM inventory_batches WHERE product_id=2",Long.class));
+        receive.apply(1L);
+        assertEquals(0,jdbc.queryForObject("SELECT COUNT(*) FROM inventory_products WHERE product_id=1",Integer.class),"old stock without expiry needs an opening count");
+        assertEquals(22,stock());
+    }
     @Test void openingCountMovesProductIntoBatchTrackingWithoutChangingSellableStock(){
         open();
         assertEquals(1,jdbc.queryForObject("SELECT COUNT(*) FROM inventory_products WHERE product_id=1",Integer.class));

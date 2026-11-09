@@ -97,6 +97,8 @@ public class AdminManagementService implements IAdminManagementService {
             String reason = clean((String) body.get("cancel_reason"));
             // Q-9: cancellation reason (switchable for staff and owner).
             if ((reason == null || reason.isBlank()) && com.ninimum.api.admin.access.StrictRules.on("Q-9")) throw new IllegalArgumentException("Cancellation reason is required");
+            // TZ v13 item 7: a reason that is given must say something (at least 10 letters).
+            if (reason != null && !reason.isBlank() && !com.ninimum.api.common.Reasons.ok(reason)) throw new com.ninimum.api.warehouse.WarehouseException(com.ninimum.api.common.Reasons.CODE);
             if (reason == null) reason = "";
             int changed = mapper.cancelOrder(id, reason);
             if (changed != 1) throw new IllegalArgumentException("This order cannot be cancelled");

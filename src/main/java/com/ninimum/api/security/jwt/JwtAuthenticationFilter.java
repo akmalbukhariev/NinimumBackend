@@ -56,6 +56,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
         Result tokenResult = jwtTokenProvider.validateToken(token);
         if (tokenResult != Result.SUCCESS) {
+            // Web admin calls get HTTP 401 for a bad token; the mobile apps keep the old 200 + resultCode answer.
+            if (request.getRequestURI().startsWith("/ninimum/api/v1/admin/")) response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
             sendErrorResponse(response, tokenResult);
             return;
         }

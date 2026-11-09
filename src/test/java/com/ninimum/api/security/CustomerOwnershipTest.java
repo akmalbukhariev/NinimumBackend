@@ -31,7 +31,8 @@ class CustomerOwnershipTest {
         var service=mock(IOrderService.class);var controller=new OrderController(service,customer);
         var list=new OrderListParam();list.setUserId(99L);controller.getOrderList(list);verify(service).getOrderList(argThat(p->p.getUserId()==7));
         var create=new CreateOrderParam();create.setUserId(99L);controller.createOrder(create);verify(service).createOrder(argThat(p->p.getUserId()==7));
-        var cancel=new CancelOrderParam();cancel.setUserId(99L);controller.cancelOrder(cancel);verify(service).cancelOrder(argThat(p->p.getUserId()==7));
+        var cancel=new CancelOrderParam();cancel.setUserId(99L);cancel.setReason("iii");controller.cancelOrder(cancel);verify(service,never()).cancelOrder(any());
+        cancel.setReason("Boshqa kuni kerak bo‘ladi");controller.cancelOrder(cancel);verify(service).cancelOrder(argThat(p->p.getUserId()==7));
         var detail=new OrderDetailParam();detail.setUserId(99L);controller.deleteOrderHistory(detail);verify(service).deleteOrderHistory(argThat(p->p.getUserId()==7));
         detail.setUserId(99L);controller.getOrderDetail(detail);verify(service).getOrderDetail(argThat(p->p.getUserId()==7));
     }

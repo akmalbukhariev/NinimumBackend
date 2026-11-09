@@ -62,6 +62,7 @@ public class OrderTimersService {
             if(!schemaWarning) log.warn("Order timers unavailable. Check database migration and connectivity.");schemaWarning=true;
         }
     }
+    static final long REFUND_OVERDUE_MINUTES=24*60;
     public void scan(Instant now) {
         openedNow.clear();
         transaction.executeWithoutResult(tx->{
@@ -90,6 +91,8 @@ public class OrderTimersService {
                         Instant refundSince=instant(rows.get(0).get("since"));if(refundSince!=null) since=refundSince;
                 }
                 long elapsed=key==null?Math.max(0,Duration.between(since,now).toMinutes()):hours.minutes(since,now);
+                // TZ v13 item 5: a refund still owed after 24 hours becomes a new, louder alert (Telegram sends it once).
+                if(key==null&&elapsed>=REFUND_OVERDUE_MINUTES)kind="REFUND_OVERDUE";
                 // A paid cancelled/returned order stays problematic until its refund is confirmed.
                 if(key==null || elapsed>=integer(config.get(key))) open("ORDER",id,kind,status,responsible,since,elapsed,now,active);
             }
@@ -102,7 +105,7 @@ public class OrderTimersService {
             } catch(org.springframework.dao.DataAccessException ex) { /* taxi tables not migrated yet */ }
             for(var partial:jdbc.queryForList("SELECT pr.order_id,DATE_FORMAT(pr.created_at,'%Y-%m-%dT%H:%i:%sZ') since FROM delivery_partial_returns pr JOIN orders o ON o.id=pr.order_id WHERE pr.refund_status='PENDING' AND pr.refund_amount>0 AND o.payment_status='PAID'")) {
                 Instant since=instant(partial.get("since"));
-                if(since!=null) open("ORDER",((Number)partial.get("order_id")).longValue(),"REFUND_PENDING","DELIVERED","OWNER",since,Math.max(0,Duration.between(since,now).toMinutes()),now,active);
+                if(since!=null){long elapsed=Math.max(0,Duration.between(since,now).toMinutes());open("ORDER",((Number)partial.get("order_id")).longValue(),elapsed>=REFUND_OVERDUE_MINUTES?"REFUND_OVERDUE":"REFUND_PENDING","DELIVERED","OWNER",since,elapsed,now,active);}
             }
             for(var question:jdbc.queryForList("SELECT id,kind,DATE_FORMAT(created_at,'%Y-%m-%dT%H:%i:%sZ') since FROM product_questions WHERE is_active=1 AND status<>'ANSWERED' AND (answer IS NULL OR TRIM(answer)='')")) {
                 Instant since=instant(question.get("since"));if(since==null) continue;long elapsed=hours.minutes(since,now);
@@ -127,10 +130,14 @@ public class OrderTimersService {
     }
     /** Inventory: a batch with stock that is past its expiry date, or expires within the warning period (Tashkent dates). */
     private void batchExpiry(Instant now,Set<String> active) {
-        int warning=integer(jdbc.queryForObject("SELECT expiry_warning_days FROM inventory_settings WHERE id=1",Integer.class));
-        for(var batch:jdbc.queryForList("SELECT b.id,DATE_FORMAT(b.expiry_date,'%Y-%m-%d') expiry_date,DATEDIFF(b.expiry_date,DATE(CONVERT_TZ(?,'+00:00','+05:00'))) days_left "+
-                "FROM inventory_batches b JOIN inventory_products i ON i.product_id=b.product_id WHERE b.physical_quantity>0 AND b.expiry_date IS NOT NULL "+
-                "AND b.expiry_date<=DATE(CONVERT_TZ(?,'+00:00','+05:00'))+INTERVAL ? DAY",timestamp(now),timestamp(now),warning)) {
+        int general=integer(jdbc.queryForObject("SELECT expiry_warning_days FROM inventory_settings WHERE id=1",Integer.class));
+        // TZ v13 item 9: a product may have its own warning period (products.expiry_warning_days); empty = the general one.
+        String days="?";
+        try{jdbc.queryForList("SELECT expiry_warning_days FROM products LIMIT 0");days="COALESCE(p.expiry_warning_days,?)";}catch(org.springframework.dao.DataAccessException ex){/* not migrated yet */}
+        for(var batch:jdbc.queryForList("SELECT b.id,DATE_FORMAT(b.expiry_date,'%Y-%m-%d') expiry_date,DATEDIFF(b.expiry_date,DATE(CONVERT_TZ(?,'+00:00','+05:00'))) days_left,"+days+" warning "+
+                "FROM inventory_batches b JOIN inventory_products i ON i.product_id=b.product_id JOIN products p ON p.id=b.product_id WHERE b.physical_quantity>0 AND b.expiry_date IS NOT NULL "+
+                "AND b.expiry_date<=DATE(CONVERT_TZ(?,'+00:00','+05:00'))+INTERVAL "+days+" DAY",timestamp(now),general,timestamp(now),general)) {
+            int warning=((Number)batch.get("warning")).intValue();
             // Expired from the expiry date itself, as BatchStock stops selling it; expiring from the start of the warning period.
             boolean expired=((Number)batch.get("days_left")).longValue()<=0;
             Instant since=LocalDate.parse(String.valueOf(batch.get("expiry_date"))).minusDays(expired?0:warning).atStartOfDay(TASHKENT).toInstant();
@@ -191,7 +198,7 @@ public class OrderTimersService {
         var result=new LinkedHashMap<String,Object>();
         result.put("total",jdbc.queryForObject("SELECT COUNT(*) FROM order_problem_alerts WHERE resolved_at IS NULL"+visibleTypes(),Integer.class));
         result.put("last_scan",Objects.toString(jdbc.queryForObject("SELECT DATE_FORMAT(last_scanned_at,'%Y-%m-%dT%H:%i:%sZ') FROM order_timer_settings WHERE id=1",String.class),""));
-        if(com.ninimum.api.admin.access.StaffAccess.can("inventory.view"))for(String kind:List.of("STOCK_EXPIRED","STOCK_EXPIRING"))
+        if(com.ninimum.api.admin.access.StaffAccess.can("inventory.view")||com.ninimum.api.admin.access.StaffAccess.can("warehouse.view"))for(String kind:List.of("STOCK_EXPIRED","STOCK_EXPIRING"))
             result.put(kind.toLowerCase(),jdbc.queryForObject("SELECT COUNT(*) FROM order_problem_alerts WHERE resolved_at IS NULL AND entity_type='BATCH' AND kind=?",Integer.class,kind));
         return result;
     }
@@ -199,7 +206,7 @@ public class OrderTimersService {
     private static String visibleTypes() {
         if(owner())return "";
         String types="'ORDER'";
-        if(com.ninimum.api.admin.access.StaffAccess.can("inventory.view"))types+=",'BATCH'";
+        if(com.ninimum.api.admin.access.StaffAccess.can("inventory.view")||com.ninimum.api.admin.access.StaffAccess.can("warehouse.view"))types+=",'BATCH'";
         if(com.ninimum.api.admin.access.StaffAccess.can("reviews.view"))types+=",'QUESTION'";
         return " AND entity_type IN ("+types+")";
     }

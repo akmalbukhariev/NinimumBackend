@@ -109,6 +109,10 @@ public class JwtTokenProvider {
         } catch (IllegalArgumentException e) {
             log.error("JWT claims string is empty.", e);
             return Result.TOKEN_INVALID;
+        } catch (RuntimeException e) {
+            // TZ v13: any other broken token (bad base64, bad JSON) is an invalid token, not a server error.
+            log.warn("Unreadable JWT Token: {}", e.toString());
+            return Result.TOKEN_INVALID;
         }
     }
  

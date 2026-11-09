@@ -15,12 +15,12 @@ public final class ProductMetadata {
                 data.put("cost_price",value);
             } catch(Exception ex){throw new IllegalArgumentException("Invalid cost price");}
         }
-        for(String key:List.of("min_stock_quantity","shelf_life_days"))if(data.containsKey(key)) {
+        for(String key:List.of("min_stock_quantity","shelf_life_days","expiry_warning_days"))if(data.containsKey(key)) {
             Object raw=data.get(key);
             if(raw==null||raw.toString().isBlank())data.put(key,null);
             else try {
                 int value=new BigDecimal(raw.toString()).intValueExact();
-                if(value<0||(key.equals("shelf_life_days")&&(value==0||value>36500)))throw new ArithmeticException();
+                if(value<0||(key.equals("shelf_life_days")&&(value==0||value>36500))||(key.equals("expiry_warning_days")&&(value<1||value>365)))throw new ArithmeticException();
                 data.put(key,value);
             }catch(Exception ex){throw new IllegalArgumentException("Invalid "+key);}
         }
@@ -32,10 +32,10 @@ public final class ProductMetadata {
     }
     public static void normalize(AddProductParam p) {
         var data=new HashMap<String,Object>();
-        data.put("cost_price",p.getCost_price());data.put("min_stock_quantity",p.getMin_stock_quantity());data.put("shelf_life_days",p.getShelf_life_days());
+        data.put("cost_price",p.getCost_price());data.put("min_stock_quantity",p.getMin_stock_quantity());data.put("shelf_life_days",p.getShelf_life_days());data.put("expiry_warning_days",p.getExpiry_warning_days());
         data.put("storage_temperature",p.getStorage_temperature());data.put("storage_location",p.getStorage_location());data.put("ingredients",p.getIngredients());data.put("age_range",p.getAge_range());
         normalize(data);
-        p.setCost_price((BigDecimal)data.get("cost_price"));p.setMin_stock_quantity((Integer)data.get("min_stock_quantity"));p.setShelf_life_days((Integer)data.get("shelf_life_days"));
+        p.setCost_price((BigDecimal)data.get("cost_price"));p.setMin_stock_quantity((Integer)data.get("min_stock_quantity"));p.setShelf_life_days((Integer)data.get("shelf_life_days"));p.setExpiry_warning_days((Integer)data.get("expiry_warning_days"));
         p.setStorage_temperature((String)data.get("storage_temperature"));p.setStorage_location((String)data.get("storage_location"));p.setIngredients((String)data.get("ingredients"));p.setAge_range((String)data.get("age_range"));
     }
 }

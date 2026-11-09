@@ -27,7 +27,7 @@ public class TelegramNotifier {
         Map.entry("COURIER_REASSIGN", "Kuryer 3 ta taklifni qabul qilmadi"), Map.entry("PREPARATION_QUEUE", "Tayyorlash navbati kechikdi"),
         Map.entry("PREPARATION_DELAY", "Tayyorlash kechikdi"), Map.entry("COURIER_WAIT", "Kuryer biriktirilmagan"), Map.entry("TAXI_WAIT", "Taksi chaqirilmagan"), Map.entry("TAXI_PROBLEM", "Mijoz taksi bo‘yicha muammo yozdi"),
         Map.entry("COURIER_PICKUP", "Kuryer olib ketishi kechikdi"), Map.entry("DELIVERY_DELAY", "Yetkazish kechikdi"),
-        Map.entry("REFUND_PENDING", "Pulni qaytarish kutilmoqda"), Map.entry("UNANSWERED_QUESTION", "Savol yoki shikoyat javobsiz"),
+        Map.entry("REFUND_PENDING", "Pulni qaytarish kutilmoqda"), Map.entry("REFUND_OVERDUE", "Pul 24 soatdan beri qaytarilmagan"), Map.entry("UNANSWERED_QUESTION", "Savol yoki shikoyat javobsiz"),
         Map.entry("STOCK_EXPIRED", "Partiya muddati o‘tgan"), Map.entry("STOCK_EXPIRING", "Partiya muddati yaqin"));
     private final JdbcTemplate jdbc;
     private final String token, adminUrl;

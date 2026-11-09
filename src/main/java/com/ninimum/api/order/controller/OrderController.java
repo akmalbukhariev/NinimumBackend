@@ -144,6 +144,13 @@ public class OrderController extends BaseController {
 
         try {
             param.setUserId(customer.id());
+            if (!com.ninimum.api.common.Reasons.ok(param.getReason())) {
+                result = new VersionResponseResult();
+                result.setApiVersion(com.ninimum.api.constants.Constant.api_version);
+                result.setResultCode(com.ninimum.api.common.Reasons.CODE);
+                result.setResultMsg(com.ninimum.api.common.Reasons.MESSAGE);
+                return new ResponseEntity<>(result, HttpStatus.OK);
+            }
             int resultNum = this.orderService.cancelOrder(param);
 
             if (resultNum != 0) {

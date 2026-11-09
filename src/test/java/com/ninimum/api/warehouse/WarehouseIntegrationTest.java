@@ -59,6 +59,7 @@ class WarehouseIntegrationTest {
         transactions=new DataSourceTransactionManager(ds);tx=new TransactionTemplate(transactions);
         WarehouseService target=new WarehouseService(jdbc);
         ReflectionTestUtils.setField(target,"enabled",true);target.verifySchema();service=proxy(target);
+        target.allowUnregisteredSupplier=true;
     }
     void migrate() {
         new ResourceDatabasePopulator(new FileSystemResource("src/test/resources/live-schema-fixtures/warehouse-step1.sql")).execute(ds);
@@ -131,6 +132,11 @@ class WarehouseIntegrationTest {
         assertEquals(20,costs.get("threshold_percent"));assertEquals(0,new java.math.BigDecimal("10").compareTo((java.math.BigDecimal)((Map<?,?>)costs.get("costs")).get("1")));
         assertFalse(((Map<?,?>)costs.get("costs")).containsKey("2"));
         assertEquals(false,as("owner","SUPER_ADMIN",()->service.previousCosts(List.of(1L)).get("note_required")),"Q-4 is off for the owner by default");
+    }
+    // TZ v13 item 3: a receipt needs a supplier from the list.
+    @Test void receiptWithoutRegisteredSupplierIsRefused() {
+        WarehouseService strict=new WarehouseService(jdbc);ReflectionTestUtils.setField(strict,"enabled",true);
+        assertEquals("WAREHOUSE_SUPPLIER_REQUIRED",assertThrows(WarehouseException.class,()->strict.createReceipt(Map.of("supplier_name","Typed name","items",List.of()))).getMessage());
     }
     @Test void reversalPreservesOriginalAndCannotRepeat() {
         long id=receipt(5);post(id);service.reverseReceipt(id,"Wrong invoice");service.reverseReceipt(id,"Retry");

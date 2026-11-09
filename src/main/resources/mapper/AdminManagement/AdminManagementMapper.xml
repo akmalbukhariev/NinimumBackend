@@ -170,6 +170,7 @@
       <if test="_parameter.containsKey('cost_price')">cost_price=#{cost_price,jdbcType=DECIMAL},</if>
       <if test="_parameter.containsKey('min_stock_quantity')">min_stock_quantity=#{min_stock_quantity,jdbcType=INTEGER},</if>
       <if test="_parameter.containsKey('shelf_life_days')">shelf_life_days=#{shelf_life_days,jdbcType=INTEGER},</if>
+      <if test="_parameter.containsKey('expiry_warning_days')">expiry_warning_days=#{expiry_warning_days,jdbcType=INTEGER},</if>
       <if test="_parameter.containsKey('storage_temperature')">storage_temperature=#{storage_temperature,jdbcType=VARCHAR},</if>
       <if test="_parameter.containsKey('storage_location')">storage_location=#{storage_location,jdbcType=VARCHAR},</if>
       <if test="_parameter.containsKey('ingredients')">ingredients=#{ingredients,jdbcType=VARCHAR},</if>

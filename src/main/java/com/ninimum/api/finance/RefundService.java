@@ -48,7 +48,15 @@ public class RefundService {
             done.addAll(jdbc.queryForList("SELECT o.id order_id,o.order_number,r.kind,r.amount,a.name place,r.note,DATE_FORMAT(r.refund_date,'%Y-%m-%d') refunded_at,r.created_by," + CUSTOMER +
                     " FROM customer_refunds r JOIN orders o ON o.id=r.order_id LEFT JOIN users u ON u.id=o.user_id LEFT JOIN finance_accounts a ON a.id=r.account_id WHERE r.created_at>DATE_SUB(UTC_TIMESTAMP(),INTERVAL 60 DAY) ORDER BY r.id DESC"));
         } catch (DataAccessException ex) { /* table not migrated yet */ }
+        // TZ v13 item 1: customer phones only for staff who may see customers; others see the last 2 digits.
+        if (!com.ninimum.api.admin.access.StaffAccess.can("customers.view"))
+            for (var list : List.of(pending, done)) for (var row : list) row.put("customer_phone", mask(row.get("customer_phone")));
         return Map.of("pending", pending, "done", done);
+    }
+    static String mask(Object phone) {
+        if (phone == null) return null;
+        String digits = String.valueOf(phone).replaceAll("\\D", "");
+        return digits.length() < 2 ? "***" : "*** ** " + digits.substring(digits.length() - 2);
     }
 
     /** Records a partial-return refund paid outside Payme. */

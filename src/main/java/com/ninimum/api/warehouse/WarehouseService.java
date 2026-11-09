@@ -160,6 +160,9 @@ public class WarehouseService {
         try{var notes=new HashMap<Long,Object>();for(var n:jdbc.queryForList("SELECT product_id,price_note FROM warehouse_receipt_items WHERE receipt_id=? AND price_note IS NOT NULL",id))notes.put(((Number)n.get("product_id")).longValue(),n.get("price_note"));
             for(var item:(List<Map<String,Object>>)result.get("items"))if(notes.containsKey(((Number)item.get("product_id")).longValue()))item.put("price_note",notes.get(((Number)item.get("product_id")).longValue()));}
         catch(org.springframework.dao.DataAccessException ex){/* not migrated yet */}
+        // TZ v13 item 8: product weight per piece for the receipt total (skipped where the column is missing).
+        try{for(var item:(List<Map<String,Object>>)result.get("items"))item.put("weight_gram",jdbc.queryForObject("SELECT weight_gram FROM products WHERE id=?",Object.class,item.get("product_id")));}
+        catch(org.springframework.dao.DataAccessException ex){/* no weight column */}
         if(!"DRAFT".equals(result.get("status"))) {
             var counted=new HashMap<Long,Map<String,Object>>();
             for(var c:jdbc.queryForList("SELECT * FROM warehouse_receipt_counts WHERE receipt_id=?",id))counted.put(((Number)c.get("product_id")).longValue(),c);
@@ -173,10 +176,14 @@ public class WarehouseService {
         return result;
     }
 
+    /** Tests without the supplier tables may still type a supplier name. */
+    boolean allowUnregisteredSupplier = false;
     @Transactional public long createReceipt(Map<String,Object> body) {
         requireEnabled();
         com.ninimum.api.finance.PeriodClose.guardToday();
         Long supplierId = body.get("supplier_id")==null ? null : positive(body.get("supplier_id"));
+        // TZ v13 item 3: goods come only from a supplier in the list, so the debt lands on its account.
+        if(supplierId==null && !allowUnregisteredSupplier) throw new WarehouseException("WAREHOUSE_SUPPLIER_REQUIRED");
         Map<String,Object> registeredSupplier = supplierId==null ? null : one("SELECT name,payment_term_days FROM suppliers WHERE id=? AND is_active=1 FOR UPDATE",supplierId);
         String supplier = registeredSupplier==null ? text(body.get("supplier_name"),160,true) : String.valueOf(registeredSupplier.get("name"));
         BigDecimal invoiceAmount = supplierId==null ? null : SupplierService.invoiceAmount(body.get("invoice_amount"));

@@ -71,7 +71,8 @@
             COUNT(*) AS count
         FROM (
             SELECT
-                o.status AS status
+                <!-- TZ v13 item 4: an order not paid yet is not being prepared; it is counted as UNPAID. -->
+                CASE WHEN o.status IN ('PENDING','CONFIRMED','PREPARING','READY') AND COALESCE(o.payment_status,'') &lt;&gt; 'PAID' THEN 'UNPAID' ELSE o.status END AS status
             FROM orders o
             LEFT JOIN delivery_jobs dj
                 ON dj.id = (

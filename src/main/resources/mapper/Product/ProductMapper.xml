@@ -17,7 +17,7 @@
                 brand,
                 price,
                 subscription_price,
-                cost_price,min_stock_quantity,shelf_life_days,storage_temperature,storage_location,ingredients,age_range,
+                cost_price,min_stock_quantity,shelf_life_days,expiry_warning_days,storage_temperature,storage_location,ingredients,age_range,
                 stock_quantity,
                 weight_gram,
                 is_featured
@@ -35,7 +35,7 @@
                 #{brand},
                 #{price},
                 #{subscription_price},
-                #{cost_price},#{min_stock_quantity},#{shelf_life_days},#{storage_temperature},#{storage_location},#{ingredients},#{age_range},
+                #{cost_price},#{min_stock_quantity},#{shelf_life_days},#{expiry_warning_days},#{storage_temperature},#{storage_location},#{ingredients},#{age_range},
                 #{stock_quantity},
                 #{weight_gram},
                 IFNULL(#{is_featured}, FALSE)
