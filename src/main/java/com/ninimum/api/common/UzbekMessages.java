@@ -46,6 +46,11 @@ public final class UzbekMessages {
         put("Buyurtma holatini tanlang.", "Order status is required");
         put("Bekor qilish sababini yozing.", "Cancellation reason is required");
         put("Sababni yozing (1–500 belgi).", "A reason of 1–500 characters is required");
+        put("Izohni yozing (1–500 belgi).", "A note of 1–500 characters is required");
+        put("Bu buyurtma hali yetkazilmagan.", "This order is not delivered yet");
+        put("Yetkazilgan joyda tovarni rasmga oling.", "DELIVERY_PHOTO_REQUIRED");
+        put("Rasm juda katta. Qaytadan rasmga oling.", "DELIVERY_PHOTO_TOO_LARGE");
+        put("Rasm o‘qilmadi. Qaytadan rasmga oling.", "DELIVERY_PHOTO_INVALID");
         put("Bu buyurtmani bekor qilib bo‘lmaydi.", "This order cannot be cancelled");
         put("Buyurtma o‘zgargan. Sahifani yangilab, qayta urinib ko‘ring.", "The order changed. Refresh it and try again", "Delivery changed; refresh the order");
         put("Buyurtmani ombor va kuryer ilovalari orqali yuriting. Bu yerda faqat bekor qilish mumkin.", "Use the warehouse and courier apps to advance the order. Only cancellation is allowed here.");

@@ -108,7 +108,7 @@ public class DeliveryAppController extends BaseController {
     @Operation(summary = "Claim an available delivery", security = @SecurityRequirement(name = "bearerAuth"))
     @PutMapping("/claim")
     public ResponseEntity<Object> claim(Authentication auth, @RequestBody DeliveryAppJobParam param) {
-        return execute(() -> { service.claimJob(auth.getName(), param.getJobId()); return null; });
+        return execute(() -> { service.claimJob(auth.getName(), param.getJobId()); stamp(param.getJobId(), param.getLatitude(), param.getLongitude(), param.getAccuracy(), param.getMock(), param.getLocationError()); return null; });
     }
 
     @Operation(summary = "Decline a delivery offer", security = @SecurityRequirement(name = "bearerAuth"))
@@ -120,19 +120,19 @@ public class DeliveryAppController extends BaseController {
     @Operation(summary = "Claim multiple available deliveries", security = @SecurityRequirement(name = "bearerAuth"))
     @PutMapping("/claim-batch")
     public ResponseEntity<Object> claimBatch(Authentication auth, @RequestBody DeliveryAppBatchJobParam param) {
-        return execute(() -> { service.claimJobs(auth.getName(), param); return null; });
+        return execute(() -> { service.claimJobs(auth.getName(), param); stampAll(param); return null; });
     }
 
     @Operation(summary = "Start multiple accepted deliveries", security = @SecurityRequirement(name = "bearerAuth"))
     @PutMapping("/start-batch")
     public ResponseEntity<Object> startBatch(Authentication auth, @RequestBody DeliveryAppBatchJobParam param) {
-        return execute(() -> { service.startJobs(auth.getName(), param); return null; });
+        return execute(() -> { service.startJobs(auth.getName(), param); stampAll(param); return null; });
     }
 
     @Operation(summary = "Update delivery status", security = @SecurityRequirement(name = "bearerAuth"))
     @PutMapping("/status")
     public ResponseEntity<Object> status(Authentication auth, @RequestBody DeliveryAppStatusParam param) {
-        return execute(() -> { service.updateStatus(auth.getName(), param); return null; });
+        return execute(() -> { service.updateStatus(auth.getName(), param); stamp(param.getJobId(), param.getLatitude(), param.getLongitude(), param.getAccuracy(), param.getMock(), param.getLocationError()); return null; });
     }
 
     @Operation(summary = "Set courier online/offline", security = @SecurityRequirement(name = "bearerAuth"))
@@ -156,4 +156,13 @@ public class DeliveryAppController extends BaseController {
 
     @FunctionalInterface
     private interface DeliveryAction { Object run() throws Exception; }
+
+    // Courier GPS V1a: the phone's location is put on the action just saved; failures never block the courier.
+    @org.springframework.beans.factory.annotation.Autowired private com.ninimum.api.deliveryapp.service.DeliveryProof proof;
+    private void stamp(Long jobId, Double lat, Double lon, Double accuracy, Boolean mock, String error) {
+        if (jobId != null && proof != null) proof.stamp(jobId, lat, lon, accuracy, mock, error);
+    }
+    private void stampAll(com.ninimum.api.param.DeliveryAppBatchJobParam param) {
+        if (param.getJobIds() != null) for (Long id : param.getJobIds()) stamp(id, param.getLatitude(), param.getLongitude(), param.getAccuracy(), param.getMock(), param.getLocationError());
+    }
 }

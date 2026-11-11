@@ -26,13 +26,20 @@ public class OrderService implements IOrderService {
     private final OrderMapper orderMapper;
     @org.springframework.beans.factory.annotation.Autowired private com.ninimum.api.warehouse.WarehouseService warehouse;
     @org.springframework.beans.factory.annotation.Autowired(required=false) private com.ninimum.api.taxi.TaxiDelivery taxi;
+    @org.springframework.beans.factory.annotation.Autowired(required=false) private com.ninimum.api.deliveryapp.service.DeliveryProof proof;
 
     @Value("${file.access.url}")
     private String fileAccessUrl;
 
     @Override
     public List<OrderDto> getOrderList(OrderListParam param) throws Exception {
-        return orderMapper.getOrderList(param);
+        List<OrderDto> list = orderMapper.getOrderList(param);
+        // Courier GPS V1a: which delivered orders still ask the customer to confirm receipt.
+        if (proof != null && list != null) {
+            var states = proof.confirmations(list.stream().map(OrderDto::getOrderId).filter(java.util.Objects::nonNull).toList());
+            for (OrderDto o : list) o.setDeliveryConfirm(states.get(o.getOrderId()));
+        }
+        return list;
     }
 
     @Override
@@ -297,6 +304,7 @@ public class OrderService implements IOrderService {
         if (result == null) {
             throw new Exception("Order not found");
         }
+        if (proof != null) result.setDeliveryConfirm(proof.confirmations(java.util.List.of(result.getOrderId())).get(result.getOrderId()));
 
         return result;
     }

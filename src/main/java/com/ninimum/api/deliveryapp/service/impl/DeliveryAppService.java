@@ -25,6 +25,7 @@ public class DeliveryAppService implements IDeliveryAppService {
     private final com.ninimum.api.deliveryapp.service.ReturnPhotoService returnPhotos;
     private final com.ninimum.api.deliveryapp.service.PartialReturnService partialReturns;
     private final com.ninimum.api.warehouse.WarehouseAppService warehouseApp;
+    private final com.ninimum.api.deliveryapp.service.DeliveryProof proof;
 
     @Value("${file.access.url}")
     private String fileAccessUrl;
@@ -257,6 +258,11 @@ public class DeliveryAppService implements IDeliveryAppService {
         if ("FAILED".equals(current) && "FAILED".equals(next)
                 && returnPhotos.matches(param.getJobId(), param.getNote() == null ? "" : param.getNote().trim(), param.getPhotoBase64()))
             return 1;
+        // Courier GPS V1a: "Yetkazildi" needs a camera photo (once the photo table exists). A retry with the same photo is accepted.
+        boolean photoNeeded = "DELIVERED".equals(next) && proof.photoStorage();
+        if ("DELIVERED".equals(current) && "DELIVERED".equals(next) && photoNeeded && proof.sameDelivered(param.getJobId(), param.getPhotoBase64()))
+            return 1;
+        byte[] deliveredPhoto = photoNeeded && "ON_THE_WAY".equals(current) ? proof.requirePhoto(param.getPhotoBase64()) : null;
         String orderStatus = null;
         if ("ACCEPTED".equals(current) && "ON_THE_WAY".equals(next)) {
             orderStatus = "ON_THE_WAY";
@@ -277,6 +283,8 @@ public class DeliveryAppService implements IDeliveryAppService {
 
         if ("FAILED".equals(next))
             returnPhotos.save(param.getJobId(), workerId, param.getNote(), param.getPhotoBase64());
+        if (deliveredPhoto != null)
+            proof.savePhoto(param.getJobId(), workerId, deliveredPhoto, param.getPhotoBase64());
 
         if (orderStatus != null) {
             if (mapper.updateOrderStatusForJob(param.getJobId(), orderStatus) != 1) throw new Exception("Order status changed; refresh the delivery");

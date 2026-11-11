@@ -17,4 +17,6 @@ public class OrderProcessDto {
     private String taxiDriverPhone;
     private String taxiCarNumber;
     private java.math.BigDecimal taxiFare;
+    /** Courier GPS V1a: ASK (show "Mahsulotni oldim / Muammo bor"), RECEIVED, PROBLEM or null. */
+    private String deliveryConfirm;
 }

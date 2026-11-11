@@ -51,6 +51,8 @@ public class OrderTimersService {
             event("SETTINGS",1,"TIMERS","UPDATED",OrderAuditActor.current(),Instant.now());
         });
     }
+    /** A database yes: TINYINT(1) comes back as Boolean, expressions as numbers. */
+    private static boolean yes(Object value){return Boolean.TRUE.equals(value)||(value instanceof Number n&&n.intValue()!=0);}
     private static int integer(Object value) {
         try { return new java.math.BigDecimal(String.valueOf(value)).intValueExact(); }
         catch(Exception ex) {throw new IllegalArgumentException("Invalid number");}
@@ -103,6 +105,7 @@ public class OrderTimersService {
                     if(since!=null) open("ORDER",((Number)taxi.get("order_id")).longValue(),"TAXI_PROBLEM","ON_THE_WAY","OPERATOR",since,Math.max(0,Duration.between(since,now).toMinutes()),now,active);
                 }
             } catch(org.springframework.dao.DataAccessException ex) { /* taxi tables not migrated yet */ }
+            deliveryProof(now,active);
             for(var partial:jdbc.queryForList("SELECT pr.order_id,DATE_FORMAT(pr.created_at,'%Y-%m-%dT%H:%i:%sZ') since FROM delivery_partial_returns pr JOIN orders o ON o.id=pr.order_id WHERE pr.refund_status='PENDING' AND pr.refund_amount>0 AND o.payment_status='PAID'")) {
                 Instant since=instant(partial.get("since"));
                 if(since!=null){long elapsed=Math.max(0,Duration.between(since,now).toMinutes());open("ORDER",((Number)partial.get("order_id")).longValue(),elapsed>=REFUND_OVERDUE_MINUTES?"REFUND_OVERDUE":"REFUND_PENDING","DELIVERED","OWNER",since,elapsed,now,active);}
@@ -127,6 +130,92 @@ public class OrderTimersService {
         // Only after the commit, so a rolled-back scan never sends a message.
         if(telegram!=null)for(Object[] a:openedNow)telegram.opened((String)a[0],(Long)a[1],(String)a[2],(Long)a[3]);
         openedNow.clear();
+    }
+    /**
+     * Courier GPS V1a: proof of safe delivery. Only actions recorded by the new courier app (with a location or a location error).
+     * An alert stays until the customer confirms receipt (for distance and missing GPS) or an admin presses "Tekshirildi"; at most 7 days.
+     */
+    private void deliveryProof(Instant now,Set<String> active) {
+        try {
+            for(var row:jdbc.queryForList("SELECT j.order_id,t.status,t.distance_m,t.accuracy_m,t.is_mock,t.location_error,DATE_FORMAT(t.created_at,'%Y-%m-%dT%H:%i:%sZ') since,o.status order_status,"+
+                    "c.received_at IS NOT NULL received FROM delivery_job_tracking t JOIN delivery_jobs j ON j.id=t.delivery_job_id JOIN orders o ON o.id=j.order_id "+
+                    "LEFT JOIN delivery_confirmations c ON c.order_id=j.order_id WHERE t.created_at>=NOW()-INTERVAL 7 DAY AND (t.latitude IS NOT NULL OR t.location_error IS NOT NULL) AND c.checked_at IS NULL")) {
+                long id=((Number)row.get("order_id")).longValue();Instant since=instant(row.get("since"));if(since==null)continue;
+                String status=String.valueOf(row.get("status")),orderStatus=String.valueOf(row.get("order_status"));
+                boolean received=yes(row.get("received"));
+                long elapsed=Math.max(0,Duration.between(since,now).toMinutes());
+                if(yes(row.get("is_mock")))open("ORDER",id,"GPS_MOCK",orderStatus,"DISPATCHER",since,elapsed,now,active);
+                Integer distance=row.get("distance_m")==null?null:((Number)row.get("distance_m")).intValue();
+                double accuracy=row.get("accuracy_m")==null?0:Math.min(100,((Number)row.get("accuracy_m")).doubleValue());
+                boolean far=distance!=null&&distance>com.ninimum.api.deliveryapp.service.DeliveryProof.FAR_METERS+accuracy;
+                if("DELIVERED".equals(status)&&!received){
+                    if(far)open("ORDER",id,"DELIVERED_FAR",orderStatus,"DISPATCHER",since,elapsed,now,active);
+                    else if(row.get("location_error")!=null)open("ORDER",id,"DELIVERED_NO_GPS",orderStatus,"DISPATCHER",since,elapsed,now,active);
+                }
+                if("FAILED".equals(status)&&far)open("ORDER",id,"RETURN_FAR",orderStatus,"DISPATCHER",since,elapsed,now,active);
+            }
+            for(var row:jdbc.queryForList("SELECT c.order_id,DATE_FORMAT(c.problem_at,'%Y-%m-%dT%H:%i:%sZ') since,o.status FROM delivery_confirmations c JOIN orders o ON o.id=c.order_id "+
+                    "WHERE c.problem IS NOT NULL AND c.received_at IS NULL AND c.checked_at IS NULL AND c.problem_at>=UTC_TIMESTAMP()-INTERVAL 7 DAY")) {
+                Instant since=instant(row.get("since"));
+                if(since!=null)open("ORDER",((Number)row.get("order_id")).longValue(),"CUSTOMER_PROBLEM",String.valueOf(row.get("status")),"OPERATOR",since,Math.max(0,Duration.between(since,now).toMinutes()),now,active);
+            }
+            // No answer from the customer within 2 hours of "Yetkazildi": a quiet alert (Muammolar only).
+            for(var row:jdbc.queryForList("SELECT j.order_id,DATE_FORMAT(MAX(t.created_at),'%Y-%m-%dT%H:%i:%sZ') since FROM delivery_job_tracking t JOIN delivery_jobs j ON j.id=t.delivery_job_id "+
+                    "JOIN orders o ON o.id=j.order_id LEFT JOIN delivery_confirmations c ON c.order_id=j.order_id WHERE t.status='DELIVERED' AND o.status='DELIVERED' "+
+                    "AND (t.latitude IS NOT NULL OR t.location_error IS NOT NULL) AND t.created_at<=NOW()-INTERVAL 2 HOUR AND t.created_at>=NOW()-INTERVAL 7 DAY "+
+                    "AND c.received_at IS NULL AND c.problem IS NULL AND c.checked_at IS NULL GROUP BY j.order_id")) {
+                Instant since=instant(row.get("since"));
+                if(since!=null)open("ORDER",((Number)row.get("order_id")).longValue(),"NOT_CONFIRMED","DELIVERED","OPERATOR",since,Math.max(0,Duration.between(since,now).toMinutes()),now,active);
+            }
+        } catch(org.springframework.dao.DataAccessException ex) { /* migration 20261111 not applied yet */ }
+        courierTracking(now,active);
+    }
+    /**
+     * Courier GPS V1c: rules on the background positions, only while the courier carries orders (ON_THE_WAY)
+     * and only for couriers whose phone sends positions (new courier app).
+     *  - COURIER_NO_SIGNAL: no position for 10 minutes.
+     *  - COURIER_LONG_STOP: stood within 100 m for 15+ minutes, more than 300 m from every customer of the orders carried.
+     *  - COURIER_OUT_OF_AREA: more than 25 km from Shahrisabz.
+     * Each closes by itself when the reason is gone or the order leaves ON_THE_WAY.
+     */
+    static final double CITY_LAT=39.0578, CITY_LON=66.8342, CITY_KM=25;
+    private void courierTracking(Instant now,Set<String> active) {
+        try {
+            var carried=jdbc.queryForList("SELECT j.order_id,j.delivery_worker_id worker,DATE_FORMAT(j.on_the_way_at,'%Y-%m-%dT%H:%i:%sZ') started,"+
+                    "COALESCE(o.delivery_latitude,u.location_latitude) lat,COALESCE(o.delivery_longitude,u.location_longitude) lon,"+
+                    "DATE_FORMAT(l.recorded_at,'%Y-%m-%dT%H:%i:%sZ') last_at,l.latitude last_lat,l.longitude last_lon "+
+                    "FROM delivery_jobs j JOIN orders o ON o.id=j.order_id AND o.status='ON_THE_WAY' LEFT JOIN users u ON u.id=o.user_id "+
+                    "JOIN courier_last_location l ON l.worker_id=j.delivery_worker_id WHERE j.status='ON_THE_WAY' AND j.delivery_worker_id IS NOT NULL");
+            var byWorker=new HashMap<Long,List<Map<String,Object>>>();
+            for(var r:carried)byWorker.computeIfAbsent(((Number)r.get("worker")).longValue(),k->new ArrayList<>()).add(r);
+            for(var e:byWorker.entrySet()) {
+                var orders=e.getValue();var first=orders.get(0);
+                Instant lastAt=instant(first.get("last_at"));if(lastAt==null)continue;
+                Instant started=instant(first.get("started"));
+                // No signal: counted from the last position, but never from before the order left.
+                Instant silentSince=started!=null&&started.isAfter(lastAt)?started:lastAt;
+                if(Duration.between(silentSince,now).toMinutes()>=10)
+                    for(var o:orders)open("ORDER",((Number)o.get("order_id")).longValue(),"COURIER_NO_SIGNAL","ON_THE_WAY","DISPATCHER",silentSince,Duration.between(silentSince,now).toMinutes(),now,active);
+                double lastLat=((Number)first.get("last_lat")).doubleValue(),lastLon=((Number)first.get("last_lon")).doubleValue();
+                if(com.ninimum.api.deliveryapp.service.DeliveryProof.meters(lastLat,lastLon,CITY_LAT,CITY_LON)>CITY_KM*1000)
+                    for(var o:orders)open("ORDER",((Number)o.get("order_id")).longValue(),"COURIER_OUT_OF_AREA","ON_THE_WAY","DISPATCHER",lastAt,Math.max(0,Duration.between(lastAt,now).toMinutes()),now,active);
+                // Long stop: positions of the last 30 minutes, newest backwards while they stay within 100 m.
+                var pts=jdbc.queryForList("SELECT DATE_FORMAT(recorded_at,'%Y-%m-%dT%H:%i:%sZ') t,latitude lat,longitude lon,accuracy_m acc FROM courier_locations "+
+                        "WHERE worker_id=? AND recorded_at>=? ORDER BY recorded_at DESC",e.getKey(),timestamp(now.minus(Duration.ofMinutes(30))));
+                Instant stopSince=null;
+                for(var p:pts){
+                    if(p.get("acc")!=null&&((Number)p.get("acc")).doubleValue()>100)continue;
+                    if(com.ninimum.api.deliveryapp.service.DeliveryProof.meters(((Number)p.get("lat")).doubleValue(),((Number)p.get("lon")).doubleValue(),lastLat,lastLon)>100)break;
+                    stopSince=instant(p.get("t"));
+                }
+                if(stopSince!=null&&started!=null&&stopSince.isBefore(started))stopSince=started;
+                if(stopSince==null||Duration.between(stopSince,lastAt).toMinutes()<15||Duration.between(lastAt,now).toMinutes()>=10)continue;
+                boolean nearCustomer=false;
+                for(var o:orders)if(o.get("lat")!=null&&o.get("lon")!=null&&com.ninimum.api.deliveryapp.service.DeliveryProof.meters(lastLat,lastLon,((Number)o.get("lat")).doubleValue(),((Number)o.get("lon")).doubleValue())<=300)nearCustomer=true;
+                if(!nearCustomer)
+                    for(var o:orders)open("ORDER",((Number)o.get("order_id")).longValue(),"COURIER_LONG_STOP","ON_THE_WAY","DISPATCHER",stopSince,Math.max(0,Duration.between(stopSince,now).toMinutes()),now,active);
+            }
+        } catch(org.springframework.dao.DataAccessException ex) { /* migration 20261111_courier_tracking not applied yet */ }
     }
     /** Inventory: a batch with stock that is past its expiry date, or expires within the warning period (Tashkent dates). */
     private void batchExpiry(Instant now,Set<String> active) {

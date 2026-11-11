@@ -28,7 +28,14 @@ public class TelegramNotifier {
         Map.entry("PREPARATION_DELAY", "Tayyorlash kechikdi"), Map.entry("COURIER_WAIT", "Kuryer biriktirilmagan"), Map.entry("TAXI_WAIT", "Taksi chaqirilmagan"), Map.entry("TAXI_PROBLEM", "Mijoz taksi bo‘yicha muammo yozdi"),
         Map.entry("COURIER_PICKUP", "Kuryer olib ketishi kechikdi"), Map.entry("DELIVERY_DELAY", "Yetkazish kechikdi"),
         Map.entry("REFUND_PENDING", "Pulni qaytarish kutilmoqda"), Map.entry("REFUND_OVERDUE", "Pul 24 soatdan beri qaytarilmagan"), Map.entry("UNANSWERED_QUESTION", "Savol yoki shikoyat javobsiz"),
-        Map.entry("STOCK_EXPIRED", "Partiya muddati o‘tgan"), Map.entry("STOCK_EXPIRING", "Partiya muddati yaqin"));
+        Map.entry("STOCK_EXPIRED", "Partiya muddati o‘tgan"), Map.entry("STOCK_EXPIRING", "Partiya muddati yaqin"),
+        Map.entry("DELIVERED_FAR", "«Yetkazildi» mijoz manzilidan uzoqda bosildi"), Map.entry("DELIVERED_NO_GPS", "«Yetkazildi» joylashuvsiz bosildi"),
+        Map.entry("RETURN_FAR", "«Yetkazilmadi» mijoz manziliga bormasdan bosildi"), Map.entry("GPS_MOCK", "Kuryer telefonida soxta GPS"),
+        Map.entry("CUSTOMER_PROBLEM", "Mijoz buyurtma bo‘yicha muammo yozdi"), Map.entry("NOT_CONFIRMED", "Mijoz qabul qilganini tasdiqlamadi"),
+        Map.entry("COURIER_NO_SIGNAL", "Kuryerdan 10 daqiqadan beri signal yo‘q"), Map.entry("COURIER_LONG_STOP", "Kuryer uzoq vaqt bir joyda turibdi"),
+        Map.entry("COURIER_OUT_OF_AREA", "Kuryer shahar hududidan chiqdi"));
+    /** Quiet kinds: shown in Muammolar only, never sent to Telegram. */
+    static final java.util.Set<String> QUIET = java.util.Set.of("NOT_CONFIRMED");
     private final JdbcTemplate jdbc;
     private final String token, adminUrl;
     private final List<String> chats;
@@ -44,7 +51,7 @@ public class TelegramNotifier {
 
     /** Called after the timer scan committed, once per newly opened alert. */
     public void opened(String type, long id, String kind, long elapsedMinutes) {
-        if (!enabled()) return;
+        if (!enabled() || QUIET.contains(kind)) return;
         String text;
         try { text = message(type, id, kind, elapsedMinutes); } catch (RuntimeException ex) { log.warn("Telegram alert text failed for {} {}", type, id); return; }
         for (String chat : chats) sender.submit(() -> send(chat, text));

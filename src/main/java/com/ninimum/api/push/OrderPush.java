@@ -43,7 +43,7 @@ public class OrderPush {
             case "CONFIRMED" -> "To‘lov qabul qilindi. Buyurtmangizni tayyorlaymiz.";
             case "READY" -> taxi ? "Buyurtmangiz tayyor. Taksi chaqirilmoqda." : "Buyurtmangiz tayyor. Kuryer tez orada olib ketadi.";
             case "ON_THE_WAY" -> taxi ? "Buyurtmangiz taksi orqali yo‘lga chiqdi." : "Buyurtmangiz yo‘lga chiqdi. Kuryer tez orada yetkazib beradi.";
-            case "DELIVERED" -> "Buyurtmangiz yetkazildi. Xaridingiz uchun rahmat!";
+            case "DELIVERED" -> "Buyurtmangiz yetkazildi. Mahsulotni olganingizni ilovada tasdiqlang.";
             case "CANCELLED" -> "Buyurtmangiz bekor qilindi.";
             default -> null;
         };

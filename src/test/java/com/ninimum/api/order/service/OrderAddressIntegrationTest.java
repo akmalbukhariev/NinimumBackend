@@ -182,7 +182,7 @@ class OrderAddressIntegrationTest {
         jdbc.update("UPDATE delivery_jobs SET status='ON_THE_WAY',delivery_worker_id=9 WHERE id=?",job);
         var courier=new com.ninimum.api.deliveryapp.service.impl.DeliveryAppService(deliveries,
             org.mockito.Mockito.mock(org.springframework.security.crypto.password.PasswordEncoder.class),org.mockito.Mockito.mock(com.ninimum.api.deliveryapp.dispatch.CourierDispatch.class),new com.ninimum.api.security.login.LoginAttempts(jdbc,new org.springframework.jdbc.datasource.DataSourceTransactionManager(jdbc.getDataSource())),returnPhotos,new com.ninimum.api.deliveryapp.service.PartialReturnService(jdbc,returnPhotos),
-            org.mockito.Mockito.mock(com.ninimum.api.warehouse.WarehouseAppService.class));
+            org.mockito.Mockito.mock(com.ninimum.api.warehouse.WarehouseAppService.class),new com.ninimum.api.deliveryapp.service.DeliveryProof(jdbc));
         var tx=new org.springframework.transaction.support.TransactionTemplate(new org.springframework.jdbc.datasource.DataSourceTransactionManager(jdbc.getDataSource()));
         var request=new com.ninimum.api.param.DeliveryAppStatusParam();request.setJobId(job);request.setStatus("FAILED");request.setNote("   ");
         assertThrows(Exception.class,()->courier.updateStatus("DEL001",request));
@@ -360,7 +360,7 @@ class OrderAddressIntegrationTest {
                 org.mockito.Mockito.mock(com.ninimum.api.warehouse.WarehouseService.class),returnPhotos);
         org.springframework.test.util.ReflectionTestUtils.setField(warehouse,"enabled",true);
         var courier=new com.ninimum.api.deliveryapp.service.impl.DeliveryAppService(deliveries,
-                org.mockito.Mockito.mock(org.springframework.security.crypto.password.PasswordEncoder.class),org.mockito.Mockito.mock(com.ninimum.api.deliveryapp.dispatch.CourierDispatch.class),new com.ninimum.api.security.login.LoginAttempts(jdbc,new org.springframework.jdbc.datasource.DataSourceTransactionManager(jdbc.getDataSource())),returnPhotos,new com.ninimum.api.deliveryapp.service.PartialReturnService(jdbc,returnPhotos),warehouse);
+                org.mockito.Mockito.mock(org.springframework.security.crypto.password.PasswordEncoder.class),org.mockito.Mockito.mock(com.ninimum.api.deliveryapp.dispatch.CourierDispatch.class),new com.ninimum.api.security.login.LoginAttempts(jdbc,new org.springframework.jdbc.datasource.DataSourceTransactionManager(jdbc.getDataSource())),returnPhotos,new com.ninimum.api.deliveryapp.service.PartialReturnService(jdbc,returnPhotos),warehouse,new com.ninimum.api.deliveryapp.service.DeliveryProof(jdbc));
         var tx=new org.springframework.transaction.support.TransactionTemplate(
                 new org.springframework.jdbc.datasource.DataSourceTransactionManager(jdbc.getDataSource()));
         deliveries.syncPaidOrders();long job=jdbc.queryForObject("SELECT id FROM delivery_jobs WHERE order_id=?",Long.class,id);
